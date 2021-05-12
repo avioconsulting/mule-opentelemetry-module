@@ -5,8 +5,8 @@
 	<groupId>com.avioconsulting</groupId>
 	<artifactId>open-telemetry-mule4-agent</artifactId>
 	<version>0.0.1</version>
-	<name>Open Telemetry Mule 4 agent</name>
-	<description>Open Telemetry Mule 4 agent</description>
+	<name>Open Telemetry Mule 4 Agent</name>
+	<description>Open Telemetry Mule 4 Agent</description>
 	<packaging>jar</packaging>
 
 	<properties>
