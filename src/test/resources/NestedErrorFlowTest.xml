@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
+
+	<import doc:name="Import" doc:id="1f20caed-944e-43a5-932c-88886d6c1fff"
+		file="test-tracer.xml" />
+
+	<flow name="NestedErrorFlowTestFlow1" doc:id="e9457e02-1b30-4555-96e5-c1b91968a60d" >
+		<logger level="INFO" doc:name="Logger1" doc:id="5ee68adb-17b9-48c3-8673-f19da38ba7f4" message="aaaaa"/>
+		<flow-ref doc:name="Flow Reference" doc:id="3da05303-39c9-4e45-b351-3d06a0bb0018" name="ErrorFlowTest"/>
+	</flow>
+	<flow name="NestedErrorFlowTestFlow" doc:id="0fbd6d8c-511d-41b6-a9be-db802bef7b60" >
+		<flow-ref doc:name="Flow Reference" doc:id="b9595165-c2ad-4e8b-bece-e3bc02f177fb" name="NestedErrorFlowTestFlow1"/>
+		<logger level="INFO" doc:name="Logger2" doc:id="45bdd8c8-ccd1-457b-873d-1471a73e23f9" message="tttt"/>
+	</flow>
+	<flow name="ErrorFlowTest" doc:id="7e5a37c8-d47d-4d91-82a2-7ebf48cac1f8">
+		<logger level="INFO" doc:name="Logger3" doc:id="db973b61-c42a-4ccd-889a-fca9b348130c" message="dfdfdf"/>
+		<scripting:execute engine="groovy" doc:name="Execute"
+			doc:id="92245be7-0764-41f7-ba09-df91b1b12ad0">
+			<scripting:code>throw new Exception(&quot;This is an error&quot;);</scripting:code>
+		</scripting:execute>
+		<logger level="INFO" doc:name="Logger4" doc:id="a7eb4386-8800-4160-b7bc-8a21f5c52991" message="zzzzz"/>
+	</flow>
+</mule>

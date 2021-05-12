@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd">
+
+	<import doc:name="Import" doc:id="1f20caed-944e-43a5-932c-88886d6c1fff"
+		file="test-tracer.xml" />
+
+	<flow name="ErrorFlowTest" doc:id="7e5a37c8-d47d-4d91-82a2-7ebf48cac1f8">
+		<scripting:execute engine="groovy" doc:name="Execute"
+			doc:id="92245be7-0764-41f7-ba09-df91b1b12ad0">
+			<scripting:code>throw new Exception(&quot;This is an error&quot;);</scripting:code>
+		</scripting:execute>
+	</flow>
+</mule>

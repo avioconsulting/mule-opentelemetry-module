@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+
+	<import doc:name="Import" doc:id="2bff4eba-13b6-45f8-89b5-0f6bc9e213f5"
+		file="test-tracer.xml" />
+
+	<flow name="ParallelFlowTest" doc:id="6e91a536-add3-439c-af4e-61ad7648af62" >
+		<logger level="INFO" doc:name="Logger1" doc:id="d614d0d9-0e00-4a57-a3bf-3c50307bed7d" />
+		<scatter-gather doc:name="Scatter-Gather" doc:id="756dac4e-22c2-4cfb-892d-fb268af7e009" >
+			<route >
+				<logger level="INFO" doc:name="Logger21" doc:id="0c7d50e0-6c26-462b-b19a-b7aa995a9d63" />
+				<logger level="INFO" doc:name="Logger22" doc:id="ecae3007-b557-4aba-80d6-e16dc38dbe8b" />
+				<logger level="INFO" doc:name="Logger23" doc:id="b4b6597a-144f-4729-8368-f01fc6a060b4" />
+			</route>
+			<route >
+				<logger level="INFO" doc:name="Logger31" doc:id="dda0d291-33bc-4697-bcd2-54ad946abbfe" />
+				<logger level="INFO" doc:name="Logger32" doc:id="d302381c-1372-42e9-b44a-a8c51a8f3d06" />
+			</route>
+			<route >
+				<logger level="INFO" doc:name="Logger41" doc:id="ed79f48d-7d25-461f-9dfe-f21d440d536f" />
+			</route>
+		</scatter-gather>
+		<logger level="INFO" doc:name="Logger5" doc:id="53004793-ead3-40f1-9005-31c80a6c61d8" />
+	</flow>
+</mule>
