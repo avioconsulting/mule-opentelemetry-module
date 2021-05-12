@@ -23,8 +23,17 @@ dist/
 target/
 dist/
 
+
+# Eclipse
+.settings/
+.project
+
 # JetBrains IDE
 .idea/
+*.iml
+
+# Mulesoft
+.mule/
 
 # Unit test reports
 TEST*.xml
