@@ -17,22 +17,23 @@ public class OpenTelemetryMuleEventProcessor {
 	public static void handleProcessorStartEvent(MessageProcessorNotification notification) {
 		logger.debug("Handling start event");
 		
-        Span my_test_span = SpanRegistrationUtility.createSpan("my_test_span").startSpan();
-        my_test_span.addEvent("Flow Start");
+        Span my_test_span = SpanRegistrationUtility.createSpan(getSpanName(notification)).startSpan();
+        my_test_span.setAttribute("mule_param","some_value");
+        my_test_span.addEvent("Processor Start");
         transactionStore.addSpan(getTransactionId(notification), getSpanId(notification), my_test_span);
   	
 	}
 	// What to invoke when Mule process step ends.
 	public static void handleProcessorEndEvent(MessageProcessorNotification notification) {
 		logger.debug("Handling end event");
-	
+		
 		Span span = transactionStore.retrieveSpan(getTransactionId(notification), getSpanId(notification));
-
-	
 		span.end();
 	}
 
-
+    public static String getSpanName(MessageProcessorNotification notification) {
+    	return notification.getComponent().getIdentifier().getName();
+    }
 	public static String getSpanId(MessageProcessorNotification notification) {
 		return notification.getInfo().getComponent().getLocation().getLocation();
 	}
