@@ -1,20 +1,21 @@
 package com.avioconsulting.opentelemetry;
 
-import io.opentelemetry.api.metrics.GlobalMeterProvider;
-import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.sdk.OpenTelemetrySdk;
-import io.opentelemetry.sdk.autoconfigure.OpenTelemetrySdkAutoConfiguration;
+import com.avioconsulting.opentelemetry.spans.SpanRegistrationUtility;
+import io.opentelemetry.api.trace.Span;
 import org.junit.Test;
 
 public class Explorer {
 
     @Test
-    public void name() {
-        System.out.println();
-        OpenTelemetrySdk sdk = OpenTelemetrySdkAutoConfiguration.initialize();
-        GlobalMeterProvider.getMeter("avio-explorer").longValueObserverBuilder("http.requests").setUpdater(longResult -> System.currentTimeMillis());
-        GlobalMeterProvider.get();
-        Meter meter = GlobalMeterProvider.getMeter("avio-explorer");
-        System.out.println(meter);
+    public void spansTest() throws InterruptedException {
+        System.out.println("START");
+        OpenTelemetryStarter openTelemetryStarter = new OpenTelemetryStarter();
+        Span my_test_span = SpanRegistrationUtility.createSpan("my_test_span").startSpan();
+        my_test_span.addEvent("Flow Start");
+        Thread.sleep(200);
+        my_test_span.addEvent("HTTP Request");
+        Thread.sleep(5000);
+        my_test_span.end();
+        System.out.println("END");
     }
 }

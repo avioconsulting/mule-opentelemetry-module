@@ -140,6 +140,18 @@
 			<version>1.1.0-alpha</version>
 		</dependency>
 
+		<!--	OpenTelemetry Exporters	-->
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-otlp</artifactId>
+			<version>${opentelemetry.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-logging</artifactId>
+			<version>${opentelemetry.version}</version>
+		</dependency>
+
 		<!-- Elastic APM -->
 		<dependency>
 			<groupId>co.elastic.apm</groupId>
