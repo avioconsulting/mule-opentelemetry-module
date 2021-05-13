@@ -3,8 +3,14 @@ package com.avioconsulting.opentelemetry;
 import com.avioconsulting.opentelemetry.spans.SpanRegistrationUtility;
 import io.opentelemetry.api.trace.Span;
 import org.junit.Test;
+import org.mule.functional.junit4.FunctionalTestCase;
 
-public class Explorer {
+public class Explorer extends FunctionalTestCase {
+
+    @Override
+    protected String getConfigFile() {
+        return "SimpleFlowTest.xml";
+    }
 
     @Test
     public void spansTest() throws InterruptedException {
@@ -17,5 +23,12 @@ public class Explorer {
         Thread.sleep(5000);
         my_test_span.end();
         System.out.println("END");
+    }
+
+    @Test
+    public void flowTest() throws Exception {
+        flowRunner("dep-testFlow").run();
+        Thread.sleep(1000);
+        System.out.println();
     }
 }

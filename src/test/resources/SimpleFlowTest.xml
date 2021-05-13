@@ -5,18 +5,18 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
 	
- 	<import doc:name="Import" doc:id="72ec1ad3-6910-4038-848e-8af9dbb838bf" file="test-tracer.xml" />
+<!-- 	<import doc:name="Import" doc:id="72ec1ad3-6910-4038-848e-8af9dbb838bf" file="test-tracer.xml" />-->
  	
 	<flow name="dep-testFlow" doc:id="e26ae845-7707-4dff-8b5b-09e42b49b4e7" >
 		<logger level="INFO" doc:name="Logger1" doc:id="ad07f7f7-9256-4424-8607-d2c13d620b0c" message="something else"/>
-		<flow-ref doc:name="Flow Reference1" doc:id="94440145-48a7-471e-af07-a8329d8f0e3a" name="dep-testSub_Flow"/>
-		<logger level="INFO" doc:name="Logger2" doc:id="2b778af2-0bbf-4b49-a6c4-53889f82e11b" message="booo"/>
+<!--		<flow-ref doc:name="Flow Reference1" doc:id="94440145-48a7-471e-af07-a8329d8f0e3a" name="dep-testSub_Flow"/>-->
+<!--		<logger level="INFO" doc:name="Logger2" doc:id="2b778af2-0bbf-4b49-a6c4-53889f82e11b" message="booo"/>-->
 	</flow>
-	<sub-flow name="dep-testSub_Flow" doc:id="feec6250-3900-42f2-b025-0f383bd08418" >
-		<logger level="INFO" doc:name="Logger3" doc:id="f7494aa9-b1e9-478b-a702-78efe2715a46" message="subflow1"/>
-		<flow-ref doc:name="Flow Reference2" doc:id="0a269efe-6853-4b8e-9967-499bd29a4c0e" name="dep-testFlow1"/>
-	</sub-flow>
-	<flow name="dep-testFlow1" doc:id="8ae84725-518f-4323-a6ff-eac2fc037456" >
-		<logger level="INFO" doc:name="Logger4" doc:id="2143a7d2-6b77-438d-a9cb-7e89b4fbbe2d" message="real flow"/>
-	</flow>
+<!--	<sub-flow name="dep-testSub_Flow" doc:id="feec6250-3900-42f2-b025-0f383bd08418" >-->
+<!--		<logger level="INFO" doc:name="Logger3" doc:id="f7494aa9-b1e9-478b-a702-78efe2715a46" message="subflow1"/>-->
+<!--		<flow-ref doc:name="Flow Reference2" doc:id="0a269efe-6853-4b8e-9967-499bd29a4c0e" name="dep-testFlow1"/>-->
+<!--	</sub-flow>-->
+<!--	<flow name="dep-testFlow1" doc:id="8ae84725-518f-4323-a6ff-eac2fc037456" >-->
+<!--		<logger level="INFO" doc:name="Logger4" doc:id="2143a7d2-6b77-438d-a9cb-7e89b4fbbe2d" message="real flow"/>-->
+<!--	</flow>-->
 </mule>

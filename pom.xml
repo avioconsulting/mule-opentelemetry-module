@@ -101,7 +101,15 @@
 			<classifier>mule-service</classifier>
 			<scope>test</scope>
 		</dependency>
-		
+
+		<dependency>
+			<groupId>com.github.tomakehurst</groupId>
+			<artifactId>wiremock-jre8</artifactId>
+			<version>2.25.0</version>
+			<scope>test</scope>
+		</dependency>
+
+
 		<!-- provided Mule APIs -->
 		<dependency>
 			<groupId>org.mule.runtime</groupId>
@@ -139,6 +147,12 @@
 			<artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
 			<version>1.1.0-alpha</version>
 		</dependency>
+		<dependency>
+			<groupId>io.grpc</groupId>
+			<artifactId>grpc-okhttp</artifactId>
+			<version>1.37.0</version>
+		</dependency>
+
 
 		<!--	OpenTelemetry Exporters	-->
 		<dependency>
@@ -149,6 +163,11 @@
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-exporter-logging</artifactId>
+			<version>${opentelemetry.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-jaeger</artifactId>
 			<version>${opentelemetry.version}</version>
 		</dependency>
 
