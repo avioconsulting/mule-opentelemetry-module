@@ -5,7 +5,7 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
 	
-<!-- 	<import doc:name="Import" doc:id="72ec1ad3-6910-4038-848e-8af9dbb838bf" file="test-tracer.xml" />-->
+ 	<import doc:name="Import" doc:id="72ec1ad3-6910-4038-848e-8af9dbb838bf" file="test-tracer.xml" />
  	
 	<flow name="dep-testFlow" doc:id="e26ae845-7707-4dff-8b5b-09e42b49b4e7" >
 		<logger level="INFO" doc:name="Logger1" doc:id="ad07f7f7-9256-4424-8607-d2c13d620b0c" message="something else"/>

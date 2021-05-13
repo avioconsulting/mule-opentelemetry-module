@@ -5,26 +5,16 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
 
-	<object doc:name="Object" name="_apmPipelineNotifications"
-		class="ARCHIVE.co.elastic.apm.mule4.agent.ApmPipelineNotificationListener" />
-
 	<object doc:name="Object"
-		name="_apmMessageProcessorNotifications"
-		class="ARCHIVE.co.elastic.apm.mule4.agent.ApmMessageProcessorNotificationListener" />
-
-	<object doc:name="Object" name="_apmExceptionNotifications"
-		class="ARCHIVE.co.elastic.apm.mule4.agent.ApmExceptionNotificationListener" />
+		name="_muleMessageProcessorNotificationListener"
+		class="com.avioconsulting.opentelemetry.spans.MuleMessageProcessorNotificationListener" />
 
 	<notifications>
-		<notification event="PIPELINE-MESSAGE" />
+<!--		<notification event="PIPELINE-MESSAGE" />-->
 		<notification event="MESSAGE-PROCESSOR" />
-		<notification event="EXCEPTION" />
+<!--		<notification event="EXCEPTION" />-->
 		<notification-listener
-			ref="_apmMessageProcessorNotifications" />
-		<notification-listener
-			ref="_apmPipelineNotifications" />
-		<notification-listener
-			ref="_apmExceptionNotifications" />
+			ref="_muleMessageProcessorNotificationListener" />
 	</notifications>
 
 </mule>

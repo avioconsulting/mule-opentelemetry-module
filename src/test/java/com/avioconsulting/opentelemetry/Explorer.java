@@ -4,8 +4,11 @@ import com.avioconsulting.opentelemetry.spans.SpanRegistrationUtility;
 import io.opentelemetry.api.trace.Span;
 import org.junit.Test;
 import org.mule.functional.junit4.FunctionalTestCase;
+import org.mule.functional.junit4.MuleArtifactFunctionalTestCase;
+import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
 
-public class Explorer extends FunctionalTestCase {
+@ArtifactClassLoaderRunnerConfig(applicationSharedRuntimeLibs = {"com.avioconsulting:open-telemetry-mule4-agent", "io.opentelemetry:opentelemetry-api"})
+public class Explorer extends MuleArtifactFunctionalTestCase {
 
     @Override
     protected String getConfigFile() {
