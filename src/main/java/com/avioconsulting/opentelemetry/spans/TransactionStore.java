@@ -1,8 +1,13 @@
 package com.avioconsulting.opentelemetry.spans;
 
+import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.mule.runtime.api.event.Event;
+import org.mule.runtime.api.notification.PipelineMessageNotification;
+import org.mule.runtime.core.api.event.CoreEvent;
 
 import co.elastic.apm.api.Transaction;
 import io.opentelemetry.api.trace.Span;
@@ -29,7 +34,7 @@ public class TransactionStore {
 			this.tx = tx;
 		}
 
-	}
+		}
 
 	// Possible concurrent access to the same transaction.
 	private Map<String, TransactionAndSpans> txMap = new ConcurrentHashMap<String, TransactionAndSpans>();
@@ -40,6 +45,53 @@ public class TransactionStore {
 
 	public void storeTransaction(String transactionId, Transaction transaction) {
 		txMap.put(transactionId, new TransactionAndSpans(transaction));
+	}
+
+	public static boolean isFirstEvent(TransactionStore transactionStore, PipelineMessageNotification notification) {
+		return !transactionStore.isTransactionPresent(getTransactionId(notification).get());
+	}
+	/*
+	 * Retrieve the transactionId by getting the attached event to pipeline
+	 * notification or exception
+	 */
+	private static Optional<String> getTransactionId(PipelineMessageNotification notification) {
+
+		Event event = notification.getEvent();
+
+		if (event != null)
+			return Optional.of(event.getCorrelationId());
+
+		// If the event == null, this must be the case of an exception and the original
+		// event is attached under processedEvent in the exception.
+		Exception e = notification.getInfo().getException();
+
+		// This is a really ugly hack to get around the fact that
+		// org.mule.runtime.core.internal.exception.MessagingException class is not
+		// visible in the current classloader and there is no documentation to explain
+		// how to access objects of this class and why the hell it is internal and is
+		// not part of the API.
+		// TODO: raise why org.mule.runtime.core.internal.exception.MessagingException
+		// is not part of the API with Mule support.
+		Field f = null;
+		CoreEvent iWantThis = null;
+		try {
+			f = e.getClass().getDeclaredField("processedEvent");
+		} catch (NoSuchFieldException | SecurityException e1) {
+			e1.printStackTrace();
+		} // NoSuchFieldException
+		f.setAccessible(true);
+		try {
+			iWantThis = (CoreEvent) f.get(e);
+		} catch (IllegalArgumentException | IllegalAccessException e1) {
+			e1.printStackTrace();
+		} // IllegalAccessException
+
+		if (iWantThis != null) {
+			String correlationId = iWantThis.getCorrelationId();
+			return Optional.of(correlationId);
+		}
+
+		return Optional.empty();
 	}
 
 	/*
