@@ -22,7 +22,7 @@ public class MuleFlowNotificationListener
 		// TODO: refactor to remove the deprecation warning.
 		switch (notification.getAction().getActionId()) {
 		case PipelineMessageNotification.PROCESS_START:
-			ApmHandler.handleFlowStartEvent(notification);
+			OpenTelemetryMuleEventProcessor.handleFlowStartEvent(notification);
 			break;
 
 		// On exception this event doesn't fire, only on successful flow completion.
@@ -30,7 +30,7 @@ public class MuleFlowNotificationListener
 			break;
 			
 		case PipelineMessageNotification.PROCESS_COMPLETE:
-			ApmHandler.handleFlowEndEvent(notification);
+			OpenTelemetryMuleEventProcessor.handleFlowEndEvent(notification);
 			break;
 		}
 	}
