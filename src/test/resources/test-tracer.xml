@@ -6,15 +6,20 @@
 	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
 
 	<object doc:name="Object"
+			name="_muleFlowNotificationListener"
+			class="com.avioconsulting.opentelemetry.spans.MuleFlowNotificationListener" />
+	<object doc:name="Object"
 		name="_muleMessageProcessorNotificationListener"
 		class="com.avioconsulting.opentelemetry.spans.MuleMessageProcessorNotificationListener" />
 
 	<notifications>
-<!--		<notification event="PIPELINE-MESSAGE" />-->
+		<notification event="PIPELINE-MESSAGE" />
 		<notification event="MESSAGE-PROCESSOR" />
 <!--		<notification event="EXCEPTION" />-->
 		<notification-listener
 			ref="_muleMessageProcessorNotificationListener" />
+		<notification-listener
+				ref="_muleFlowNotificationListener" />
 	</notifications>
 
 </mule>
