@@ -2,11 +2,13 @@ package com.avioconsulting.opentelemetry.spans;
 
 import com.avioconsulting.opentelemetry.OpenTelemetryStarter;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.namespace.QName;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,8 +26,16 @@ public class OpenTelemetryMuleEventProcessor {
         logger.debug("Handling processor start event");
 //        my_test_span.setAttribute("mule_param","some_value");
 //        my_test_span.addEvent("Processor Start");
-        transactionStore.addSpan(getTransactionId(notification), getSpanId(notification), OpenTelemetryStarter.getTracer().spanBuilder(getSpanName(notification)));
-
+        String docName = null;
+        try {
+            docName = getDocName(notification);
+        } catch (Exception e) {
+            // Suppress
+        }
+        if (docName != null)
+            transactionStore.addSpan(getTransactionId(notification), getSpanId(notification), OpenTelemetryStarter.getTracer().spanBuilder(getSpanName(notification)).setAttribute("doc.name", docName));
+        else
+            transactionStore.addSpan(getTransactionId(notification), getSpanId(notification), OpenTelemetryStarter.getTracer().spanBuilder(getSpanName(notification)));
     }
 
     // What to invoke when Mule process step ends.
@@ -42,13 +52,36 @@ public class OpenTelemetryMuleEventProcessor {
 		logger.debug("Handling flow start event");
 
 		if (!transactionStore.isTransactionPresent(getTransactionId(notification))) {
-            transactionStore.storeTransaction(getTransactionId(notification), OpenTelemetryStarter.getTracer().spanBuilder(getSpanName(notification)).startSpan());
+            SpanBuilder spanBuilder = OpenTelemetryStarter.getTracer().spanBuilder(getSpanName(notification));
+            try {
+                spanBuilder.setAttribute("flow.name", getDocName(notification));
+            } catch (Exception e) {
+                // Suppress
+            }
+            transactionStore.storeTransaction(getTransactionId(notification), spanBuilder.startSpan());
         } else {
-		    transactionStore.addSpan(getTransactionId(notification), getSpanId(notification), OpenTelemetryStarter.getTracer().spanBuilder(getSpanName(notification)));
+		    String docName = null;
+            try {
+                docName = getDocName(notification);
+            } catch (Exception e) {
+                // Suppress
+            }
+            if (docName != null)
+		        transactionStore.addSpan(getTransactionId(notification), getSpanId(notification), OpenTelemetryStarter.getTracer().spanBuilder(getSpanName(notification)).setAttribute("doc.name", docName));
+            else
+                transactionStore.addSpan(getTransactionId(notification), getSpanId(notification), OpenTelemetryStarter.getTracer().spanBuilder(getSpanName(notification)));
         }
 	}
 
-	// What to invoke when Mule flow completes execution.
+    private static String getDocName(PipelineMessageNotification notification) {
+        return String.valueOf(((Map) notification.getInfo().getComponent().getAnnotation(QName.valueOf("{config}componentParameters"))).get("name"));
+    }
+
+    private static String getDocName(MessageProcessorNotification notification) throws NullPointerException, ClassCastException {
+        return String.valueOf(((Map) notification.getInfo().getComponent().getAnnotation(QName.valueOf("{config}componentParameters"))).get("doc:name"));
+    }
+
+    // What to invoke when Mule flow completes execution.
 	public static void handleFlowEndEvent(PipelineMessageNotification notification) {
 		logger.debug("Handling flow end event");
 		transactionStore.endTransaction(getTransactionId(notification));
@@ -56,8 +89,7 @@ public class OpenTelemetryMuleEventProcessor {
     }
 
     public static String getSpanName(MessageProcessorNotification notification) {
-		String name = notification.getComponent().getIdentifier().getName();
-		return name;
+        return notification.getComponent().getIdentifier().getName();
     }
 
     public static String getSpanName(PipelineMessageNotification notification) {

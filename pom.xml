@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.avioconsulting</groupId>
 	<artifactId>open-telemetry-mule4-agent</artifactId>
-	<version>0.0.3</version>
+	<version>0.0.4</version>
 	<name>Open Telemetry Mule 4 Agent</name>
 	<description>Open Telemetry Mule 4 Agent</description>
 	<packaging>jar</packaging>
