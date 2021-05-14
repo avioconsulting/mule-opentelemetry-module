@@ -205,6 +205,11 @@
 			<artifactId>opentelemetry-exporter-jaeger</artifactId>
 			<version>${opentelemetry.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-zipkin</artifactId>
+			<version>${opentelemetry.version}</version>
+		</dependency>
 
 		<!--	Logging	-->
 		<dependency>

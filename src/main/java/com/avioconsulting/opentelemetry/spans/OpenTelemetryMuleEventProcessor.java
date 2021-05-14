@@ -2,11 +2,13 @@ package com.avioconsulting.opentelemetry.spans;
 
 import com.avioconsulting.opentelemetry.OpenTelemetryStarter;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanBuilder;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.Optional;
 
 
 public class OpenTelemetryMuleEventProcessor {
@@ -19,17 +21,10 @@ public class OpenTelemetryMuleEventProcessor {
 
     // What to invoke when Mule process step starts.
     public static void handleProcessorStartEvent(MessageProcessorNotification notification) {
-        logger.debug("Handling start event");
-        Span span = null;
-        try {
-            SpanBuilder spanBuilder = OpenTelemetryStarter.getTracer().spanBuilder(getSpanName(notification)).setNoParent();
-            span = spanBuilder.startSpan();
-        } catch (Exception e) {
-            System.out.println(e);
-        }
+        logger.debug("Handling processor start event");
 //        my_test_span.setAttribute("mule_param","some_value");
 //        my_test_span.addEvent("Processor Start");
-        transactionStore.addSpan(getTransactionId(notification), getSpanId(notification), span);
+        transactionStore.addSpan(getTransactionId(notification), getSpanId(notification), OpenTelemetryStarter.getTracer().spanBuilder(getSpanName(notification)));
 
     }
 
@@ -37,7 +32,7 @@ public class OpenTelemetryMuleEventProcessor {
     public static void handleProcessorEndEvent(MessageProcessorNotification notification) {
         logger.debug("Handling end event");
 
-        Span span = transactionStore.retrieveSpan(getTransactionId(notification), getSpanId(notification));
+        Span span = transactionStore.getSpan(getTransactionId(notification), getSpanId(notification));
         span.end();
     }
 
@@ -46,24 +41,38 @@ public class OpenTelemetryMuleEventProcessor {
 	public static void handleFlowStartEvent(PipelineMessageNotification notification) {
 		logger.debug("Handling flow start event");
 
-		if (transactionStore.isTransactionPresent(getTransactionId(notification)))
-            transactionStore.storeTransaction(getTransactionId(notification), notification);
-
+		if (!transactionStore.isTransactionPresent(getTransactionId(notification))) {
+            transactionStore.storeTransaction(getTransactionId(notification), OpenTelemetryStarter.getTracer().spanBuilder(getSpanName(notification)).startSpan());
+        } else {
+		    transactionStore.addSpan(getTransactionId(notification), getSpanId(notification), OpenTelemetryStarter.getTracer().spanBuilder(getSpanName(notification)));
+        }
 	}
 
 	// What to invoke when Mule flow completes execution.
 	public static void handleFlowEndEvent(PipelineMessageNotification notification) {
 		logger.debug("Handling flow end event");
 
-		TransactionUtils.endTransaction(transactionStore, notification);
-	}
+        Optional<Map<String, Span>> stringSpanMap = transactionStore.retrieveTransaction(getTransactionId(notification));
+        stringSpanMap.ifPresent(spanMap -> spanMap.forEach(
+                (s, span) -> span.end()
+        ));
+    }
 
     public static String getSpanName(MessageProcessorNotification notification) {
 		String name = notification.getComponent().getIdentifier().getName();
 		return name;
     }
 
+    public static String getSpanName(PipelineMessageNotification notification) {
+        String name = notification.getComponent().getIdentifier().getName();
+        return name;
+    }
+
     public static String getSpanId(MessageProcessorNotification notification) {
+        return notification.getInfo().getComponent().getLocation().getLocation();
+    }
+
+    public static String getSpanId(PipelineMessageNotification notification) {
         return notification.getInfo().getComponent().getLocation().getLocation();
     }
 

@@ -16,7 +16,9 @@ import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
         "io.opentelemetry:opentelemetry-sdk-metrics",
         "io.opentelemetry:opentelemetry-api-metrics",
         "io.opentelemetry:opentelemetry-sdk-trace",
-        "io.opentelemetry:opentelemetry-exporter-logging"})
+        "io.opentelemetry:opentelemetry-exporter-logging",
+        "io.opentelemetry:opentelemetry-exporter-jaeger",
+        "io.opentelemetry:opentelemetry-exporter-zipkin"})
 public class Explorer extends MuleArtifactFunctionalTestCase {
 
     @Override

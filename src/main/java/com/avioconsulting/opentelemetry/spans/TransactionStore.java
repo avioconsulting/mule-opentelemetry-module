@@ -5,11 +5,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.context.Context;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.mule.runtime.core.api.event.CoreEvent;
 
-import co.elastic.apm.api.Transaction;
 import io.opentelemetry.api.trace.Span;
 
 /*
@@ -17,34 +18,29 @@ import io.opentelemetry.api.trace.Span;
  */
 public class TransactionStore {
 
-	private class TransactionAndSpans {
+	private class FlowAndSpans {
 
-		private Transaction tx;
-		public Map<String, Span> spMap = new ConcurrentHashMap<>();
+		private Span flowSpan;
+		public Map<String, Span> spanMap = new ConcurrentHashMap<>();
 
-		public TransactionAndSpans(Transaction tx) {
-			this.tx = tx;
+		public FlowAndSpans(Span flowSpan) {
+			this.flowSpan = flowSpan;
 		}
 
-		public Transaction getTransaction() {
-			return this.tx;
+		public Span getFlowSpan() {
+			return flowSpan;
 		}
-
-		public void setTransaction(Transaction tx) {
-			this.tx = tx;
-		}
-
-		}
+	}
 
 	// Possible concurrent access to the same transaction.
-	private Map<String, TransactionAndSpans> txMap = new ConcurrentHashMap<String, TransactionAndSpans>();
+	private Map<String, FlowAndSpans> txMap = new ConcurrentHashMap<>();
 
 	public boolean isTransactionPresent(String transactionId) {
 		return txMap.containsKey(transactionId);
 	}
 
-	public void storeTransaction(String transactionId, Transaction transaction) {
-		txMap.put(transactionId, new TransactionAndSpans(transaction));
+	public void storeTransaction(String transactionId, Span span) {
+		txMap.put(transactionId, new FlowAndSpans(span));
 	}
 
 	public static boolean isFirstEvent(TransactionStore transactionStore, PipelineMessageNotification notification) {
@@ -97,41 +93,36 @@ public class TransactionStore {
 	/*
 	 * Retrieve and remove the transaction from the store.
 	 */
-	public Optional<Transaction> retrieveTransaction(String transactionId) {
+	public Optional<Map<String, Span>> retrieveTransaction(String transactionId) {
 
-		TransactionAndSpans remove = txMap.remove(transactionId);
+		FlowAndSpans remove = txMap.remove(transactionId);
 
 		if (remove == null)
 			return Optional.empty();
 
-		return Optional.of(remove.getTransaction());
+		return Optional.of(remove.spanMap);
 	}
 
 	/*
 	 * Get the transaction without removing it from the store.
 	 */
-	public Optional<Transaction> getTransaction(String transactionId) {
-		TransactionAndSpans transactionAndSpans = txMap.get(transactionId);
+	public Optional<FlowAndSpans> getTransaction(String transactionId) {
+		FlowAndSpans span = txMap.get(transactionId);
 
-		if (transactionAndSpans == null)
+		if (span == null)
 			return Optional.empty();
 
-		return Optional.ofNullable(transactionAndSpans.getTransaction());
+		return Optional.ofNullable(span);
 	}
 
-	public void addSpan(String transactionId, String spanId, Span span) {
-		Map<String, Span> spMap = txMap.get(transactionId).spMap;
-
-		synchronized (spMap) {
-			spMap.put(spanId, span);
-		}
+	public void addSpan(String transactionId, String spanId, SpanBuilder span) {
+		FlowAndSpans parentSpan = txMap.get(transactionId);
+		parentSpan.spanMap.put(spanId, span.setParent(Context.current().with(parentSpan.getFlowSpan())).startSpan());
 	}
 
-	public Span retrieveSpan(String transactionId, String spanId) {
-		TransactionAndSpans transactionAndSpans = txMap.get(transactionId);
-
-
-		return transactionAndSpans.spMap.remove(spanId);
+	public Span getSpan(String transactionId, String spanId) {
+		FlowAndSpans parentSpan = txMap.get(transactionId);
+		return parentSpan.spanMap.get(spanId);
 	}
 
 //	public void updateTransaction(String transactionId, ApmTransaction transaction2) {
