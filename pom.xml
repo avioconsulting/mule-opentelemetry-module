@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.avioconsulting</groupId>
 	<artifactId>open-telemetry-mule4-agent</artifactId>
-	<version>0.0.1</version>
+	<version>0.0.3</version>
 	<name>Open Telemetry Mule 4 Agent</name>
 	<description>Open Telemetry Mule 4 Agent</description>
 	<packaging>jar</packaging>
@@ -156,6 +156,7 @@
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk-common</artifactId>
 			<version>1.1.0</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
@@ -166,6 +167,7 @@
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk-metrics</artifactId>
 			<version>1.1.0-alpha</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
@@ -176,16 +178,101 @@
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-api-metrics</artifactId>
 			<version>1.1.0-alpha</version>
+			<scope>test</scope>
+
 		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-semconv</artifactId>
 			<version>1.1.0-alpha</version>
+			<scope>test</scope>
+
 		</dependency>
+		<dependency>
+			<groupId>io.grpc</groupId>
+			<artifactId>grpc-api</artifactId>
+			<version>1.37.0</version>
+			<scope>test</scope>
+
+		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>25.1-jre</version>
+			<scope>test</scope>
+
+		</dependency>
+
 		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-okhttp</artifactId>
 			<version>1.37.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.grpc</groupId>
+			<artifactId>grpc-core</artifactId>
+			<version>1.37.0</version>
+			<scope>test</scope>
+
+		</dependency>
+		<dependency>
+			<groupId>io.grpc</groupId>
+			<artifactId>grpc-protobuf</artifactId>
+			<version>1.36.1</version>
+			<scope>test</scope>
+
+		</dependency>
+		<dependency>
+			<groupId>io.grpc</groupId>
+			<artifactId>grpc-protobuf-lite</artifactId>
+			<version>1.36.1</version>
+			<scope>test</scope>
+
+		</dependency>
+		<dependency>
+			<groupId>io.perfmark</groupId>
+			<artifactId>perfmark-api</artifactId>
+			<version>0.23.0</version>
+			<scope>test</scope>
+
+		</dependency>
+		<dependency>
+			<groupId>io.grpc</groupId>
+			<artifactId>grpc-stub</artifactId>
+			<version>1.36.1</version>
+			<scope>test</scope>
+
+		</dependency>
+		<dependency>
+			<groupId>io.grpc</groupId>
+			<artifactId>grpc-context</artifactId>
+			<version>1.37.0</version>
+			<scope>test</scope>
+
+		</dependency>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+			<version>3.15.7</version>
+			<scope>test</scope>
+
+		</dependency>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java-util</artifactId>
+			<version>3.15.7</version>
+			<scope>test</scope>
+
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-jul</artifactId>
+			<version>2.14.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.squareup.okio</groupId>
+			<artifactId>okio</artifactId>
+			<version>1.17.5</version>
 		</dependency>
 
 

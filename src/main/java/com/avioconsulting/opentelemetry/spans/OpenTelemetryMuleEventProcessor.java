@@ -51,11 +51,8 @@ public class OpenTelemetryMuleEventProcessor {
 	// What to invoke when Mule flow completes execution.
 	public static void handleFlowEndEvent(PipelineMessageNotification notification) {
 		logger.debug("Handling flow end event");
+		transactionStore.endTransaction(getTransactionId(notification));
 
-        Optional<Map<String, Span>> stringSpanMap = transactionStore.retrieveTransaction(getTransactionId(notification));
-        stringSpanMap.ifPresent(spanMap -> spanMap.forEach(
-                (s, span) -> span.end()
-        ));
     }
 
     public static String getSpanName(MessageProcessorNotification notification) {

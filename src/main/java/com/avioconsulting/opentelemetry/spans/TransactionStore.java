@@ -12,11 +12,15 @@ import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.mule.runtime.core.api.event.CoreEvent;
 
 import io.opentelemetry.api.trace.Span;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * Store for transactions inflight.
  */
 public class TransactionStore {
+	private static Logger logger = LoggerFactory.getLogger(TransactionStore.class);
+
 
 	private class FlowAndSpans {
 
@@ -93,14 +97,16 @@ public class TransactionStore {
 	/*
 	 * Retrieve and remove the transaction from the store.
 	 */
-	public Optional<Map<String, Span>> retrieveTransaction(String transactionId) {
+	public void endTransaction(String transactionId) {
 
 		FlowAndSpans remove = txMap.remove(transactionId);
 
-		if (remove == null)
-			return Optional.empty();
-
-		return Optional.of(remove.spanMap);
+		if (remove != null) {
+			remove.spanMap.forEach(
+					(s, span) -> span.end()
+			);
+			remove.flowSpan.end();
+		}
 	}
 
 	/*
@@ -117,7 +123,9 @@ public class TransactionStore {
 
 	public void addSpan(String transactionId, String spanId, SpanBuilder span) {
 		FlowAndSpans parentSpan = txMap.get(transactionId);
-		parentSpan.spanMap.put(spanId, span.setParent(Context.current().with(parentSpan.getFlowSpan())).startSpan());
+		Span value = span.setParent(Context.current().with(parentSpan.getFlowSpan())).startSpan();
+		logger.info(value.getSpanContext().getTraceId());
+		parentSpan.spanMap.put(spanId, value);
 	}
 
 	public Span getSpan(String transactionId, String spanId) {
