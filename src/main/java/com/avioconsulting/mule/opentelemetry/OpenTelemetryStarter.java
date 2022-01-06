@@ -1,4 +1,4 @@
-package com.avioconsulting.opentelemetry;
+package com.avioconsulting.mule.opentelemetry;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Tracer;
@@ -13,7 +13,7 @@ public class OpenTelemetryStarter {
     private Logger logger = LoggerFactory.getLogger(OpenTelemetryStarter.class);
 
     public static final String INSTRUMENTATION_VERSION = "0.0.1";
-    public static final String INSTRUMENTATION_NAME = "com.avioconsulting.tracing";
+    public static final String INSTRUMENTATION_NAME = "com.avioconsulting.mule.tracing";
 
     private static OpenTelemetry openTelemetry;
     private static Tracer tracer;

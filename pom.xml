@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.avioconsulting</groupId>
 	<artifactId>open-telemetry-mule4-agent</artifactId>
-	<version>0.0.4</version>
+	<version>0.0.6-9</version>
 	<name>Open Telemetry Mule 4 Agent</name>
 	<description>Open Telemetry Mule 4 Agent</description>
 	<packaging>jar</packaging>
@@ -24,6 +24,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
+				<version>3.2.0</version>
 				<executions>
 					<execution>
 						<id>attach-sources</id>
@@ -36,33 +37,44 @@
 		</plugins>
 	</build>
 
+<!--	<dependencyManagement>-->
+<!--		<dependencies>-->
+<!--			<dependency>-->
+<!--				<groupId>io.opentelemetry</groupId>-->
+<!--				<artifactId>opentelemetry-bom</artifactId>-->
+<!--				<version>${opentelemetry.version}</version>-->
+<!--				<type>pom</type>-->
+<!--				<scope>import</scope>-->
+<!--			</dependency>-->
+<!--		</dependencies>-->
+<!--	</dependencyManagement>-->
 	<dependencies>
-<!--		&lt;!&ndash; Test Mule dependencies &ndash;&gt;-->
-<!--		<dependency>-->
-<!--			<groupId>org.mule.tests</groupId>-->
-<!--			<artifactId>mule-tests-functional</artifactId>-->
-<!--			<version>${mule.runtime.version}</version>-->
-<!--			<scope>test</scope>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>org.mule.tests</groupId>-->
-<!--			<artifactId>mule-tests-runner</artifactId>-->
-<!--			<version>${mule.runtime.version}</version>-->
-<!--			<scope>test</scope>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>org.mule.tests</groupId>-->
-<!--			<artifactId>mule-tests-unit</artifactId>-->
-<!--			<version>${mule.runtime.version}</version>-->
-<!--			<scope>test</scope>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>org.mule.tests.plugin</groupId>-->
-<!--			<artifactId>mule-tests-component-plugin</artifactId>-->
-<!--			<version>${mule.runtime.version}</version>-->
-<!--			<classifier>mule-plugin</classifier>-->
-<!--			<scope>test</scope>-->
-<!--		</dependency>-->
+		<!-- Test Mule dependencies -->
+		<dependency>
+			<groupId>org.mule.tests</groupId>
+			<artifactId>mule-tests-functional</artifactId>
+			<version>${mule.runtime.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mule.tests</groupId>
+			<artifactId>mule-tests-runner</artifactId>
+			<version>${mule.runtime.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mule.tests</groupId>
+			<artifactId>mule-tests-unit</artifactId>
+			<version>${mule.runtime.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mule.tests.plugin</groupId>
+			<artifactId>mule-tests-component-plugin</artifactId>
+			<version>${mule.runtime.version}</version>
+			<classifier>mule-plugin</classifier>
+			<scope>test</scope>
+		</dependency>
 
 
 		<!-- HTTP dependencies for testing -->
@@ -150,6 +162,11 @@
 		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-sdk-extension-autoconfigure-spi</artifactId>
+			<version>${opentelemetry.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk</artifactId>
 			<version>${opentelemetry.version}</version>
 		</dependency>
@@ -166,28 +183,15 @@
 		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-sdk-metrics</artifactId>
-			<version>${opentelemetry.version}-alpha</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk-trace</artifactId>
 			<version>${opentelemetry.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-api-metrics</artifactId>
-			<version>${opentelemetry.version}-alpha</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-semconv</artifactId>
 			<version>${opentelemetry.version}-alpha</version>
-			<scope>test</scope>
 		</dependency>
-		<dependency>
+		<!--<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-api</artifactId>
 			<version>${grpc.version}</version>
@@ -261,7 +265,7 @@
 			<groupId>com.squareup.okio</groupId>
 			<artifactId>okio</artifactId>
 			<version>1.17.5</version>
-		</dependency>
+		</dependency>-->
 
 		<!--	OpenTelemetry Exporters	-->
 		<dependency>

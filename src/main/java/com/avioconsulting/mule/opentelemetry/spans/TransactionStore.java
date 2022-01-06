@@ -1,4 +1,4 @@
-package com.avioconsulting.opentelemetry.spans;
+package com.avioconsulting.mule.opentelemetry.spans;
 
 import java.lang.reflect.Field;
 import java.util.Map;

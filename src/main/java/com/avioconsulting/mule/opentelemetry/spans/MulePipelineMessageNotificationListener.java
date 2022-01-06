@@ -1,4 +1,4 @@
-package com.avioconsulting.opentelemetry.spans;
+package com.avioconsulting.mule.opentelemetry.spans;
 
 import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotificationListener;
@@ -8,19 +8,16 @@ import org.slf4j.LoggerFactory;
 /*
  * Listener for Mule notifications on flow start, end and completion.
  */
-public class MuleFlowNotificationListener
+public class MulePipelineMessageNotificationListener
 		implements PipelineMessageNotificationListener<PipelineMessageNotification> {
 
-	private Logger logger = LoggerFactory.getLogger(MuleFlowNotificationListener.class);
+	private Logger logger = LoggerFactory.getLogger(MulePipelineMessageNotificationListener.class);
 
-	@SuppressWarnings("deprecation")
 	@Override
 	public void onNotification(PipelineMessageNotification notification) {
 		logger.debug("===> Received " + notification.getClass().getName() + ":" + notification.getActionName());
 
-		// Event listener
-		// TODO: refactor to remove the deprecation warning.
-		switch (notification.getAction().getActionId()) {
+		switch (Integer.parseInt(notification.getAction().getIdentifier())) {
 		case PipelineMessageNotification.PROCESS_START:
 			OpenTelemetryMuleEventProcessor.handleFlowStartEvent(notification);
 			break;
