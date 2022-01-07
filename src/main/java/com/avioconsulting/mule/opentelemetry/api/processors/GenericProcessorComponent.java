@@ -15,7 +15,11 @@ public class GenericProcessorComponent extends AbstractProcessorComponent {
     @Override
     public TraceComponent getTraceComponent(EnrichedServerNotification notification) {
         Map<String, String> tags = new HashMap<>(getProcessorCommonTags(notification));
-        return new TraceComponent(tags, notification.getComponent().getIdentifier().getName()
-                , notification.getEvent().getCorrelationId(), notification.getComponent().getLocation().getLocation());
+        return new TraceComponent
+                .Builder(notification.getComponent().getIdentifier().getName())
+                .tags(tags)
+                .transactionId(notification.getEvent().getCorrelationId())
+                .spanId(notification.getComponent().getLocation().getLocation())
+                .build();
     }
 }

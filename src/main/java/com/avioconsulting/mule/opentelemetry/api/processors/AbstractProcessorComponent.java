@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.api.processors;
 
+import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import javax.xml.namespace.QName;
@@ -33,5 +34,13 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent{
         tags.put("mule.processor.name", notification.getComponent().getIdentifier().getName());
         if(docName != null) tags.put("mule.processor.docName", docName);
         return tags;
+    }
+
+    protected ComponentIdentifier getSourceIdentifier(EnrichedServerNotification notification) {
+        ComponentIdentifier sourceIdentifier = null;
+        if (notification.getEvent() != null && notification.getEvent().getContext().getOriginatingLocation() != null) {
+            sourceIdentifier = notification.getEvent().getContext().getOriginatingLocation().getComponentIdentifier().getIdentifier();
+        }
+        return sourceIdentifier;
     }
 }

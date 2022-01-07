@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.avioconsulting</groupId>
 	<artifactId>open-telemetry-mule4-agent</artifactId>
-	<version>0.0.6-9</version>
+	<version>0.0.6-SNAPSHOT</version>
 	<name>Open Telemetry Mule 4 Agent</name>
 	<description>Open Telemetry Mule 4 Agent</description>
 	<packaging>jar</packaging>
@@ -183,8 +183,20 @@
 		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-sdk-metrics</artifactId>
+			<version>${opentelemetry.version}-alpha</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk-trace</artifactId>
 			<version>${opentelemetry.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-api-metrics</artifactId>
+			<version>${opentelemetry.version}-alpha</version>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
@@ -293,7 +305,6 @@
 			<artifactId>opentelemetry-exporter-zipkin</artifactId>
 			<version>${opentelemetry.version}</version>
 		</dependency>
-
 		<!--	Logging	-->
 		<dependency>
 			<groupId>org.slf4j</groupId>

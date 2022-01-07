@@ -14,31 +14,29 @@ public class OpenTelemetryStarter {
 
     public static final String INSTRUMENTATION_VERSION = "0.0.1";
     public static final String INSTRUMENTATION_NAME = "com.avioconsulting.mule.tracing";
+    private static OpenTelemetryStarter starter;
+    private OpenTelemetry openTelemetry;
+    private Tracer tracer;
 
-    private static OpenTelemetry openTelemetry;
-    private static Tracer tracer;
-
-    public OpenTelemetryStarter() {
+    private OpenTelemetryStarter() {
         logger.debug("Initialising OpenTelemetry Mule 4 Agent");
         // See here for autoconfigure options https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure
         openTelemetry = AutoConfiguredOpenTelemetrySdk.initialize().getOpenTelemetrySdk();
         tracer = openTelemetry.getTracer(INSTRUMENTATION_NAME, INSTRUMENTATION_VERSION);
     }
 
-    public static OpenTelemetry getOpenTelemetry() {
-        if (openTelemetry == null) {
-            openTelemetry = AutoConfiguredOpenTelemetrySdk.initialize().getOpenTelemetrySdk();
+    public synchronized static OpenTelemetryStarter getInstance() {
+        if(starter == null) {
+            starter = new OpenTelemetryStarter();
         }
+        return  starter;
+    }
+
+    public OpenTelemetry getOpenTelemetry() {
         return openTelemetry;
     }
 
-    public static Tracer getTracer() {
-        if (tracer == null) {
-            if (openTelemetry == null) {
-                openTelemetry = AutoConfiguredOpenTelemetrySdk.initialize().getOpenTelemetrySdk();
-            }
-            tracer = openTelemetry.getTracer(INSTRUMENTATION_NAME, INSTRUMENTATION_VERSION);
-        }
+    public Tracer getTracer() {
         return tracer;
     }
 }
