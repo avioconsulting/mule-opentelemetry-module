@@ -114,15 +114,18 @@
 			<classifier>mule-service</classifier>
 			<scope>test</scope>
 		</dependency>
-
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<version>3.20.2</version>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>com.github.tomakehurst</groupId>
 			<artifactId>wiremock-jre8</artifactId>
 			<version>2.25.0</version>
 			<scope>test</scope>
 		</dependency>
-
-
 		<!-- provided Mule APIs -->
 		<dependency>
 			<groupId>org.mule.runtime</groupId>
@@ -203,83 +206,50 @@
 			<artifactId>opentelemetry-semconv</artifactId>
 			<version>${opentelemetry.version}-alpha</version>
 		</dependency>
-		<!--<dependency>
-			<groupId>io.grpc</groupId>
-			<artifactId>grpc-api</artifactId>
-			<version>${grpc.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>25.1-jre</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.grpc</groupId>
-			<artifactId>grpc-okhttp</artifactId>
-			<version>${grpc.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.grpc</groupId>
-			<artifactId>grpc-core</artifactId>
-			<version>${grpc.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.grpc</groupId>
-			<artifactId>grpc-protobuf</artifactId>
-			<version>${grpc.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.grpc</groupId>
-			<artifactId>grpc-protobuf-lite</artifactId>
-			<version>${grpc.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.perfmark</groupId>
-			<artifactId>perfmark-api</artifactId>
-			<version>0.23.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.grpc</groupId>
-			<artifactId>grpc-stub</artifactId>
-			<version>${grpc.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.grpc</groupId>
-			<artifactId>grpc-context</artifactId>
-			<version>${grpc.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.google.protobuf</groupId>
-			<artifactId>protobuf-java</artifactId>
-			<version>3.15.7</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.google.protobuf</groupId>
-			<artifactId>protobuf-java-util</artifactId>
-			<version>3.15.7</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-jul</artifactId>
-			<version>2.17.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.squareup.okio</groupId>
-			<artifactId>okio</artifactId>
-			<version>1.17.5</version>
-		</dependency>-->
+<!--		Start: Zipkin exporter test dependencies: Require deps in test class too
+			Uncomment following dependencies for POM.
 
-		<!--	OpenTelemetry Exporters	-->
+			The Test classes must add following dependencies to @ArtifactClassLoaderRunnerConfig
+"io.opentelemetry:opentelemetry-exporter-zipkin",
+"io.zipkin.zipkin2:zipkin",
+"io.zipkin.reporter2:zipkin-reporter",
+"io.zipkin.reporter2:zipkin-sender-okhttp3",
+"com.squareup.okio:okio",
+"com.squareup.okhttp3:okhttp"
+
+-->
+
+<!--		<dependency>-->
+<!--			<groupId>io.zipkin.zipkin2</groupId>-->
+<!--			<artifactId>zipkin</artifactId>-->
+<!--			<version>2.23.2</version>-->
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>io.zipkin.reporter2</groupId>-->
+<!--			<artifactId>zipkin-reporter</artifactId>-->
+<!--			<version>2.16.3</version>-->
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>io.zipkin.reporter2</groupId>-->
+<!--			<artifactId>zipkin-sender-okhttp3</artifactId>-->
+<!--			<version>2.16.3</version>-->
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>com.squareup.okio</groupId>-->
+<!--			<artifactId>okio</artifactId>-->
+<!--			<version>1.17.5</version>-->
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>com.squareup.okhttp3</groupId>-->
+<!--			<artifactId>okhttp</artifactId>-->
+<!--			<version>3.14.9</version>-->
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
+		<!--		END: Zipkin exporter test dependencies: Require deps in test class too-->
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-exporter-otlp</artifactId>

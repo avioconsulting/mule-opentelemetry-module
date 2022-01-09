@@ -13,18 +13,42 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent{
     public static final String NAMESPACE_MULE = "mule";
     public static final String FLOW = "flow";
 
+    @Override
+    public TraceComponent getEndTraceComponent(EnrichedServerNotification notification) {
+        return TraceComponent.newBuilder(notification.getResourceIdentifier())
+                .withTransactionId(getTransactionId(notification))
+                .withLocation(notification.getComponent().getLocation().getLocation())
+                .build();
+    }
+
+    protected TraceComponent.Builder getBaseTraceComponent(EnrichedServerNotification notification) {
+        return TraceComponent
+                .newBuilder(notification.getComponent().getLocation().getLocation())
+                .withLocation(notification.getComponent().getLocation().getLocation())
+                .withSpanName(notification.getComponent().getIdentifier().getName())
+                .withTransactionId(getTransactionId(notification));
+    }
+    protected String getTransactionId(EnrichedServerNotification notification) {
+        return notification.getEvent().getCorrelationId();
+    }
     protected <T> T getComponentAnnotation(String annotationName, EnrichedServerNotification notification){
         return (T) notification.getInfo().getComponent().getAnnotation(QName.valueOf(annotationName));
     }
 
     protected String getComponentParameterName(EnrichedServerNotification notification){
-        Map<String, String> parameters = getComponentAnnotation("{config}componentParameters", notification);
-        return parameters.get("name");
+        return getComponentParameter(notification, "name");
     }
-
+    protected String getComponentParameter(EnrichedServerNotification notification, String parameter){
+        return getComponentParameters(notification).get(parameter);
+    }
+    private Map<String, String> getComponentParameters(EnrichedServerNotification notification) {
+        return getComponentAnnotation("{config}componentParameters", notification);
+    }
+    protected String getComponentConfigRef(EnrichedServerNotification notification){
+        return getComponentParameter(notification, "config-ref");
+    }
     protected String getComponentDocName(EnrichedServerNotification notification){
-        Map<String, String> parameters = getComponentAnnotation("{config}componentParameters", notification);
-        return parameters.get("doc:name");
+        return getComponentParameter(notification, "doc:name");
     }
 
     protected Map<String, String> getProcessorCommonTags(EnrichedServerNotification notification){

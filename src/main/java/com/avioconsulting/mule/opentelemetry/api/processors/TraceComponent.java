@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.api.processors;
 
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 
 import java.util.Map;
@@ -8,15 +9,27 @@ public class TraceComponent {
     private Map<String, String> tags;
     private final String name;
     private String transactionId;
-    private String spanId;
+    private String spanName;
+    private String location;
     private Context context;
+    private SpanKind spanKind = SpanKind.INTERNAL;
 
     private TraceComponent(Builder builder) {
         tags = builder.tags;
         name = builder.name;
         transactionId = builder.transactionId;
-        spanId = builder.spanId;
+        spanName = builder.spanName;
+        location = builder.location;
         context = builder.context;
+        spanKind = builder.spanKind;
+    }
+
+    public static Builder newBuilder(String name) {
+        return new Builder(name);
+    }
+
+    public SpanKind getSpanKind() {
+        return spanKind;
     }
 
     public Map<String, String> getTags() {
@@ -31,41 +44,57 @@ public class TraceComponent {
         return transactionId;
     }
 
-    public String getSpanId() {
-        return spanId;
+    public String getSpanName() {
+        return spanName;
     }
     public Context getContext() {
         return context;
+    }
+
+    public String getLocation() {
+        return location;
     }
 
     public static final class Builder {
         private Map<String, String> tags;
         private final String name;
         private String transactionId;
-        private String spanId;
+        private String spanName;
+        private String location;
         private Context context;
+        private SpanKind spanKind;
 
-        public Builder(String name) {
+        private Builder(String name) {
             this.name = name;
         }
 
-        public Builder tags(Map<String, String> val) {
+        public Builder withTags(Map<String, String> val) {
             tags = val;
             return this;
         }
 
-        public Builder transactionId(String val) {
+        public Builder withTransactionId(String val) {
             transactionId = val;
             return this;
         }
 
-        public Builder spanId(String val) {
-            spanId = val;
+        public Builder withSpanName(String val) {
+            spanName = val;
             return this;
         }
 
-        public Builder context(Context val) {
+        public Builder withLocation(String val) {
+            location = val;
+            return this;
+        }
+
+        public Builder withContext(Context val) {
             context = val;
+            return this;
+        }
+
+        public Builder withSpanKind(SpanKind val) {
+            spanKind = val;
             return this;
         }
 

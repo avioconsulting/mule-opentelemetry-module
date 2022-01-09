@@ -13,28 +13,28 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     }
 
     @Override
-    public TraceComponent getTraceComponent(EnrichedServerNotification notification) {
+    public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
 
-        TraceComponent.Builder builder =
-                new TraceComponent.Builder(notification.getResourceIdentifier());
-
-        Map<String, String> tags = new HashMap<>();
         if(!canHandle(notification.getComponent().getIdentifier())){
             throw new RuntimeException("Unsupported component " + notification.getComponent().getIdentifier().toString() + " for flow processor.");
         }
+
+        TraceComponent.Builder builder = TraceComponent.newBuilder(notification.getResourceIdentifier());
+
+        Map<String, String> tags = new HashMap<>();
         tags.put("mule.flow.name",getComponentParameterName(notification));
         tags.put("mule.serverId", notification.getServerId());
 
-        builder.tags(tags)
-                .transactionId(notification.getEvent().getCorrelationId())
-                .spanId(notification.getResourceIdentifier());
+        builder.withTags(tags)
+                .withTransactionId(getTransactionId(notification))
+                .withSpanName(notification.getResourceIdentifier());
 
         TraceComponent httpSourceTrace = getHttpSourceTrace(notification);
         if(httpSourceTrace != null) {
             tags.putAll(httpSourceTrace.getTags());
-            builder.spanId(httpSourceTrace.getSpanId())
-                    .transactionId(httpSourceTrace.getTransactionId())
-                    .tags(tags);
+            builder.withSpanName(httpSourceTrace.getSpanName())
+                    .withTransactionId(httpSourceTrace.getTransactionId())
+                    .withTags(tags);
         }
         return builder.build();
     }
@@ -45,7 +45,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
         return ProcessorComponentService
                 .getInstance()
                 .getProcessorComponentFor(sourceIdentifier)
-                .map(processorComponent -> processorComponent.getTraceComponent(notification)).orElse(null);
+                .map(processorComponent -> processorComponent.getStartTraceComponent(notification)).orElse(null);
     }
 
 }

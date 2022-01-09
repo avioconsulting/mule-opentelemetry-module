@@ -1,10 +1,8 @@
 package com.avioconsulting.mule.opentelemetry.api.processors;
 
 import com.avioconsulting.mule.opentelemetry.utils.TraceUtil;
-import io.opentelemetry.context.Context;
-import io.opentelemetry.context.ContextKey;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.propagation.TextMapGetter;
-import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 import org.mule.extension.http.api.HttpRequestAttributes;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.metadata.TypedValue;
@@ -45,25 +43,41 @@ public class HttpProcessorComponent extends GenericProcessorComponent {
                 && isHttpListener(getSourceIdentifier(notification));
     }
     @Override
-    public TraceComponent getTraceComponent(EnrichedServerNotification notification) {
+    public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
         if(isListenerFlowEvent(notification)){
             return processHttpListener(notification);
         }
-        TraceComponent traceComponent = super.getTraceComponent(notification);
 
-        return traceComponent;
+        TraceComponent traceComponent = super.getStartTraceComponent(notification);
+
+        Map<String, String> requesterTags = getRequesterTags(notification);
+        requesterTags.putAll(traceComponent.getTags());
+
+        return TraceComponent.newBuilder(notification.getResourceIdentifier())
+                .withTags(requesterTags)
+                .withLocation(notification.getComponent().getLocation().getLocation())
+                .withSpanName(requesterTags.get(HTTP_ROUTE.getKey()))
+                .withTransactionId(traceComponent.getTransactionId())
+                .withSpanKind(SpanKind.CLIENT)
+                .build();
     }
-
+    private Map<String, String> getRequesterTags(EnrichedServerNotification notification) {
+        Map<String, String> tags = new HashMap<>();
+        tags.put(HTTP_ROUTE.getKey(), getComponentParameter(notification,"path"));
+        tags.put(HTTP_METHOD.getKey(), getComponentParameter(notification, "method"));
+        tags.put("http.request.configRef", getComponentConfigRef(notification));
+        return tags;
+    }
     private TraceComponent processHttpListener(EnrichedServerNotification notification) {
         TypedValue<HttpRequestAttributes> attributesTypedValue = notification.getEvent().getMessage().getAttributes();
         HttpRequestAttributes attributes = attributesTypedValue.getValue();
         Map<String, String> tags = attributesToTags(attributes);
-        return new TraceComponent
-                .Builder(getComponentParameterName(notification))
-                .tags(tags)
-                .transactionId(notification.getEvent().getCorrelationId())
-                .spanId(attributes.getListenerPath())
-                .context(TraceUtil.getTraceContext(attributes, ContextMapGetter.INSTANCE))
+        return TraceComponent
+                .newBuilder(getComponentParameterName(notification))
+                .withTags(tags)
+                .withTransactionId(getTransactionId(notification))
+                .withSpanName(attributes.getListenerPath())
+                .withContext(TraceUtil.getTraceContext(attributes, ContextMapGetter.INSTANCE))
                 .build();
     }
 
