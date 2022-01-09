@@ -21,7 +21,9 @@ public class OpenTelemetryMuleEventProcessor {
     public static void handleProcessorStartEvent(MessageProcessorNotification notification) {
         logger.debug("Handling '{}' processor start event", notification.getComponent().getIdentifier());
         try {
-            ProcessorComponent processorComponent = ProcessorComponentService.getInstance().getProcessorComponentFor(notification.getComponent().getIdentifier()).orElse(new GenericProcessorComponent());
+            ProcessorComponent processorComponent = ProcessorComponentService.getInstance()
+                    .getProcessorComponentFor(notification.getComponent().getIdentifier())
+                    .orElse(new GenericProcessorComponent());
             TraceComponent traceComponent = processorComponent.getStartTraceComponent(notification);
             SpanBuilder spanBuilder = OpenTelemetryStarter.getInstance().getTracer().spanBuilder(traceComponent.getSpanName())
                     .setSpanKind(traceComponent.getSpanKind());
@@ -36,7 +38,9 @@ public class OpenTelemetryMuleEventProcessor {
     public static void handleProcessorEndEvent(MessageProcessorNotification notification) {
         try {
             logger.debug("Handling '{}' processor end event ", notification.getComponent().getIdentifier());
-            ProcessorComponent processorComponent = ProcessorComponentService.getInstance().getProcessorComponentFor(notification.getComponent().getIdentifier()).orElse(new GenericProcessorComponent());
+            ProcessorComponent processorComponent = ProcessorComponentService.getInstance()
+                    .getProcessorComponentFor(notification.getComponent().getIdentifier())
+                    .orElse(new GenericProcessorComponent());
             TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification);
             transactionStore.endProcessorSpan(traceComponent.getTransactionId(), traceComponent.getLocation());
         } catch (Exception ex) {
@@ -50,7 +54,10 @@ public class OpenTelemetryMuleEventProcessor {
             logger.debug("Handling '{}' flow start event", notification.getComponent().getIdentifier());
             FlowProcessorComponent flowProcessorComponent = new FlowProcessorComponent();
             TraceComponent traceComponent = flowProcessorComponent.getStartTraceComponent(notification);
-            SpanBuilder spanBuilder = OpenTelemetryStarter.getInstance().getTracer().spanBuilder(traceComponent.getSpanName()).setSpanKind(SpanKind.SERVER);
+            SpanBuilder spanBuilder = OpenTelemetryStarter.getInstance().getTracer()
+                    .spanBuilder(traceComponent.getSpanName())
+                    .setSpanKind(SpanKind.SERVER)
+                    .setParent(traceComponent.getContext());
             traceComponent.getTags().forEach(spanBuilder::setAttribute);
             transactionStore.startTransaction(traceComponent.getTransactionId(), traceComponent.getName(), spanBuilder);
         } catch (Exception ex) {

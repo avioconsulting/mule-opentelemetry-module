@@ -34,6 +34,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
             tags.putAll(httpSourceTrace.getTags());
             builder.withSpanName(httpSourceTrace.getSpanName())
                     .withTransactionId(httpSourceTrace.getTransactionId())
+                    .withContext(httpSourceTrace.getContext())
                     .withTags(tags);
         }
         return builder.build();
