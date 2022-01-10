@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * In-memory @{@link TransactionStore}. This implementation uses in-memory @{@link java.util.Map} to store transactions
@@ -43,13 +44,20 @@ public class InMemoryTransactionStore implements TransactionStore {
 
     @Override
     public void endTransaction(final String transactionId, final String rootFlowName) {
+       endTransaction(transactionId, rootFlowName, null);
+    }
+
+
+    @Override
+    public void endTransaction(String transactionId, String rootFlowName, Consumer<Span> spanUpdater) {
         LOGGER.debug("End transaction {} for flow '{}'", transactionId, rootFlowName);
         getTransaction(transactionId)
                 .filter(t -> rootFlowName.equalsIgnoreCase(t.getRootFlowName()))
                 .ifPresent(transaction -> {
                     Transaction removed = transactionMap.remove(transactionId);
-                    removed.getRootFlowSpan().end();
                     Span rootSpan = removed.getRootFlowSpan().getSpan();
+                    if(spanUpdater != null) spanUpdater.accept(rootSpan);
+                    removed.getRootFlowSpan().end();
                     LOGGER.debug("Ended transaction {} for flow '{}': OT SpanId {}, TraceId {}", transactionId, rootFlowName, rootSpan.getSpanContext().getSpanId(), rootSpan.getSpanContext().getTraceId());
                 });
     }
@@ -65,8 +73,14 @@ public class InMemoryTransactionStore implements TransactionStore {
 
     @Override
     public void endProcessorSpan(String transactionId, String location) {
+       endProcessorSpan(transactionId, location, null);
+    }
+
+    @Override
+    public void endProcessorSpan(String transactionId, String location, Consumer<Span> spanUpdater) {
         LOGGER.debug("Ending Processor span of transaction {} for location '{}'", transactionId, location);
         getTransaction(transactionId)
-                .ifPresent(transaction -> transaction.getRootFlowSpan().endProcessorSpan(location));
+                .ifPresent(transaction -> transaction.getRootFlowSpan().endProcessorSpan(location, spanUpdater));
     }
+
 }

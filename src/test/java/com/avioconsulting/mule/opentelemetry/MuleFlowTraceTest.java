@@ -35,12 +35,12 @@ import static org.assertj.core.api.Assertions.assertThat;
         "io.opentelemetry:opentelemetry-api-metrics",
         "io.opentelemetry:opentelemetry-sdk-trace",
         "io.opentelemetry:opentelemetry-exporter-otlp",
-//        "io.opentelemetry:opentelemetry-exporter-zipkin",
-//        "io.zipkin.zipkin2:zipkin",
-//        "io.zipkin.reporter2:zipkin-reporter",
-//        "io.zipkin.reporter2:zipkin-sender-okhttp3",
-//        "com.squareup.okio:okio",
-//        "com.squareup.okhttp3:okhttp"
+        "io.opentelemetry:opentelemetry-exporter-zipkin",
+        "io.zipkin.zipkin2:zipkin",
+        "io.zipkin.reporter2:zipkin-reporter",
+        "io.zipkin.reporter2:zipkin-sender-okhttp3",
+        "com.squareup.okio:okio",
+        "com.squareup.okhttp3:okhttp"
 
 })
 public class MuleFlowTraceTest extends MuleArtifactFunctionalTestCase {
@@ -84,13 +84,20 @@ public class MuleFlowTraceTest extends MuleArtifactFunctionalTestCase {
     @Test
     public void flowTest() throws Exception {
         String correlationId = UUID.randomUUID().toString();
-        sendRequest(correlationId);
+        sendRequest(correlationId, "dummyUser");
+//        getCapturedEvent(1_200_000, "Fail");
+    }
+    @Test
+    public void exceptionFlowTest() throws Exception {
+        String correlationId = UUID.randomUUID().toString();
+        sendRequest(correlationId, "exception");
 //        getCapturedEvent(1_200_000, "Fail");
     }
 
-    private void sendRequest(String correlationId) throws IOException {
-        HttpGet getRequest = new HttpGet(String.format("http://localhost:%s/test/dummy", 8083));
+    private void sendRequest(String correlationId, String path) throws IOException {
+        HttpGet getRequest = new HttpGet(String.format("http://localhost:%s/test/" + path, serverPort.getValue()));
         getRequest.addHeader("X-CORRELATION-ID", correlationId);
+//        getRequest.addHeader("traceparent", "00-3e864597bcb2431935133b0dec678ed4-f75931b2493ab2b2-00");
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             try (CloseableHttpResponse response = httpClient.execute(getRequest)) {
                 assertThat(IOUtils.toString(response.getEntity().getContent())).isEqualTo("Done");

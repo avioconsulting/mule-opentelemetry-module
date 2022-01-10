@@ -6,7 +6,9 @@ import io.opentelemetry.context.Context;
 
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class FlowSpan implements Serializable {
     private final String flowName;
@@ -29,9 +31,10 @@ public class FlowSpan implements Serializable {
         childSpans.put(location, span);
         return span;
     }
-    public void endProcessorSpan(String location){
+    public void endProcessorSpan(String location, Consumer<Span> spanUpdater){
         if((!ending || ended) && childSpans.containsKey(location)) {
             Span removed = childSpans.remove(location);
+            if(spanUpdater != null) spanUpdater.accept(removed);
             removed.end();
         }
     }
@@ -40,5 +43,9 @@ public class FlowSpan implements Serializable {
         childSpans.forEach( (location,span) -> span.end());
         span.end();
         ended = true;
+    }
+
+    public Optional<Span> findSpan(String location) {
+        return Optional.ofNullable(childSpans.get(location));
     }
 }

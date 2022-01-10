@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.api.processors;
 
 import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import javax.xml.namespace.QName;
@@ -18,6 +19,7 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent{
         return TraceComponent.newBuilder(notification.getResourceIdentifier())
                 .withTransactionId(getTransactionId(notification))
                 .withLocation(notification.getComponent().getLocation().getLocation())
+                .withErrorMessage(notification.getEvent().getError().map(Error::getDescription).orElse(null))
                 .build();
     }
 

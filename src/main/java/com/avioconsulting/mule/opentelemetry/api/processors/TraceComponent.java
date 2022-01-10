@@ -13,6 +13,7 @@ public class TraceComponent {
     private String location;
     private Context context;
     private SpanKind spanKind = SpanKind.INTERNAL;
+    private String errorMessage;
 
     private TraceComponent(Builder builder) {
         tags = builder.tags;
@@ -22,6 +23,7 @@ public class TraceComponent {
         location = builder.location;
         context = builder.context;
         spanKind = builder.spanKind;
+        errorMessage = builder.errorMessage;
     }
 
     public static Builder newBuilder(String name) {
@@ -55,6 +57,10 @@ public class TraceComponent {
         return location;
     }
 
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
     public static final class Builder {
         private Map<String, String> tags;
         private final String name;
@@ -63,6 +69,7 @@ public class TraceComponent {
         private String location;
         private Context context;
         private SpanKind spanKind;
+        private String errorMessage;
 
         private Builder(String name) {
             this.name = name;
@@ -95,6 +102,11 @@ public class TraceComponent {
 
         public Builder withSpanKind(SpanKind val) {
             spanKind = val;
+            return this;
+        }
+
+        public Builder withErrorMessage(String val) {
+            errorMessage = val;
             return this;
         }
 

@@ -6,11 +6,12 @@ import com.avioconsulting.mule.opentelemetry.store.InMemoryTransactionStore;
 import com.avioconsulting.mule.opentelemetry.store.TransactionStore;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.StatusCode;
+import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 public class OpenTelemetryMuleEventProcessor {
 
@@ -42,7 +43,13 @@ public class OpenTelemetryMuleEventProcessor {
                     .getProcessorComponentFor(notification.getComponent().getIdentifier())
                     .orElse(new GenericProcessorComponent());
             TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification);
-            transactionStore.endProcessorSpan(traceComponent.getTransactionId(), traceComponent.getLocation());
+            transactionStore.endProcessorSpan(traceComponent.getTransactionId(), traceComponent.getLocation(), s -> {
+                if(notification.getEvent().getError().isPresent()) {
+                    Error error = notification.getEvent().getError().get();
+                    s.setStatus(StatusCode.ERROR, error.getDescription());
+                    s.recordException(error.getCause());
+                }
+            });
         } catch (Exception ex) {
             logger.error("Error in handling processor end event", ex);
             throw ex;
@@ -71,7 +78,12 @@ public class OpenTelemetryMuleEventProcessor {
             logger.debug("Handling '{}' flow end event", notification.getComponent().getIdentifier());
             FlowProcessorComponent flowProcessorComponent = new FlowProcessorComponent();
             TraceComponent traceComponent = flowProcessorComponent.getEndTraceComponent(notification);
-            transactionStore.endTransaction(traceComponent.getTransactionId(), traceComponent.getName());
+            transactionStore.endTransaction(traceComponent.getTransactionId(), traceComponent.getName(), rootSpan -> {
+                if(notification.getException() != null) {
+                    rootSpan.setStatus(StatusCode.ERROR, notification.getException().getMessage());
+                    rootSpan.recordException(notification.getException());
+                }
+            });
         } catch (Exception ex) {
             logger.error("Error in handling flow end event", ex);
             throw ex;
