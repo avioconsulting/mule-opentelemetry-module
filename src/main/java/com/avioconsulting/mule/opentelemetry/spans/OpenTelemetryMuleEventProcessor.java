@@ -43,12 +43,13 @@ public class OpenTelemetryMuleEventProcessor {
                     .getProcessorComponentFor(notification.getComponent().getIdentifier())
                     .orElse(new GenericProcessorComponent());
             TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification);
-            transactionStore.endProcessorSpan(traceComponent.getTransactionId(), traceComponent.getLocation(), s -> {
+            transactionStore.endProcessorSpan(traceComponent.getTransactionId(), traceComponent.getLocation(), span -> {
                 if(notification.getEvent().getError().isPresent()) {
                     Error error = notification.getEvent().getError().get();
-                    s.setStatus(StatusCode.ERROR, error.getDescription());
-                    s.recordException(error.getCause());
+                    span.setStatus(StatusCode.ERROR, error.getDescription());
+                    span.recordException(error.getCause());
                 }
+                if(traceComponent.getTags() != null)traceComponent.getTags().forEach(span::setAttribute);
             });
         } catch (Exception ex) {
             logger.error("Error in handling processor end event", ex);

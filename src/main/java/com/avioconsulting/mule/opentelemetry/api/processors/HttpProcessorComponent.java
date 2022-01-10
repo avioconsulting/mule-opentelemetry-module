@@ -4,7 +4,10 @@ import com.avioconsulting.mule.opentelemetry.utils.TraceUtil;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import org.mule.extension.http.api.HttpRequestAttributes;
+import org.mule.extension.http.api.HttpResponseAttributes;
 import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.message.Error;
+import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
@@ -42,6 +45,24 @@ public class HttpProcessorComponent extends GenericProcessorComponent {
         return FLOW.equals(notification.getComponent().getIdentifier().getName())
                 && isHttpListener(getSourceIdentifier(notification));
     }
+
+    @Override
+    public TraceComponent getEndTraceComponent(EnrichedServerNotification notification) {
+        TraceComponent endTraceComponent = super.getEndTraceComponent(notification);
+
+        //When an error is thrown by http:request, the response message will be on error object.
+        Message responseMessage = notification.getEvent().getError()
+                .map(Error::getErrorMessage)
+                .orElse(notification.getEvent().getMessage());
+        TypedValue<HttpResponseAttributes> httpResponseAttributesTypedValue = responseMessage.getAttributes();
+        HttpResponseAttributes attributes = httpResponseAttributesTypedValue.getValue();
+        Map<String, String> tags = new HashMap<>();
+        tags.put(HTTP_STATUS_CODE.getKey(), Integer.toString(attributes.getStatusCode()));
+        tags.put(HTTP_RESPONSE_CONTENT_LENGTH.getKey(), attributes.getHeaders().get("content-length"));
+        if (endTraceComponent.getTags() != null) tags.putAll(endTraceComponent.getTags());
+        return endTraceComponent.toBuilder().withTags(tags).build();
+    }
+
     @Override
     public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
         if(isListenerFlowEvent(notification)){

@@ -61,6 +61,16 @@ public class TraceComponent {
         return errorMessage;
     }
 
+    public Builder toBuilder() {
+        return new Builder(this.getName())
+                .withErrorMessage(this.getErrorMessage())
+                .withContext(this.getContext())
+                .withTransactionId(this.getTransactionId())
+                .withTags(this.getTags())
+                .withSpanName(this.getSpanName())
+                .withLocation(this.getLocation())
+                .withSpanKind(this.getSpanKind());
+    }
     public static final class Builder {
         private Map<String, String> tags;
         private final String name;
