@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.utils;
 import com.avioconsulting.mule.opentelemetry.OpenTelemetryStarter;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapGetter;
+import io.opentelemetry.context.propagation.TextMapSetter;
 
 public class TraceUtil {
 
@@ -16,5 +17,9 @@ public class TraceUtil {
      */
     static public <T> Context getTraceContext(T carrier, TextMapGetter<T> textMapGetter) {
         return OpenTelemetryStarter.getInstance().getOpenTelemetry().getPropagators().getTextMapPropagator().extract(Context.current(), carrier, textMapGetter);
+    }
+
+    static public <T> void injectTraceContext(T carrier, TextMapSetter<T> textMapSetter) {
+        OpenTelemetryStarter.getInstance().getOpenTelemetry().getPropagators().getTextMapPropagator().inject(Context.current(), carrier, textMapSetter);
     }
 }

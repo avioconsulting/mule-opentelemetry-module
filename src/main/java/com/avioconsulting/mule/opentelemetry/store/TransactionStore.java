@@ -2,13 +2,25 @@ package com.avioconsulting.mule.opentelemetry.store;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.context.Context;
+import org.mule.runtime.api.event.Event;
 
+import java.time.Instant;
 import java.util.function.Consumer;
 
 /**
- * Transaction store to managing transactions locally or on remote persistent storage.
+ * Transaction store for managing service transactions.
  */
 public interface TransactionStore {
+
+    /**
+     * A default implementation to get a mule correlation id as a local transaction id.
+     * @param muleEvent @{@link Event}
+     * @return @{@link String} transaction id
+     */
+    default String transactionIdFor(Event muleEvent) {
+        return muleEvent.getCorrelationId();
+    }
 
     /**
      * Start a new transaction. This usually happens when a new source flow starts.
@@ -21,12 +33,21 @@ public interface TransactionStore {
     void startTransaction(String transactionId, String rootFlowName, SpanBuilder rootFlowSpan);
 
     /**
+     * Get the @{@link Context} of the initiating flow span. This may be required to propagate context for a given transaction.
+     * @param transactionId
+     * @return @{@link Context}
+     */
+    Context getTransactionContext(String transactionId);
+    /**
      * End a transaction represented by provided transaction id and rootFlowName, if exists.
      * @param transactionId A unique transaction id within the context of an application. Eg. Correlation id.
      * @param rootFlowName Name of the flow requesting to start transaction.
      */
-    void endTransaction(String transactionId, String rootFlowName);
+    default void endTransaction(final String transactionId, final String rootFlowName) {
+        endTransaction(transactionId, rootFlowName, null);
+    }
 
+    
     /**
      * End a transaction represented by provided transaction id and rootFlowName, if exists. @{@link Consumer<Span>} parameter allows updating the Span before ending.
      * This is useful in scenarios like setting processing status code to error.
@@ -45,7 +66,18 @@ public interface TransactionStore {
      * @param rootFlowName Name of the flow requesting to start transaction.
      * @param spanUpdater  @{@link Consumer<Span>} to allow updating Span before ending.
      */
-    void endTransaction(String transactionId, String rootFlowName, Consumer<Span> spanUpdater);
+    default void endTransaction(String transactionId, String rootFlowName, Consumer<Span> spanUpdater) {
+        endTransaction(transactionId, rootFlowName, spanUpdater, null);
+    }
+
+    /**
+     * End a transaction at given end time. See {@link #endTransaction(String, String, Consumer)}
+     * @param transactionId
+     * @param rootFlowName
+     * @param spanUpdater
+     * @param endTime
+     */
+    void endTransaction(String transactionId, String rootFlowName, Consumer<Span> spanUpdater, Instant endTime);
     /**
      * Add a new processor span under an existing transaction.
      * @param transactionId
@@ -59,7 +91,9 @@ public interface TransactionStore {
      * @param transactionId
      * @param location
      */
-    void endProcessorSpan(String transactionId, String location);
+    default void endProcessorSpan(String transactionId, String location) {
+        endProcessorSpan(transactionId, location, span -> {});
+    }
 
     /**
      * End an existing span under an existing transaction. @{@link Consumer<Span>} parameter allows updating the Span before ending.
@@ -80,6 +114,17 @@ public interface TransactionStore {
      * @param location
      * @param spanUpdater @{@link Consumer<Span>} to allow updating Span before ending.
      */
-    void endProcessorSpan(String transactionId, String location, Consumer<Span> spanUpdater);
+    default void endProcessorSpan(String transactionId, String location, Consumer<Span> spanUpdater) {
+        endProcessorSpan(transactionId, location, spanUpdater, null);
+    }
+
+    /**
+     * This overloading allows to end a span at given time. See {@link #endProcessorSpan(String, String, Consumer)}.
+     * @param transactionId
+     * @param location
+     * @param spanUpdater
+     * @param endTime
+     */
+    void endProcessorSpan(String transactionId, String location, Consumer<Span> spanUpdater, Instant endTime);
 
 }

@@ -2,9 +2,11 @@ package com.avioconsulting.mule.opentelemetry.store;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.context.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -42,14 +44,12 @@ public class InMemoryTransactionStore implements TransactionStore {
         return Optional.ofNullable(transactionMap.get(transactionId));
     }
 
-    @Override
-    public void endTransaction(final String transactionId, final String rootFlowName) {
-       endTransaction(transactionId, rootFlowName, null);
+    public Context getTransactionContext(String transactionId){
+        return getTransaction(transactionId).map(Transaction::getRootFlowSpan).map(FlowSpan::getSpan).map(s -> s.storeInContext(Context.current())).orElse(Context.current());
     }
 
-
     @Override
-    public void endTransaction(String transactionId, String rootFlowName, Consumer<Span> spanUpdater) {
+    public void endTransaction(String transactionId, String rootFlowName, Consumer<Span> spanUpdater, Instant endTime) {
         LOGGER.debug("End transaction {} for flow '{}'", transactionId, rootFlowName);
         getTransaction(transactionId)
                 .filter(t -> rootFlowName.equalsIgnoreCase(t.getRootFlowName()))
@@ -57,7 +57,7 @@ public class InMemoryTransactionStore implements TransactionStore {
                     Transaction removed = transactionMap.remove(transactionId);
                     Span rootSpan = removed.getRootFlowSpan().getSpan();
                     if(spanUpdater != null) spanUpdater.accept(rootSpan);
-                    removed.getRootFlowSpan().end();
+                    removed.getRootFlowSpan().end(endTime);
                     LOGGER.debug("Ended transaction {} for flow '{}': OT SpanId {}, TraceId {}", transactionId, rootFlowName, rootSpan.getSpanContext().getSpanId(), rootSpan.getSpanContext().getTraceId());
                 });
     }
@@ -72,15 +72,10 @@ public class InMemoryTransactionStore implements TransactionStore {
     }
 
     @Override
-    public void endProcessorSpan(String transactionId, String location) {
-       endProcessorSpan(transactionId, location, null);
-    }
-
-    @Override
-    public void endProcessorSpan(String transactionId, String location, Consumer<Span> spanUpdater) {
+    public void endProcessorSpan(String transactionId, String location, Consumer<Span> spanUpdater, Instant endTime) {
         LOGGER.debug("Ending Processor span of transaction {} for location '{}'", transactionId, location);
         getTransaction(transactionId)
-                .ifPresent(transaction -> transaction.getRootFlowSpan().endProcessorSpan(location, spanUpdater));
+                .ifPresent(transaction -> transaction.getRootFlowSpan().endProcessorSpan(location, spanUpdater, endTime));
     }
 
 }

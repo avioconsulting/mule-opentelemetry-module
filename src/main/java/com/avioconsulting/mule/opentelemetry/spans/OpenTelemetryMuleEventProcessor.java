@@ -13,7 +13,12 @@ import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
+
 public class OpenTelemetryMuleEventProcessor {
+
+    //TODO: we are processing async notifications. Actual event time could be different.
+    // Using notification.getTimestamp() to set the span times. Validate if this creates any TZ issues in distributed.
 
     private static final Logger logger = LoggerFactory.getLogger(OpenTelemetryMuleEventProcessor.class);
 
@@ -27,7 +32,7 @@ public class OpenTelemetryMuleEventProcessor {
                     .orElse(new GenericProcessorComponent());
             TraceComponent traceComponent = processorComponent.getStartTraceComponent(notification);
             SpanBuilder spanBuilder = OpenTelemetryStarter.getInstance().getTracer().spanBuilder(traceComponent.getSpanName())
-                    .setSpanKind(traceComponent.getSpanKind());
+                    .setSpanKind(traceComponent.getSpanKind()).setStartTimestamp(Instant.ofEpochMilli(notification.getTimestamp()));
             traceComponent.getTags().forEach(spanBuilder::setAttribute);
             transactionStore.addProcessorSpan(traceComponent.getTransactionId(), traceComponent.getLocation(), spanBuilder);
         } catch (Exception ex) {
@@ -65,7 +70,8 @@ public class OpenTelemetryMuleEventProcessor {
             SpanBuilder spanBuilder = OpenTelemetryStarter.getInstance().getTracer()
                     .spanBuilder(traceComponent.getSpanName())
                     .setSpanKind(SpanKind.SERVER)
-                    .setParent(traceComponent.getContext());
+                    .setParent(traceComponent.getContext())
+                    .setStartTimestamp(Instant.ofEpochMilli(notification.getTimestamp()));
             traceComponent.getTags().forEach(spanBuilder::setAttribute);
             transactionStore.startTransaction(traceComponent.getTransactionId(), traceComponent.getName(), spanBuilder);
         } catch (Exception ex) {
