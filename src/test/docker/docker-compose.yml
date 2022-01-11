@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  zipkin:
+    image: "openzipkin/zipkin:2"
+    ports:
+      - "9411:9411"
+    networks:
+      - tracing
+  
+  otelCollector:
+    image: "otel/opentelemetry-collector:0.42.0"
+    command: ["--config=/otel-local-config.yml"]
+    ports:
+      - "55681:55681"
+    volumes:
+      - "${PWD}/otel-local-config.yml:/otel-local-config.yml"
+    networks:
+      - tracing
+
+networks:
+  tracing:
