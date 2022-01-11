@@ -17,7 +17,6 @@
 	<properties>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<maven.compiler.source>1.8</maven.compiler.source>
-		<mule.runtime.version>4.3.0</mule.runtime.version>
 		<mule.maven.plugin.version>3.2.7</mule.maven.plugin.version>
 		<build.plugins.plugin.version>2.3.2</build.plugins.plugin.version>
 		<opentelemetry.version>1.9.1</opentelemetry.version>
@@ -54,32 +53,6 @@
 <!--		</dependencies>-->
 <!--	</dependencyManagement>-->
 	<dependencies>
-		<!-- Test Mule dependencies -->
-		<dependency>
-			<groupId>org.mule.tests</groupId>
-			<artifactId>mule-tests-functional</artifactId>
-			<version>${mule.runtime.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mule.tests</groupId>
-			<artifactId>mule-tests-runner</artifactId>
-			<version>${mule.runtime.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mule.tests</groupId>
-			<artifactId>mule-tests-unit</artifactId>
-			<version>${mule.runtime.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mule.tests.plugin</groupId>
-			<artifactId>mule-tests-component-plugin</artifactId>
-			<version>${mule.runtime.version}</version>
-			<classifier>mule-plugin</classifier>
-			<scope>test</scope>
-		</dependency>
 		<dependency>
 			<groupId>org.mule.runtime</groupId>
 			<artifactId>mule-api</artifactId>
@@ -89,7 +62,7 @@
 		<dependency>
 			<groupId>org.mule.runtime</groupId>
 			<artifactId>mule-core</artifactId>
-			<version>${mule.runtime.version}</version>
+			<version>${mule.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -134,21 +107,15 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>25.1-jre</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.mule.runtime</groupId>
 			<artifactId>mule-module-service</artifactId>
-			<version>${mule.runtime.version}</version>
+			<version>${mule.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mule.runtime</groupId>
 			<artifactId>mule-module-extensions-spring-support</artifactId>
-			<version>${mule.runtime.version}</version>
+			<version>${mule.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -206,6 +173,16 @@
 			<artifactId>opentelemetry-semconv</artifactId>
 			<version>${opentelemetry.version}-alpha</version>
 		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-otlp</artifactId>
+			<version>${opentelemetry.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-otlp-http-trace</artifactId>
+			<version>${opentelemetry.version}</version>
+		</dependency>
 <!--		Start: Zipkin exporter test dependencies: Require deps in test class too
 			Uncomment following dependencies for POM.
 
@@ -219,24 +196,25 @@
 
 -->
 
-		<dependency>
-			<groupId>io.zipkin.zipkin2</groupId>
-			<artifactId>zipkin</artifactId>
-			<version>2.23.2</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.zipkin.reporter2</groupId>
-			<artifactId>zipkin-reporter</artifactId>
-			<version>2.16.3</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.zipkin.reporter2</groupId>
-			<artifactId>zipkin-sender-okhttp3</artifactId>
-			<version>2.16.3</version>
-			<scope>test</scope>
-		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>io.zipkin.zipkin2</groupId>-->
+<!--			<artifactId>zipkin</artifactId>-->
+<!--			<version>2.23.2</version>-->
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>io.zipkin.reporter2</groupId>-->
+<!--			<artifactId>zipkin-reporter</artifactId>-->
+<!--			<version>2.16.3</version>-->
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>io.zipkin.reporter2</groupId>-->
+<!--			<artifactId>zipkin-sender-okhttp3</artifactId>-->
+<!--			<version>2.16.3</version>-->
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
+<!--		START: non-otlp exporter test dependencies: Require deps in test class too-->
 		<dependency>
 			<groupId>com.squareup.okio</groupId>
 			<artifactId>okio</artifactId>
@@ -249,23 +227,21 @@
 			<version>3.14.9</version>
 			<scope>test</scope>
 		</dependency>
-		<!--		END: Zipkin exporter test dependencies: Require deps in test class too-->
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-exporter-otlp</artifactId>
+			<artifactId>opentelemetry-exporter-otlp-common</artifactId>
 			<version>${opentelemetry.version}</version>
+			<scope>test</scope>
 		</dependency>
+		<!--		END: non-otlp exporter test dependencies: Require deps in test class too-->
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-exporter-logging</artifactId>
 			<version>${opentelemetry.version}</version>
+			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-exporter-otlp-http-trace</artifactId>
-			<version>${opentelemetry.version}</version>
-		</dependency>
-		<dependency>
+
+<!--		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-exporter-jaeger</artifactId>
 			<version>${opentelemetry.version}</version>
@@ -274,7 +250,7 @@
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-exporter-zipkin</artifactId>
 			<version>${opentelemetry.version}</version>
-		</dependency>
+		</dependency>-->
 		<!--	Logging	-->
 		<dependency>
 			<groupId>org.slf4j</groupId>

@@ -14,8 +14,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
-public class MuleFlowTraceTest extends AbstractTraceTest {
+@Ignore
+public class MuleFlowTraceTest extends AbstractMuleArtifactTraceTest {
 
     @Rule
     public DynamicPort serverPort = new DynamicPort("http.port");
@@ -23,15 +23,6 @@ public class MuleFlowTraceTest extends AbstractTraceTest {
     @Override
     protected String getConfigFile() {
         return "SimpleFlowTest.xml";
-    }
-
-    @Override
-    protected void doSetUpBeforeMuleContextCreation() throws Exception {
-        super.doSetUpBeforeMuleContextCreation();
-        System.setProperty(TEST_TIMEOUT_SYSTEM_PROPERTY, "120_000_000");
-        System.setProperty("otel.traces.exporter", "logging");
-        System.setProperty("otel.resource.attributes", "deployment.environment=test,service.name=test-flows");
-        System.setProperty("otel.metrics.exporter", "none");
     }
 
     @Test

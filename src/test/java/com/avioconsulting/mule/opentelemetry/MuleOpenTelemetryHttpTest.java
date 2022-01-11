@@ -13,7 +13,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class MuleOpenTelemetryHttpTest extends AbstractTraceTest {
+public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
 
     @Rule
     public DynamicPort serverPort = new DynamicPort("http.port");

@@ -23,15 +23,13 @@ import java.util.concurrent.atomic.AtomicReference;
         "io.opentelemetry:opentelemetry-api-metrics",
         "io.opentelemetry:opentelemetry-sdk-trace",
         "io.opentelemetry:opentelemetry-exporter-logging",
-        "io.opentelemetry:opentelemetry-exporter-zipkin",
-        "io.zipkin.zipkin2:zipkin",
-        "io.zipkin.reporter2:zipkin-reporter",
-        "io.zipkin.reporter2:zipkin-sender-okhttp3",
+        "io.opentelemetry:opentelemetry-exporter-otlp",
+        "io.opentelemetry:opentelemetry-exporter-otlp-common",
+        "io.opentelemetry:opentelemetry-exporter-otlp-http-trace",
         "com.squareup.okio:okio",
         "com.squareup.okhttp3:okhttp",
-        "com.google.guava:guava"
 })
-public abstract class AbstractTraceTest  extends MuleArtifactFunctionalTestCase {
+public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {
 
     protected static final java.util.Queue<CoreEvent> CAPTURED = new ConcurrentLinkedDeque<>();
 
@@ -49,6 +47,12 @@ public abstract class AbstractTraceTest  extends MuleArtifactFunctionalTestCase 
         System.setProperty("otel.traces.exporter", "logging");
     }
 
+    protected void withOtelEndpoint(){
+        System.setProperty("otel.traces.exporter","otlp");
+        System.setProperty("otel.exporter.otlp.endpoint","http://localhost:55681/v1");
+        System.setProperty("otel.exporter.otlp.traces.endpoint","http://localhost:55681/v1/traces");
+        System.setProperty("otel.exporter.otlp.protocol","http/protobuf");
+    }
     protected void withZipkinExporter(){
         System.setProperty("otel.traces.exporter", "zipkin");
         System.setProperty("otel.exporter.zipkin.endpoint","http://localhost:9411/api/v2/spans");
