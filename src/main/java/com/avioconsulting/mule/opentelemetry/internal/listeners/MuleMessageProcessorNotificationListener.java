@@ -1,5 +1,6 @@
-package com.avioconsulting.mule.opentelemetry.spans;
+package com.avioconsulting.mule.opentelemetry.internal.listeners;
 
+import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.MessageProcessorNotificationListener;
 import org.slf4j.Logger;
@@ -13,15 +14,15 @@ public class MuleMessageProcessorNotificationListener
 
 	@Override
 	public void onNotification(MessageProcessorNotification notification) {
-		logger.debug("===> Received " + notification.getClass().getName() + ":" + notification.getActionName());
+		logger.trace("===> Received " + notification.getClass().getName() + ":" + notification.getActionName());
 
 		switch (Integer.parseInt(notification.getAction().getIdentifier())) {
 		case MessageProcessorNotification.MESSAGE_PROCESSOR_PRE_INVOKE:
-			OpenTelemetryMuleEventProcessor.handleProcessorStartEvent(notification);
+			MuleNotificationProcessor.handleProcessorStartEvent(notification);
 			break;
 
 		case MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE:
-			OpenTelemetryMuleEventProcessor.handleProcessorEndEvent(notification);
+			MuleNotificationProcessor.handleProcessorEndEvent(notification);
 			break;
 		}
 	}

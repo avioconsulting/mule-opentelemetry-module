@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry.store;
+package com.avioconsulting.mule.opentelemetry.internal.store;
 
 import java.io.Serializable;
 

@@ -1,5 +1,6 @@
-package com.avioconsulting.mule.opentelemetry.api.processors;
+package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
@@ -8,7 +9,7 @@ import javax.xml.namespace.QName;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class AbstractProcessorComponent implements ProcessorComponent{
+public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
     static final String NAMESPACE_URI_MULE = "http://www.mulesoft.org/schema/mule/core";
     public static final String NAMESPACE_MULE = "mule";

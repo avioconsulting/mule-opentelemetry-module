@@ -1,6 +1,6 @@
-package com.avioconsulting.mule.opentelemetry.api.processors;
+package com.avioconsulting.mule.opentelemetry.internal.processor;
 
-import com.avioconsulting.mule.opentelemetry.utils.TraceUtil;
+import com.avioconsulting.mule.opentelemetry.internal.utils.TraceUtil;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import org.mule.extension.http.api.HttpRequestAttributes;

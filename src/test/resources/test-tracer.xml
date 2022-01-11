@@ -7,10 +7,10 @@
 
 	<object doc:name="Object"
 			name="_muleFlowNotificationListener"
-			class="com.avioconsulting.mule.opentelemetry.spans.MulePipelineMessageNotificationListener" />
+			class="com.avioconsulting.mule.opentelemetry.internal.listeners.MulePipelineMessageNotificationListener" />
 	<object doc:name="Object"
 		name="_muleMessageProcessorNotificationListener"
-		class="com.avioconsulting.mule.opentelemetry.spans.MuleMessageProcessorNotificationListener" />
+		class="com.avioconsulting.mule.opentelemetry.internal.listeners.MuleMessageProcessorNotificationListener" />
 
 	<notifications>
 		<notification event="PIPELINE-MESSAGE" />

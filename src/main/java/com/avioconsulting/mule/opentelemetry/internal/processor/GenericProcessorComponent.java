@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry.api.processors;
+package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.notification.EnrichedServerNotification;

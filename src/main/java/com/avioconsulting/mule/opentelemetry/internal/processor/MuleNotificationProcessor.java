@@ -1,9 +1,10 @@
-package com.avioconsulting.mule.opentelemetry.spans;
+package com.avioconsulting.mule.opentelemetry.internal.processor;
 
-import com.avioconsulting.mule.opentelemetry.OpenTelemetryStarter;
-import com.avioconsulting.mule.opentelemetry.api.processors.*;
-import com.avioconsulting.mule.opentelemetry.store.InMemoryTransactionStore;
-import com.avioconsulting.mule.opentelemetry.store.TransactionStore;
+import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
+import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryStarter;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
+import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
+import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
@@ -15,17 +16,16 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 
-public class OpenTelemetryMuleEventProcessor {
+public class MuleNotificationProcessor {
 
     //TODO: we are processing async notifications. Actual event time could be different.
     // Using notification.getTimestamp() to set the span times. Validate if this creates any TZ issues in distributed.
-
-    private static final Logger logger = LoggerFactory.getLogger(OpenTelemetryMuleEventProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(MuleNotificationProcessor.class);
 
     private static final TransactionStore transactionStore = InMemoryTransactionStore.getInstance();
 
     public static void handleProcessorStartEvent(MessageProcessorNotification notification) {
-        logger.debug("Handling '{}' processor start event", notification.getComponent().getIdentifier());
+        logger.trace("Handling '{}:{}' processor start event", notification.getResourceIdentifier(), notification.getComponent().getIdentifier());
         try {
             ProcessorComponent processorComponent = ProcessorComponentService.getInstance()
                     .getProcessorComponentFor(notification.getComponent().getIdentifier())
@@ -43,7 +43,7 @@ public class OpenTelemetryMuleEventProcessor {
 
     public static void handleProcessorEndEvent(MessageProcessorNotification notification) {
         try {
-            logger.debug("Handling '{}' processor end event ", notification.getComponent().getIdentifier());
+            logger.trace("Handling '{}:{}' processor end event ", notification.getResourceIdentifier(), notification.getComponent().getIdentifier());
             ProcessorComponent processorComponent = ProcessorComponentService.getInstance()
                     .getProcessorComponentFor(notification.getComponent().getIdentifier())
                     .orElse(new GenericProcessorComponent());
@@ -64,7 +64,7 @@ public class OpenTelemetryMuleEventProcessor {
 
 	public static void handleFlowStartEvent(PipelineMessageNotification notification) {
         try {
-            logger.debug("Handling '{}' flow start event", notification.getComponent().getIdentifier());
+            logger.trace("Handling '{}' flow start event", notification.getResourceIdentifier());
             FlowProcessorComponent flowProcessorComponent = new FlowProcessorComponent();
             TraceComponent traceComponent = flowProcessorComponent.getStartTraceComponent(notification);
             SpanBuilder spanBuilder = OpenTelemetryStarter.getInstance().getTracer()
@@ -75,14 +75,14 @@ public class OpenTelemetryMuleEventProcessor {
             traceComponent.getTags().forEach(spanBuilder::setAttribute);
             transactionStore.startTransaction(traceComponent.getTransactionId(), traceComponent.getName(), spanBuilder);
         } catch (Exception ex) {
-            logger.error("Error in handling flow start event", ex);
+            logger.error("Error in handling "+ notification.getResourceIdentifier() +" flow start event", ex);
             throw ex;
         }
 	}
 
 	public static void handleFlowEndEvent(PipelineMessageNotification notification) {
         try {
-            logger.debug("Handling '{}' flow end event", notification.getComponent().getIdentifier());
+            logger.trace("Handling '{}' flow end event", notification.getResourceIdentifier());
             FlowProcessorComponent flowProcessorComponent = new FlowProcessorComponent();
             TraceComponent traceComponent = flowProcessorComponent.getEndTraceComponent(notification);
             transactionStore.endTransaction(traceComponent.getTransactionId(), traceComponent.getName(), rootSpan -> {
@@ -92,7 +92,7 @@ public class OpenTelemetryMuleEventProcessor {
                 }
             });
         } catch (Exception ex) {
-            logger.error("Error in handling flow end event", ex);
+            logger.error("Error in handling "+ notification.getResourceIdentifier() +" flow end event", ex);
             throw ex;
         }
     }

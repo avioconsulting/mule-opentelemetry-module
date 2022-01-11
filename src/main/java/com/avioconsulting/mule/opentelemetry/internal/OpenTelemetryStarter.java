@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry;
+package com.avioconsulting.mule.opentelemetry.internal;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Tracer;

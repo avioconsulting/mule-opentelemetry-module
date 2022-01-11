@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry;
 
+import org.junit.Before;
 import org.mule.functional.junit4.MuleArtifactFunctionalTestCase;
 import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.tck.probe.JUnitLambdaProbe;
@@ -27,8 +28,8 @@ import java.util.concurrent.atomic.AtomicReference;
         "io.zipkin.reporter2:zipkin-reporter",
         "io.zipkin.reporter2:zipkin-sender-okhttp3",
         "com.squareup.okio:okio",
-        "com.squareup.okhttp3:okhttp"
-
+        "com.squareup.okhttp3:okhttp",
+        "com.google.guava:guava"
 })
 public abstract class AbstractTraceTest  extends MuleArtifactFunctionalTestCase {
 
@@ -41,6 +42,16 @@ public abstract class AbstractTraceTest  extends MuleArtifactFunctionalTestCase 
         System.setProperty("otel.traces.exporter", "logging");
         System.setProperty("otel.resource.attributes", "deployment.environment=test,service.name=test-flows");
         System.setProperty("otel.metrics.exporter", "none");
+    }
+
+    @Before
+    public void beforeTest(){
+        System.setProperty("otel.traces.exporter", "logging");
+    }
+
+    protected void withZipkinExporter(){
+        System.setProperty("otel.traces.exporter", "zipkin");
+        System.setProperty("otel.exporter.zipkin.endpoint","http://localhost:9411/api/v2/spans");
     }
 
     protected CoreEvent getCapturedEvent(long timeout, String failureDescription) {

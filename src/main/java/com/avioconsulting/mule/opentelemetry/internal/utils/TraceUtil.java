@@ -1,6 +1,6 @@
-package com.avioconsulting.mule.opentelemetry.utils;
+package com.avioconsulting.mule.opentelemetry.internal.utils;
 
-import com.avioconsulting.mule.opentelemetry.OpenTelemetryStarter;
+import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryStarter;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapSetter;

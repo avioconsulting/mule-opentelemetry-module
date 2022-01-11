@@ -4,21 +4,19 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.tck.junit4.rule.DynamicPort;
 
 import java.io.IOException;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedDeque;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 
 public class MuleFlowTraceTest extends AbstractTraceTest {
 
-    protected static final java.util.Queue<CoreEvent> CAPTURED = new ConcurrentLinkedDeque<>();
     @Rule
     public DynamicPort serverPort = new DynamicPort("http.port");
 

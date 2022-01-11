@@ -1,5 +1,6 @@
-package com.avioconsulting.mule.opentelemetry.spans;
+package com.avioconsulting.mule.opentelemetry.internal.listeners;
 
+import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotificationListener;
 import org.slf4j.Logger;
@@ -15,11 +16,11 @@ public class MulePipelineMessageNotificationListener
 
 	@Override
 	public void onNotification(PipelineMessageNotification notification) {
-		logger.debug("===> Received " + notification.getClass().getName() + ":" + notification.getActionName());
+		logger.trace("===> Received " + notification.getClass().getName() + ":" + notification.getActionName());
 
 		switch (Integer.parseInt(notification.getAction().getIdentifier())) {
 		case PipelineMessageNotification.PROCESS_START:
-			OpenTelemetryMuleEventProcessor.handleFlowStartEvent(notification);
+			MuleNotificationProcessor.handleFlowStartEvent(notification);
 			break;
 
 		// On exception this event doesn't fire, only on successful flow completion.
@@ -27,7 +28,7 @@ public class MulePipelineMessageNotificationListener
 			break;
 			
 		case PipelineMessageNotification.PROCESS_COMPLETE:
-			OpenTelemetryMuleEventProcessor.handleFlowEndEvent(notification);
+			MuleNotificationProcessor.handleFlowEndEvent(notification);
 			break;
 		}
 	}

@@ -1,5 +1,6 @@
-package com.avioconsulting.mule.opentelemetry.api.processors;
+package com.avioconsulting.mule.opentelemetry.internal.processor.service;
 
+import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import org.mule.runtime.api.component.ComponentIdentifier;
 
 import java.util.*;

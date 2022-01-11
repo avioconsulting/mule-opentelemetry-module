@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry.store;
+package com.avioconsulting.mule.opentelemetry.internal.store;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
