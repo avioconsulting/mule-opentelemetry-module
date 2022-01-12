@@ -35,3 +35,16 @@ otel.exporter.otlp.protocol=http/protobuf
 otel.metrics.exporter=none
 otel.resource.attributes=deployment.environment=dev,service.name=test-api
 ```
+
+
+## TODO
+- Extension Features
+  - [ ] Mule SDK Based OpenTelemetry Connection Management
+  - [ ] Configuration
+    - [ ] Allow configuring OpenTelemetry Collector endpoint in configuration. System variables should override this configuration.
+    - [ ] Allow disabling the interceptor processing if needed. This will result in loosing context injection in flow variables.
+  - [ ] Operations
+    - [ ] Add an operation to retrieve current trace context. SDK does not allow adding variables. Users may have to use `targetVariable` feature.
+    - [ ] If possible, add a DW function to retrieve trace context as a Map. Users can add this map to any existing outbound headers.
+  - [ ] Scopes
+    - [ ] Add a custom scope container to execute components in a span.
