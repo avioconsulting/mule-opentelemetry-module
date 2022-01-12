@@ -6,8 +6,8 @@ import org.mule.runtime.api.connection.PoolingConnectionProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-public class OpenTelemetryConnectionProvider implements PoolingConnectionProvider<OpenTelemetryConnection> {
+public class OpenTelemetryConnectionProvider
+    implements PoolingConnectionProvider<OpenTelemetryConnection> {
 
   private final Logger LOGGER = LoggerFactory.getLogger(OpenTelemetryConnectionProvider.class);
 
@@ -21,7 +21,8 @@ public class OpenTelemetryConnectionProvider implements PoolingConnectionProvide
     try {
       connection.invalidate();
     } catch (Exception e) {
-      LOGGER.error("Error while disconnecting [" + connection.getId() + "]: " + e.getMessage(), e);
+      LOGGER.error(
+          "Error while disconnecting [" + connection.getId() + "]: " + e.getMessage(), e);
     }
   }
 

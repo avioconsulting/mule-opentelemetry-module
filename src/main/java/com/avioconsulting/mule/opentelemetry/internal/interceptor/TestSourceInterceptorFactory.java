@@ -4,8 +4,8 @@ import org.mule.runtime.api.interception.SourceInterceptor;
 import org.mule.runtime.api.interception.SourceInterceptorFactory;
 
 public class TestSourceInterceptorFactory implements SourceInterceptorFactory {
-    @Override
-    public SourceInterceptor get() {
-        return new TestSourceInterceptor();
-    }
+  @Override
+  public SourceInterceptor get() {
+    return new TestSourceInterceptor();
+  }
 }

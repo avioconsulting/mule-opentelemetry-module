@@ -6,10 +6,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class ConfigProperties {
 
-    @Value("otel.mule.tracer.allprocessors")
-    private boolean traceAllProcessors;
+  @Value("otel.mule.tracer.allprocessors")
+  private boolean traceAllProcessors;
 
-    public boolean traceAllProcessors() {
-        return traceAllProcessors;
-    }
+  public boolean traceAllProcessors() {
+    return traceAllProcessors;
+  }
 }

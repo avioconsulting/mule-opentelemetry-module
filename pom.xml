@@ -21,7 +21,62 @@
 		<build.plugins.plugin.version>2.3.2</build.plugins.plugin.version>
 		<opentelemetry.version>1.9.1</opentelemetry.version>
 	</properties>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>com.diffplug.spotless</groupId>
+				<artifactId>spotless-maven-plugin</artifactId>
+				<version>2.12.3</version>
+				<configuration>
+					<formats>
+						<!-- you can define as many formats as you want, each is independent -->
+						<format>
+							<!-- define the files to apply to -->
+							<includes>
+								<include>*.md</include>
+								<include>.gitignore</include>
+							</includes>
+							<!-- define the steps to apply to those files -->
+							<trimTrailingWhitespace/>
+							<endWithNewline/>
+							<indent>
+								<spaces>true</spaces>
+								<spacesPerTab>2</spacesPerTab>
+							</indent>
+						</format>
+					</formats>
+					<!-- define a language-specific format -->
+					<java>
+						<!-- apply a specific flavor of google-java-format and reflow long strings -->
+						<eclipse>
+							<version>4.13.0</version>                     <!-- optional -->
+							<file>${project.basedir}/eclipse-formatter.xml</file> <!-- optional -->
+						</eclipse>
+						<indent>
+							<spaces>true</spaces>
+							<spacesPerTab>2</spacesPerTab>
+						</indent>
+					</java>
+				</configuration>
+				<executions>
+					<execution>
+						<id>checkSpotlessx</id>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<phase>compile</phase>
+					</execution>
+					<execution>
+						<id>applySpotless</id>
+						<goals>
+							<goal>apply</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 
+		</plugins>
+	</build>
 	<dependencies>
 		<dependency>
 			<groupId>org.mule.runtime</groupId>

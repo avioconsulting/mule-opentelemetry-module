@@ -1,6 +1,5 @@
 package com.avioconsulting.mule.opentelemetry.internal;
 
-
 public final class OpenTelemetryConnection {
 
   private final String id;
