@@ -30,9 +30,8 @@ Following environment variables must be set to send traces to OpenTelemetry coll
 ```properties
 otel.traces.exporter=otlp
 otel.exporter.otlp.endpoint=http://localhost:55681/v1
-otel.exporter.otlp.traces.endpoint=http://localhost:55681/v1/traces;
-otel.exporter.otlp.protocol=http/protobuf"
-otel.traces.exporter=otpl 
+otel.exporter.otlp.traces.endpoint=http://localhost:55681/v1/traces
+otel.exporter.otlp.protocol=http/protobuf 
 otel.metrics.exporter=none
 otel.resource.attributes=deployment.environment=dev,service.name=test-api
 ```

@@ -55,7 +55,7 @@ public class MuleNotificationProcessor {
                     span.recordException(error.getCause());
                 }
                 if(traceComponent.getTags() != null)traceComponent.getTags().forEach(span::setAttribute);
-            });
+            },Instant.ofEpochMilli(notification.getTimestamp()));
         } catch (Exception ex) {
             logger.error("Error in handling processor end event", ex);
             throw ex;
@@ -90,7 +90,7 @@ public class MuleNotificationProcessor {
                     rootSpan.setStatus(StatusCode.ERROR, notification.getException().getMessage());
                     rootSpan.recordException(notification.getException());
                 }
-            });
+            },Instant.ofEpochMilli(notification.getTimestamp()));
         } catch (Exception ex) {
             logger.error("Error in handling "+ notification.getResourceIdentifier() +" flow end event", ex);
             throw ex;

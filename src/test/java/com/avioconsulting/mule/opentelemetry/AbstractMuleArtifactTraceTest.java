@@ -37,7 +37,6 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
     protected void doSetUpBeforeMuleContextCreation() throws Exception {
         super.doSetUpBeforeMuleContextCreation();
         System.setProperty(TEST_TIMEOUT_SYSTEM_PROPERTY, "120_000_000");
-        System.setProperty("otel.traces.exporter", "logging");
         System.setProperty("otel.resource.attributes", "deployment.environment=test,service.name=test-flows");
         System.setProperty("otel.metrics.exporter", "none");
     }
@@ -53,6 +52,7 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
         System.setProperty("otel.exporter.otlp.traces.endpoint","http://localhost:55681/v1/traces");
         System.setProperty("otel.exporter.otlp.protocol","http/protobuf");
     }
+
     protected void withZipkinExporter(){
         System.setProperty("otel.traces.exporter", "zipkin");
         System.setProperty("otel.exporter.zipkin.endpoint","http://localhost:9411/api/v2/spans");

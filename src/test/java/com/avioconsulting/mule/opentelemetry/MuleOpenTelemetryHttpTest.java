@@ -4,6 +4,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mule.tck.junit4.rule.DynamicPort;
@@ -13,6 +14,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Ignore //This is for manually debugging. Make sure pom has required test dependencies for shared libraries.
 public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
 
     @Rule
@@ -36,6 +38,10 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
 
     @Test
     public void testHttpTracing() throws Exception {
-        sendRequest(UUID.randomUUID().toString(), "test", 200);
+        withOtelEndpoint();
+        while (true) {
+            sendRequest(UUID.randomUUID().toString(), "test", 200);
+            Thread.sleep(2000);
+        }
     }
 }

@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.avioconsulting</groupId>
 	<artifactId>open-telemetry-mule4-agent</artifactId>
-	<version>0.0.9-2</version>
+	<version>0.0.9-3</version>
 	<packaging>mule-extension</packaging>
 	<name>OpenTelemetry Extension</name>
 
@@ -20,38 +20,8 @@
 		<mule.maven.plugin.version>3.2.7</mule.maven.plugin.version>
 		<build.plugins.plugin.version>2.3.2</build.plugins.plugin.version>
 		<opentelemetry.version>1.9.1</opentelemetry.version>
-		<grpc.version>1.43.1</grpc.version>
 	</properties>
-<!--
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>3.2.0</version>
-				<executions>
-					<execution>
-						<id>attach-sources</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>-->
 
-<!--	<dependencyManagement>-->
-<!--		<dependencies>-->
-<!--			<dependency>-->
-<!--				<groupId>io.opentelemetry</groupId>-->
-<!--				<artifactId>opentelemetry-bom</artifactId>-->
-<!--				<version>${opentelemetry.version}</version>-->
-<!--				<type>pom</type>-->
-<!--				<scope>import</scope>-->
-<!--			</dependency>-->
-<!--		</dependencies>-->
-<!--	</dependencyManagement>-->
 	<dependencies>
 		<dependency>
 			<groupId>org.mule.runtime</groupId>
@@ -69,42 +39,23 @@
 			<!--Needed by HttpProcessorComponent-->
 			<groupId>org.mule.connectors</groupId>
 			<artifactId>mule-http-connector</artifactId>
-			<version>1.5.21</version>
+			<version>1.5.25</version>
 			<classifier>mule-plugin</classifier>
 			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mule.connectors</groupId>
-			<artifactId>mule-sockets-connector</artifactId>
-			<version>1.1.5</version>
-			<classifier>mule-plugin</classifier>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.mule.services</groupId>
-			<artifactId>mule-service-scheduler</artifactId>
-			<version>1.3.2</version>
-			<classifier>mule-service</classifier>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mule.services</groupId>
 			<artifactId>mule-service-http</artifactId>
-			<version>1.4.3</version>
+			<version>1.6.0</version>
 			<classifier>mule-service</classifier>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.assertj</groupId>
-			<artifactId>assertj-core</artifactId>
-			<version>3.20.2</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.github.tomakehurst</groupId>
-			<artifactId>wiremock-jre8</artifactId>
-			<version>2.25.0</version>
-			<scope>test</scope>
+			<groupId>org.mule.connectors</groupId>
+			<artifactId>mule-sockets-connector</artifactId>
+			<version>1.2.2</version>
+			<classifier>mule-plugin</classifier>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.mule.runtime</groupId>
@@ -118,6 +69,19 @@
 			<version>${mule.version}</version>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.mule.services</groupId>
+			<artifactId>mule-service-scheduler</artifactId>
+			<version>1.4.0</version>
+			<classifier>mule-service</classifier>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<version>3.20.2</version>
+			<scope>test</scope>
+		</dependency>
 
 		<!--	Open Telemetry	-->
 		<dependency>
@@ -129,44 +93,6 @@
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
 			<version>${opentelemetry.version}-alpha</version>
-		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-sdk-extension-autoconfigure-spi</artifactId>
-			<version>${opentelemetry.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-sdk</artifactId>
-			<version>${opentelemetry.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-sdk-common</artifactId>
-			<version>${opentelemetry.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-context</artifactId>
-			<version>${opentelemetry.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-sdk-metrics</artifactId>
-			<version>${opentelemetry.version}-alpha</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-sdk-trace</artifactId>
-			<version>${opentelemetry.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-api-metrics</artifactId>
-			<version>${opentelemetry.version}-alpha</version>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
@@ -183,75 +109,69 @@
 			<artifactId>opentelemetry-exporter-otlp-http-trace</artifactId>
 			<version>${opentelemetry.version}</version>
 		</dependency>
-<!--		Start: Zipkin exporter test dependencies: Require deps in test class too
-			Uncomment following dependencies for POM.
 
-			The Test classes must add following dependencies to @ArtifactClassLoaderRunnerConfig
-"io.opentelemetry:opentelemetry-exporter-zipkin",
-"io.zipkin.zipkin2:zipkin",
-"io.zipkin.reporter2:zipkin-reporter",
-"io.zipkin.reporter2:zipkin-sender-okhttp3",
-"com.squareup.okio:okio",
-"com.squareup.okhttp3:okhttp"
-
--->
-
+		<!--		START: test dependencies for artifact testing Require deps in test class too-->
 <!--		<dependency>-->
-<!--			<groupId>io.zipkin.zipkin2</groupId>-->
-<!--			<artifactId>zipkin</artifactId>-->
-<!--			<version>2.23.2</version>-->
+<!--			<groupId>io.opentelemetry</groupId>-->
+<!--			<artifactId>opentelemetry-sdk-metrics</artifactId>-->
+<!--			<version>${opentelemetry.version}-alpha</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>io.opentelemetry</groupId>-->
+<!--			<artifactId>opentelemetry-api-metrics</artifactId>-->
+<!--			<version>${opentelemetry.version}-alpha</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>io.opentelemetry</groupId>-->
+<!--			<artifactId>opentelemetry-sdk-extension-autoconfigure-spi</artifactId>-->
+<!--			<version>${opentelemetry.version}</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>io.opentelemetry</groupId>-->
+<!--			<artifactId>opentelemetry-sdk</artifactId>-->
+<!--			<version>${opentelemetry.version}</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>io.opentelemetry</groupId>-->
+<!--			<artifactId>opentelemetry-sdk-common</artifactId>-->
+<!--			<version>${opentelemetry.version}</version>-->
 <!--			<scope>test</scope>-->
 <!--		</dependency>-->
 <!--		<dependency>-->
-<!--			<groupId>io.zipkin.reporter2</groupId>-->
-<!--			<artifactId>zipkin-reporter</artifactId>-->
-<!--			<version>2.16.3</version>-->
+<!--			<groupId>io.opentelemetry</groupId>-->
+<!--			<artifactId>opentelemetry-context</artifactId>-->
+<!--			<version>${opentelemetry.version}</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>io.opentelemetry</groupId>-->
+<!--			<artifactId>opentelemetry-sdk-trace</artifactId>-->
+<!--			<version>${opentelemetry.version}</version>-->
+<!--		</dependency>-->
+<!--		<dependency>-->
+<!--			<groupId>com.squareup.okio</groupId>-->
+<!--			<artifactId>okio</artifactId>-->
+<!--			<version>1.17.5</version>-->
 <!--			<scope>test</scope>-->
 <!--		</dependency>-->
 <!--		<dependency>-->
-<!--			<groupId>io.zipkin.reporter2</groupId>-->
-<!--			<artifactId>zipkin-sender-okhttp3</artifactId>-->
-<!--			<version>2.16.3</version>-->
+<!--			<groupId>com.squareup.okhttp3</groupId>-->
+<!--			<artifactId>okhttp</artifactId>-->
+<!--			<version>3.14.9</version>-->
 <!--			<scope>test</scope>-->
 <!--		</dependency>-->
-<!--		START: non-otlp exporter test dependencies: Require deps in test class too-->
-		<dependency>
-			<groupId>com.squareup.okio</groupId>
-			<artifactId>okio</artifactId>
-			<version>1.17.5</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.squareup.okhttp3</groupId>
-			<artifactId>okhttp</artifactId>
-			<version>3.14.9</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-exporter-otlp-common</artifactId>
-			<version>${opentelemetry.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<!--		END: non-otlp exporter test dependencies: Require deps in test class too-->
+<!--		<dependency>-->
+<!--			<groupId>io.opentelemetry</groupId>-->
+<!--			<artifactId>opentelemetry-exporter-otlp-common</artifactId>-->
+<!--			<version>${opentelemetry.version}</version>-->
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
+		<!--		END: test dependencies for artifact testing Require deps in test class too-->
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-exporter-logging</artifactId>
 			<version>${opentelemetry.version}</version>
 			<scope>test</scope>
 		</dependency>
-
-<!--		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-exporter-jaeger</artifactId>
-			<version>${opentelemetry.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-exporter-zipkin</artifactId>
-			<version>${opentelemetry.version}</version>
-		</dependency>-->
-		<!--	Logging	-->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
