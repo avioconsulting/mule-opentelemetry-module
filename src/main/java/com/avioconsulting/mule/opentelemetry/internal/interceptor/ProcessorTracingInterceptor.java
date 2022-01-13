@@ -25,6 +25,10 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
 
   }
 
+  public void setOpenTelemetryConnection(OpenTelemetryConnection connection) {
+    this.openTelemetryConnection = connection;
+  }
+
   private void init() {
     // We cannot init in the constructor. That will be too early to initiate
     // OpenTelemetry SDK. It fails with unresolved Otel dependencies.

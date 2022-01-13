@@ -46,6 +46,9 @@ otel.resource.attributes=deployment.environment=dev,service.name=test-api
 Extension uses a processor interceptor.
 OpenTelemetry's tracing context will automatically added a flow variable before the first processor is invoked.
 It is injected under key **OTEL_TRACE_CONTEXT** always.
+
+**NOTE:** In case interception needs to be disabled, set the system property **"mule.otel.interceptor.processor.enable"** to **"false"**.
+
 ![auto-context-flow-injection.png](./docs/images/auto-context-flow-injection.png)
 
 #### Manual Injection
@@ -64,7 +67,7 @@ If needed, `<opentelemetry:get-trace-context />` operation can be used to manual
   - [x] Mule SDK Based OpenTelemetry Connection Management
   - [ ] Configuration
     - [ ] Allow configuring OpenTelemetry Collector endpoint in configuration. System variables should override this configuration.
-    - [ ] Allow disabling the interceptor processing if needed. This will result in loosing context injection in flow variables.
+    - [x] Allow disabling the interceptor processing if needed. This will result in loosing context injection in flow variables.
   - [ ] Operations
     - [x] Add an operation to retrieve current trace context. SDK does not allow adding variables. Users may have to use `targetVariable` feature.
     - [ ] If possible, add a DW function to retrieve trace context as a Map. Users can add this map to any existing outbound headers.
