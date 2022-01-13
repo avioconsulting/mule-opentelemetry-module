@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.avioconsulting</groupId>
 	<artifactId>open-telemetry-mule4-agent</artifactId>
-	<version>0.0.9-3</version>
+	<version>0.0.9-12</version>
 	<packaging>mule-extension</packaging>
 	<name>OpenTelemetry Extension</name>
 
@@ -23,6 +23,19 @@
 	</properties>
 	<build>
 		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>3.2.0</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 			<plugin>
 				<groupId>com.diffplug.spotless</groupId>
 				<artifactId>spotless-maven-plugin</artifactId>
