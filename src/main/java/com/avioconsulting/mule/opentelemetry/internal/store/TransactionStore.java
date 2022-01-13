@@ -10,6 +10,8 @@ import org.mule.runtime.api.event.Event;
 /** Transaction store for managing service transactions. */
 public interface TransactionStore {
 
+  String TRACE_TRANSACTION_ID = "TRACE_TRANSACTION_ID";
+
   /**
    * A default implementation to get a mule correlation id as a local transaction
    * id.

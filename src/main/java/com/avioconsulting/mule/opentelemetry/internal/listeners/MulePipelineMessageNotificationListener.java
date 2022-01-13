@@ -12,7 +12,12 @@ import org.slf4j.LoggerFactory;
 public class MulePipelineMessageNotificationListener
     implements PipelineMessageNotificationListener<PipelineMessageNotification> {
 
+  private final MuleNotificationProcessor muleNotificationProcessor;
   private Logger logger = LoggerFactory.getLogger(MulePipelineMessageNotificationListener.class);
+
+  public MulePipelineMessageNotificationListener(MuleNotificationProcessor muleNotificationProcessor) {
+    this.muleNotificationProcessor = muleNotificationProcessor;
+  }
 
   @Override
   public void onNotification(PipelineMessageNotification notification) {
@@ -24,7 +29,7 @@ public class MulePipelineMessageNotificationListener
 
     switch (Integer.parseInt(notification.getAction().getIdentifier())) {
       case PipelineMessageNotification.PROCESS_START:
-        MuleNotificationProcessor.handleFlowStartEvent(notification);
+        muleNotificationProcessor.handleFlowStartEvent(notification);
         break;
 
       // On exception this event doesn't fire, only on successful flow completion.
@@ -32,7 +37,7 @@ public class MulePipelineMessageNotificationListener
         break;
 
       case PipelineMessageNotification.PROCESS_COMPLETE:
-        MuleNotificationProcessor.handleFlowEndEvent(notification);
+        muleNotificationProcessor.handleFlowEndEvent(notification);
         break;
     }
   }

@@ -9,7 +9,12 @@ import org.slf4j.LoggerFactory;
 public class MuleMessageProcessorNotificationListener
     implements MessageProcessorNotificationListener<MessageProcessorNotification> {
 
+  private final MuleNotificationProcessor muleNotificationProcessor;
   private Logger logger = LoggerFactory.getLogger(MuleMessageProcessorNotificationListener.class);
+
+  public MuleMessageProcessorNotificationListener(MuleNotificationProcessor muleNotificationProcessor) {
+    this.muleNotificationProcessor = muleNotificationProcessor;
+  }
 
   @Override
   public void onNotification(MessageProcessorNotification notification) {
@@ -21,11 +26,11 @@ public class MuleMessageProcessorNotificationListener
 
     switch (Integer.parseInt(notification.getAction().getIdentifier())) {
       case MessageProcessorNotification.MESSAGE_PROCESSOR_PRE_INVOKE:
-        MuleNotificationProcessor.handleProcessorStartEvent(notification);
+        muleNotificationProcessor.handleProcessorStartEvent(notification);
         break;
 
       case MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE:
-        MuleNotificationProcessor.handleProcessorEndEvent(notification);
+        muleNotificationProcessor.handleProcessorEndEvent(notification);
         break;
     }
   }

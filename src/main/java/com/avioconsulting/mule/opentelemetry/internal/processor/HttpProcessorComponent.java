@@ -1,14 +1,8 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.*;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.HTTP_HOST;
-
-import com.avioconsulting.mule.opentelemetry.internal.utils.TraceUtil;
+import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.propagation.TextMapGetter;
-import java.util.HashMap;
-import java.util.Map;
-import javax.annotation.Nullable;
 import org.mule.extension.http.api.HttpRequestAttributes;
 import org.mule.extension.http.api.HttpResponseAttributes;
 import org.mule.runtime.api.component.ComponentIdentifier;
@@ -16,6 +10,13 @@ import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
+
+import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.*;
 
 public class HttpProcessorComponent extends GenericProcessorComponent {
 
@@ -71,9 +72,6 @@ public class HttpProcessorComponent extends GenericProcessorComponent {
 
   @Override
   public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
-    if (isListenerFlowEvent(notification)) {
-      return processHttpListener(notification);
-    }
 
     TraceComponent traceComponent = super.getStartTraceComponent(notification);
 
@@ -97,16 +95,22 @@ public class HttpProcessorComponent extends GenericProcessorComponent {
     return tags;
   }
 
-  private TraceComponent processHttpListener(EnrichedServerNotification notification) {
+  @Override
+  public Optional<TraceComponent> getSourceTraceComponent(EnrichedServerNotification notification,
+      TraceContextHandler traceContextHandler) {
+    if (!isListenerFlowEvent(notification)) {
+      return Optional.empty();
+    }
     TypedValue<HttpRequestAttributes> attributesTypedValue = notification.getEvent().getMessage().getAttributes();
     HttpRequestAttributes attributes = attributesTypedValue.getValue();
     Map<String, String> tags = attributesToTags(attributes);
-    return TraceComponent.newBuilder(getComponentParameterName(notification))
+    TraceComponent traceComponent = TraceComponent.newBuilder(getComponentParameterName(notification))
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
         .withSpanName(attributes.getListenerPath())
-        .withContext(TraceUtil.getTraceContext(attributes, ContextMapGetter.INSTANCE))
+        .withContext(traceContextHandler.getTraceContext(attributes, ContextMapGetter.INSTANCE))
         .build();
+    return Optional.of(traceComponent);
   }
 
   private Map<String, String> attributesToTags(HttpRequestAttributes attributes) {

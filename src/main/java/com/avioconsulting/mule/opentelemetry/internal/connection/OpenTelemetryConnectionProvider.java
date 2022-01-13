@@ -1,19 +1,28 @@
-package com.avioconsulting.mule.opentelemetry.internal;
+package com.avioconsulting.mule.opentelemetry.internal.connection;
 
 import org.mule.runtime.api.connection.ConnectionException;
 import org.mule.runtime.api.connection.ConnectionValidationResult;
 import org.mule.runtime.api.connection.PoolingConnectionProvider;
+import org.mule.runtime.api.notification.NotificationListenerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.inject.Inject;
 
 public class OpenTelemetryConnectionProvider
     implements PoolingConnectionProvider<OpenTelemetryConnection> {
 
   private final Logger LOGGER = LoggerFactory.getLogger(OpenTelemetryConnectionProvider.class);
 
+  public static final String INSTRUMENTATION_VERSION = "0.0.1";
+  public static final String INSTRUMENTATION_NAME = "com.avioconsulting.mule.tracing";
+
+  @Inject
+  NotificationListenerRegistry notificationListenerRegistry;
+
   @Override
   public OpenTelemetryConnection connect() throws ConnectionException {
-    return new OpenTelemetryConnection("");
+    return OpenTelemetryConnection.getInstance();
   }
 
   @Override
@@ -22,7 +31,7 @@ public class OpenTelemetryConnectionProvider
       connection.invalidate();
     } catch (Exception e) {
       LOGGER.error(
-          "Error while disconnecting [" + connection.getId() + "]: " + e.getMessage(), e);
+          "Error while disconnecting OpenTelemetry: " + e.getMessage(), e);
     }
   }
 

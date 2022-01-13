@@ -1,14 +1,14 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
-import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryStarter;
+import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
-import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
-import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import java.time.Instant;
+import java.util.function.Supplier;
+
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
@@ -24,25 +24,36 @@ public class MuleNotificationProcessor {
   // issues in distributed.
   private static final Logger logger = LoggerFactory.getLogger(MuleNotificationProcessor.class);
 
-  private static final TransactionStore transactionStore = InMemoryTransactionStore.getInstance();
+  private final Supplier<OpenTelemetryConnection> connectionSupplier;
+  private OpenTelemetryConnection openTelemetryConnection;
 
-  public static void handleProcessorStartEvent(MessageProcessorNotification notification) {
+  public MuleNotificationProcessor(Supplier<OpenTelemetryConnection> connectionSupplier) {
+    this.connectionSupplier = connectionSupplier;
+  }
+
+  private void init() {
+    if (openTelemetryConnection == null) {
+      openTelemetryConnection = connectionSupplier.get();
+    }
+  }
+
+  public void handleProcessorStartEvent(MessageProcessorNotification notification) {
     logger.trace(
         "Handling '{}:{}' processor start event",
         notification.getResourceIdentifier(),
         notification.getComponent().getIdentifier());
     try {
+      init();
       ProcessorComponent processorComponent = ProcessorComponentService.getInstance()
           .getProcessorComponentFor(notification.getComponent().getIdentifier())
           .orElse(new GenericProcessorComponent());
       TraceComponent traceComponent = processorComponent.getStartTraceComponent(notification);
-      SpanBuilder spanBuilder = OpenTelemetryStarter.getInstance()
-          .getTracer()
+      SpanBuilder spanBuilder = openTelemetryConnection
           .spanBuilder(traceComponent.getSpanName())
           .setSpanKind(traceComponent.getSpanKind())
           .setStartTimestamp(Instant.ofEpochMilli(notification.getTimestamp()));
       traceComponent.getTags().forEach(spanBuilder::setAttribute);
-      transactionStore.addProcessorSpan(
+      openTelemetryConnection.getTransactionStore().addProcessorSpan(
           traceComponent.getTransactionId(), traceComponent.getLocation(), spanBuilder);
     } catch (Exception ex) {
       logger.error("Error in handling processor start event", ex);
@@ -50,17 +61,18 @@ public class MuleNotificationProcessor {
     }
   }
 
-  public static void handleProcessorEndEvent(MessageProcessorNotification notification) {
+  public void handleProcessorEndEvent(MessageProcessorNotification notification) {
     try {
       logger.trace(
           "Handling '{}:{}' processor end event ",
           notification.getResourceIdentifier(),
           notification.getComponent().getIdentifier());
+      init();
       ProcessorComponent processorComponent = ProcessorComponentService.getInstance()
           .getProcessorComponentFor(notification.getComponent().getIdentifier())
           .orElse(new GenericProcessorComponent());
       TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification);
-      transactionStore.endProcessorSpan(
+      openTelemetryConnection.getTransactionStore().endProcessorSpan(
           traceComponent.getTransactionId(),
           traceComponent.getLocation(),
           span -> {
@@ -79,19 +91,20 @@ public class MuleNotificationProcessor {
     }
   }
 
-  public static void handleFlowStartEvent(PipelineMessageNotification notification) {
+  public void handleFlowStartEvent(PipelineMessageNotification notification) {
     try {
       logger.trace("Handling '{}' flow start event", notification.getResourceIdentifier());
-      FlowProcessorComponent flowProcessorComponent = new FlowProcessorComponent();
-      TraceComponent traceComponent = flowProcessorComponent.getStartTraceComponent(notification);
-      SpanBuilder spanBuilder = OpenTelemetryStarter.getInstance()
-          .getTracer()
+      init();
+      ProcessorComponent flowProcessorComponent = new FlowProcessorComponent();
+      TraceComponent traceComponent = flowProcessorComponent
+          .getSourceTraceComponent(notification, openTelemetryConnection).get();
+      SpanBuilder spanBuilder = openTelemetryConnection
           .spanBuilder(traceComponent.getSpanName())
           .setSpanKind(SpanKind.SERVER)
           .setParent(traceComponent.getContext())
           .setStartTimestamp(Instant.ofEpochMilli(notification.getTimestamp()));
       traceComponent.getTags().forEach(spanBuilder::setAttribute);
-      transactionStore.startTransaction(
+      openTelemetryConnection.getTransactionStore().startTransaction(
           traceComponent.getTransactionId(), traceComponent.getName(), spanBuilder);
     } catch (Exception ex) {
       logger.error(
@@ -103,12 +116,13 @@ public class MuleNotificationProcessor {
     }
   }
 
-  public static void handleFlowEndEvent(PipelineMessageNotification notification) {
+  public void handleFlowEndEvent(PipelineMessageNotification notification) {
     try {
       logger.trace("Handling '{}' flow end event", notification.getResourceIdentifier());
+      init();
       FlowProcessorComponent flowProcessorComponent = new FlowProcessorComponent();
       TraceComponent traceComponent = flowProcessorComponent.getEndTraceComponent(notification);
-      transactionStore.endTransaction(
+      openTelemetryConnection.getTransactionStore().endTransaction(
           traceComponent.getTransactionId(),
           traceComponent.getName(),
           rootSpan -> {

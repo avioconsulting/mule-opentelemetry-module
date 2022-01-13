@@ -1,8 +1,11 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
@@ -32,24 +35,29 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
         .withTransactionId(getTransactionId(notification))
         .withSpanName(notification.getResourceIdentifier());
 
-    TraceComponent httpSourceTrace = getHttpSourceTrace(notification);
-    if (httpSourceTrace != null) {
-      tags.putAll(httpSourceTrace.getTags());
-      builder.withSpanName(httpSourceTrace.getSpanName())
-          .withTransactionId(httpSourceTrace.getTransactionId())
-          .withContext(httpSourceTrace.getContext())
-          .withTags(tags);
-    }
     return builder.build();
   }
 
-  private TraceComponent getHttpSourceTrace(EnrichedServerNotification notification) {
+  @Override
+  public Optional<TraceComponent> getSourceTraceComponent(EnrichedServerNotification notification,
+      TraceContextHandler traceContextHandler) {
+    TraceComponent startTraceComponent = getStartTraceComponent(notification);
     ComponentIdentifier sourceIdentifier = getSourceIdentifier(notification);
     if (sourceIdentifier == null)
-      return null;
-    return ProcessorComponentService.getInstance()
+      return Optional.of(startTraceComponent);
+
+    TraceComponent.Builder builder = startTraceComponent.toBuilder();
+    ProcessorComponentService.getInstance()
         .getProcessorComponentFor(sourceIdentifier)
-        .map(processorComponent -> processorComponent.getStartTraceComponent(notification))
-        .orElse(null);
+        .flatMap(processorComponent -> processorComponent.getSourceTraceComponent(notification,
+            traceContextHandler))
+        .ifPresent(sourceTrace -> {
+          startTraceComponent.getTags().putAll(sourceTrace.getTags());
+          builder.withSpanName(sourceTrace.getSpanName())
+              .withTransactionId(sourceTrace.getTransactionId())
+              .withContext(sourceTrace.getContext());
+        });
+    return Optional.of(builder.build());
   }
+
 }
