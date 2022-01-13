@@ -9,7 +9,8 @@ public class ProcessorComponentService {
   private final List<ProcessorComponent> processorComponents;
 
   private ProcessorComponentService() {
-    ServiceLoader<ProcessorComponent> loader = ServiceLoader.load(ProcessorComponent.class);
+    ServiceLoader<ProcessorComponent> loader = ServiceLoader.load(ProcessorComponent.class,
+        ProcessorComponent.class.getClassLoader());
     List<ProcessorComponent> lst = new ArrayList<>();
     loader.iterator().forEachRemaining(lst::add);
     processorComponents = Collections.unmodifiableList(lst);
