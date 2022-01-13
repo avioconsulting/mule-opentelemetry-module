@@ -11,6 +11,7 @@ import org.mule.runtime.api.event.Event;
 public interface TransactionStore {
 
   String TRACE_TRANSACTION_ID = "TRACE_TRANSACTION_ID";
+  String TRACE_CONTEXT_MAP_KEY = "OTEL_TRACE_CONTEXT";
 
   /**
    * A default implementation to get a mule correlation id as a local transaction

@@ -13,6 +13,8 @@ Extension contains all dependencies needed to send traces to an OpenTelemetry Co
 
 For all other exporters, application must add additional required dependencies. See [sdk-extensions/autoconfigure#exporters](https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#exporters) for details.
 
+### Propagators
+
 
 ## Testing
 
@@ -36,15 +38,35 @@ otel.metrics.exporter=none
 otel.resource.attributes=deployment.environment=dev,service.name=test-api
 ```
 
+## Context Propagation
+
+### Context Injection
+
+#### Auto Injection to Flow Variables
+Extension uses a processor interceptor.
+OpenTelemetry's tracing context will automatically added a flow variable before the first processor is invoked.
+It is injected under key **OTEL_TRACE_CONTEXT** always.
+![auto-context-flow-injection.png](./docs/images/auto-context-flow-injection.png)
+
+#### Manual Injection
+If needed, `<opentelemetry:get-trace-context />` operation can be used to manually inject trace context into flow.
+
+**NOTE:** `target` must be used to set operation output to a flow variable.
+```xml
+<opentelemetry:get-trace-context doc:name="Get Trace Context" config-ref="OpenTelemetry_Config" target="traceContext"/>
+```
+![manual-context-flow-injection.png](./docs/images/manual-context-flow-injection.png)
+
+
 
 ## TODO
 - Extension Features
-  - [ ] Mule SDK Based OpenTelemetry Connection Management
+  - [x] Mule SDK Based OpenTelemetry Connection Management
   - [ ] Configuration
     - [ ] Allow configuring OpenTelemetry Collector endpoint in configuration. System variables should override this configuration.
     - [ ] Allow disabling the interceptor processing if needed. This will result in loosing context injection in flow variables.
   - [ ] Operations
-    - [ ] Add an operation to retrieve current trace context. SDK does not allow adding variables. Users may have to use `targetVariable` feature.
+    - [x] Add an operation to retrieve current trace context. SDK does not allow adding variables. Users may have to use `targetVariable` feature.
     - [ ] If possible, add a DW function to retrieve trace context as a Map. Users can add this map to any existing outbound headers.
   - [ ] Scopes
     - [ ] Add a custom scope container to execute components in a span.

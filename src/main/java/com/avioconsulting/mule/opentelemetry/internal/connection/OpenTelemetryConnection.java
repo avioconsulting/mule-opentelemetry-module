@@ -6,11 +6,17 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapSetter;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class OpenTelemetryConnection implements TraceContextHandler {
 
@@ -48,6 +54,16 @@ public final class OpenTelemetryConnection implements TraceContextHandler {
     return openTelemetry.getPropagators().getTextMapPropagator().extract(Context.current(), carrier, textMapGetter);
   }
 
+  public Map<String, String> getTraceContext(String transactionId) {
+    Context transactionContext = getTransactionStore().getTransactionContext(transactionId);
+    Map<String, String> traceContext = new HashMap<>();
+    traceContext.put(TransactionStore.TRACE_TRANSACTION_ID, transactionId);
+    try (Scope scope = transactionContext.makeCurrent()) {
+      injectTraceContext(traceContext, HashMapTextMapSetter.INSTANCE);
+    }
+    return Collections.unmodifiableMap(traceContext);
+  }
+
   public <T> void injectTraceContext(T carrier, TextMapSetter<T> textMapSetter) {
     openTelemetry.getPropagators().getTextMapPropagator().inject(Context.current(), carrier, textMapSetter);
   }
@@ -58,5 +74,15 @@ public final class OpenTelemetryConnection implements TraceContextHandler {
 
   public void invalidate() {
 
+  }
+
+  public static enum HashMapTextMapSetter implements TextMapSetter<Map<String, String>> {
+    INSTANCE;
+
+    @Override
+    public void set(@Nullable Map<String, String> carrier, String key, String value) {
+      if (carrier != null)
+        carrier.put(key, value);
+    }
   }
 }
