@@ -13,7 +13,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mule.tck.junit4.rule.DynamicPort;
 
-@Ignore // This is for manually debugging. Make sure pom has required test dependencies
+//@Ignore // This is for manually debugging. Make sure pom has required test dependencies
 // for shared
 // libraries.
 public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
@@ -46,5 +46,15 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
       sendRequest(UUID.randomUUID().toString(), "test", 200);
       Thread.sleep(2000);
     }
+  }
+
+  @Test
+  public void testInvalidRequest() throws Exception {
+    sendRequest(UUID.randomUUID().toString(), "test-invalid-request", 500);
+  }
+
+  @Test
+  public void testInvalidRequestSubFlow() throws Exception {
+    flowRunner("mule-opentelemetry-app-2-private-Flow-requester-error").run();
   }
 }

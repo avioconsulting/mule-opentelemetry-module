@@ -58,8 +58,12 @@ public class HttpProcessorComponent extends GenericProcessorComponent {
         .getError()
         .map(Error::getErrorMessage)
         .orElse(notification.getEvent().getMessage());
-    TypedValue<HttpResponseAttributes> httpResponseAttributesTypedValue = responseMessage.getAttributes();
-    HttpResponseAttributes attributes = httpResponseAttributesTypedValue.getValue();
+    TypedValue<HttpResponseAttributes> responseAttributes = responseMessage.getAttributes();
+    if (responseAttributes.getValue() == null
+        || !(responseAttributes.getValue() instanceof HttpResponseAttributes)) {
+      return endTraceComponent;
+    }
+    HttpResponseAttributes attributes = responseAttributes.getValue();
     Map<String, String> tags = new HashMap<>();
     tags.put(HTTP_STATUS_CODE.getKey(), Integer.toString(attributes.getStatusCode()));
     tags.put(
