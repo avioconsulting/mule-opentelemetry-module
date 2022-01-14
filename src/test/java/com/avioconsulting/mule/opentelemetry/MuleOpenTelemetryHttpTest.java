@@ -47,4 +47,14 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
       Thread.sleep(2000);
     }
   }
+
+  @Test
+  public void testInvalidRequest() throws Exception {
+    sendRequest(UUID.randomUUID().toString(), "test-invalid-request", 500);
+  }
+
+  @Test
+  public void testInvalidRequestSubFlow() throws Exception {
+    flowRunner("mule-opentelemetry-app-2-private-Flow-requester-error").run();
+  }
 }

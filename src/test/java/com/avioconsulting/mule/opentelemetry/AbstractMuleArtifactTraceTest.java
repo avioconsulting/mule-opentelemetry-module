@@ -10,7 +10,7 @@ import org.mule.tck.probe.PollingProber;
 import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
 
 @ArtifactClassLoaderRunnerConfig(applicationSharedRuntimeLibs = {
-    "com.avioconsulting:open-telemetry-mule4-agent",
+    "com.avioconsulting:mule-open-telemetry-module",
     "io.opentelemetry:opentelemetry-api",
     "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure",
     "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi",
