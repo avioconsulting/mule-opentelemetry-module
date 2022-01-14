@@ -3,8 +3,8 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.avioconsulting</groupId>
-	<artifactId>open-telemetry-mule4-agent</artifactId>
-	<version>0.0.23</version>
+	<artifactId>mule-open-telemetry-module</artifactId>
+	<version>0.0.24</version>
 	<packaging>mule-extension</packaging>
 	<name>OpenTelemetry Extension</name>
 
@@ -46,7 +46,7 @@
 						<format>
 							<!-- define the files to apply to -->
 							<includes>
-								<include>*.md</include>
+								<include>*.adoc</include>
 								<include>.gitignore</include>
 							</includes>
 							<!-- define the steps to apply to those files -->
