@@ -1,5 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.connection;
 
+import com.avioconsulting.mule.opentelemetry.api.config.KeyValuePair;
+import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
 import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import io.opentelemetry.api.OpenTelemetry;
@@ -10,6 +12,7 @@ import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapSetter;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +20,7 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public final class OpenTelemetryConnection implements TraceContextHandler {
 
@@ -25,25 +29,49 @@ public final class OpenTelemetryConnection implements TraceContextHandler {
   public static final String INSTRUMENTATION_VERSION = "0.0.1";
   public static final String INSTRUMENTATION_NAME = "com.avioconsulting.mule.tracing";
   private final TransactionStore transactionStore;
-  private static OpenTelemetryConnection starter;
+  private static OpenTelemetryConnection openTelemetryConnection;
   private final OpenTelemetry openTelemetry;
   private final Tracer tracer;
 
-  private OpenTelemetryConnection(String instrumentationName, String instrumentationVersion) {
+  private OpenTelemetryConnection(String instrumentationName, String instrumentationVersion,
+      OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
     logger.info("Initialising OpenTelemetry Mule 4 Agent for instrumentation {}:{}", instrumentationName,
         instrumentationVersion);
     // See here for autoconfigure options
     // https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure
-    openTelemetry = AutoConfiguredOpenTelemetrySdk.initialize().getOpenTelemetrySdk();
+    AutoConfiguredOpenTelemetrySdkBuilder builder = AutoConfiguredOpenTelemetrySdk.builder();
+    if (openTelemetryConfigWrapper != null) {
+      // TODO: Process other config elements for OTEL SDK
+      final Map<String, String> configMap = new HashMap<>();
+      if (openTelemetryConfigWrapper.getResource() != null) {
+        if (openTelemetryConfigWrapper.getResource().getServiceName() != null) {
+          configMap.put("otel.service.name", openTelemetryConfigWrapper.getResource().getServiceName());
+        }
+        configMap.put("otel.resource.attributes",
+            KeyValuePair
+                .commaSeparatedList(openTelemetryConfigWrapper.getResource().getResourceAttributes()));
+      }
+      if (openTelemetryConfigWrapper.getExporter() != null) {
+        configMap.putAll(openTelemetryConfigWrapper.getExporter().getConfigProperties());
+      }
+      builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
+    }
+    openTelemetry = builder.build().getOpenTelemetrySdk();
     tracer = openTelemetry.getTracer(INSTRUMENTATION_NAME, INSTRUMENTATION_VERSION);
     transactionStore = InMemoryTransactionStore.getInstance();
   }
 
-  public static synchronized OpenTelemetryConnection getInstance() {
-    if (starter == null) {
-      starter = new OpenTelemetryConnection(INSTRUMENTATION_NAME, INSTRUMENTATION_VERSION);
+  public static Optional<OpenTelemetryConnection> get() {
+    return Optional.ofNullable(openTelemetryConnection);
+  }
+
+  public static synchronized OpenTelemetryConnection getInstance(
+      OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
+    if (openTelemetryConnection == null) {
+      openTelemetryConnection = new OpenTelemetryConnection(INSTRUMENTATION_NAME, INSTRUMENTATION_VERSION,
+          openTelemetryConfigWrapper);
     }
-    return starter;
+    return openTelemetryConnection;
   }
 
   public SpanBuilder spanBuilder(String spanName) {

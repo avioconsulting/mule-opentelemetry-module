@@ -8,8 +8,19 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="79881531-bfaa-49fd-8227-b67e35d64cf8" >
 		<http:listener-connection host="0.0.0.0" port="${http.port}" />
 	</http:listener-config>
-	
-	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="366c0757-aaff-4cf1-ba56-5c9ff0faa3cb"/>
+
+	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1">
+		<opentelemetry:exporter >
+			<opentelemetry:otlp-exporter collectorEndpoint="http://localhost:55681/v1" protocol="HTTP_PROTOBUF" >
+				<opentelemetry:headers >
+					<opentelemetry:header key="testHeader" value="testHeaderValue" />
+				</opentelemetry:headers>
+			</opentelemetry:otlp-exporter>
+		</opentelemetry:exporter>
+		<opentelemetry:resource-attributes >
+			<opentelemetry:attribute key="mule.env" value="Dev" />
+		</opentelemetry:resource-attributes>
+	</opentelemetry:config>
 	<flow name="mule-opentelemetry-app-2Flow" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
 		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test"/>
 		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />

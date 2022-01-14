@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.avioconsulting</groupId>
 	<artifactId>open-telemetry-mule4-agent</artifactId>
-	<version>0.0.9-14</version>
+	<version>0.0.23</version>
 	<packaging>mule-extension</packaging>
 	<name>OpenTelemetry Extension</name>
 
@@ -150,6 +150,12 @@
 			<version>3.20.2</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-inline</artifactId>
+			<version>3.8.0</version>
+			<scope>test</scope>
+		</dependency>
 
 		<!--	Open Telemetry	-->
 		<dependency>
@@ -177,7 +183,11 @@
 			<artifactId>opentelemetry-exporter-otlp-http-trace</artifactId>
 			<version>${opentelemetry.version}</version>
 		</dependency>
-
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-exporter-logging</artifactId>
+			<version>${opentelemetry.version}</version>
+		</dependency>
 		<!--		START: test dependencies for artifact testing Require deps in test class too-->
 <!--		<dependency>-->
 <!--			<groupId>io.opentelemetry</groupId>-->
@@ -234,12 +244,6 @@
 <!--			<scope>test</scope>-->
 <!--		</dependency>-->
 		<!--		END: test dependencies for artifact testing Require deps in test class too-->
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-exporter-logging</artifactId>
-			<version>${opentelemetry.version}</version>
-			<scope>test</scope>
-		</dependency>
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>

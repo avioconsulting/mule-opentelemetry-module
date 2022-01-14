@@ -18,45 +18,17 @@ import java.util.Map;
 public class ProcessorTracingInterceptor implements ProcessorInterceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessorTracingInterceptor.class);
-  private OpenTelemetryConnection openTelemetryConnection;
-  private boolean initFailed = false;
-
-  public ProcessorTracingInterceptor() {
-
-  }
-
-  public void setOpenTelemetryConnection(OpenTelemetryConnection connection) {
-    this.openTelemetryConnection = connection;
-  }
-
-  private void init() {
-    // We cannot init in the constructor. That will be too early to initiate
-    // OpenTelemetry SDK. It fails with unresolved Otel dependencies.
-    // TODO: Find another way of injection for Connection.
-    try {
-      OpenTelemetryConnectionProvider connectionProvider = new OpenTelemetryConnectionProvider();
-      LifecycleUtils.initialiseIfNeeded(connectionProvider);
-      openTelemetryConnection = connectionProvider.connect();
-    } catch (Exception e) {
-      LOGGER.error("Failed to initialize OpenTelemetry Connection provider in interceptor.", e);
-      initFailed = true;
-    }
-  }
 
   @Override
   public void before(
       ComponentLocation location,
       Map<String, ProcessorParameterValue> parameters,
       InterceptionEvent event) {
-    if (openTelemetryConnection == null && !initFailed)
-      init();
-    if (initFailed) {
-      LOGGER.debug("OpenTelemetry was not initialized successfully. Skipping interception.");
-      return;
-    }
-    String transactionId = openTelemetryConnection.getTransactionStore().transactionIdFor(event);
-    event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY,
-        openTelemetryConnection.getTraceContext(transactionId));
+    OpenTelemetryConnection.get().ifPresent(connection -> {
+      String transactionId = connection.getTransactionStore().transactionIdFor(event);
+      event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY,
+          connection.getTraceContext(transactionId));
+    });
   }
 
 }

@@ -3,11 +3,14 @@ package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import org.junit.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.interception.InterceptionEvent;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -23,11 +26,14 @@ public class ProcessorTracingInterceptorTest {
     Map<String, String> traceparentMap = Collections.singletonMap("traceparent", "some-value");
     when(connection.getTraceContext("random-id"))
         .thenReturn(traceparentMap);
-    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor();
-    interceptor.setOpenTelemetryConnection(connection);
-    ComponentLocation location = mock(ComponentLocation.class);
-    InterceptionEvent interceptionEvent = mock(InterceptionEvent.class);
-    interceptor.before(location, Collections.emptyMap(), interceptionEvent);
-    verify(interceptionEvent).addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY, traceparentMap);
+    try (MockedStatic<OpenTelemetryConnection> conn = Mockito.mockStatic(OpenTelemetryConnection.class)) {
+      conn.when(OpenTelemetryConnection::get).thenReturn(Optional.of(connection));
+      ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor();
+      ComponentLocation location = mock(ComponentLocation.class);
+      InterceptionEvent interceptionEvent = mock(InterceptionEvent.class);
+      interceptor.before(location, Collections.emptyMap(), interceptionEvent);
+      verify(interceptionEvent).addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY, traceparentMap);
+    }
+
   }
 }

@@ -36,8 +36,6 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
   protected void doSetUpBeforeMuleContextCreation() throws Exception {
     super.doSetUpBeforeMuleContextCreation();
     System.setProperty(TEST_TIMEOUT_SYSTEM_PROPERTY, "120_000_000");
-    System.setProperty(
-        "otel.resource.attributes", "deployment.environment=test,service.name=test-flows");
     System.setProperty("otel.metrics.exporter", "none");
   }
 

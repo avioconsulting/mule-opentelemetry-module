@@ -1,8 +1,8 @@
 package com.avioconsulting.mule.opentelemetry.internal.connection;
 
+import org.mule.runtime.api.connection.CachedConnectionProvider;
 import org.mule.runtime.api.connection.ConnectionException;
 import org.mule.runtime.api.connection.ConnectionValidationResult;
-import org.mule.runtime.api.connection.PoolingConnectionProvider;
 import org.mule.runtime.api.notification.NotificationListenerRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 
 public class OpenTelemetryConnectionProvider
-    implements PoolingConnectionProvider<OpenTelemetryConnection> {
+    implements CachedConnectionProvider<OpenTelemetryConnection> {
 
   private final Logger LOGGER = LoggerFactory.getLogger(OpenTelemetryConnectionProvider.class);
 
@@ -22,7 +22,8 @@ public class OpenTelemetryConnectionProvider
 
   @Override
   public OpenTelemetryConnection connect() throws ConnectionException {
-    return OpenTelemetryConnection.getInstance();
+    return OpenTelemetryConnection.get().orElseThrow(
+        () -> new ConnectionException("Configuration must fist start for OpenTelemetry connection."));
   }
 
   @Override
