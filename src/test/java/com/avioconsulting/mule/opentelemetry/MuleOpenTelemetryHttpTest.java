@@ -13,7 +13,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mule.tck.junit4.rule.DynamicPort;
 
-//@Ignore // This is for manually debugging. Make sure pom has required test dependencies
+@Ignore // This is for manually debugging. Make sure pom has required test dependencies
 // for shared
 // libraries.
 public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
