@@ -1,34 +1,30 @@
 package com.avioconsulting.mule.opentelemetry;
 
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.atomic.AtomicReference;
-import org.junit.Before;
+import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.junit.Rule;
 import org.mule.functional.junit4.MuleArtifactFunctionalTestCase;
 import org.mule.runtime.core.api.event.CoreEvent;
+import org.mule.tck.junit4.rule.DynamicPort;
 import org.mule.tck.probe.JUnitLambdaProbe;
 import org.mule.tck.probe.PollingProber;
-import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
 
-@ArtifactClassLoaderRunnerConfig(applicationSharedRuntimeLibs = {
-    "com.avioconsulting:mule-open-telemetry-module",
-    "io.opentelemetry:opentelemetry-api",
-    "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure",
-    "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi",
-    "io.opentelemetry:opentelemetry-sdk",
-    "io.opentelemetry:opentelemetry-semconv",
-    "io.opentelemetry:opentelemetry-sdk-common",
-    "io.opentelemetry:opentelemetry-context",
-    "io.opentelemetry:opentelemetry-sdk-metrics",
-    "io.opentelemetry:opentelemetry-api-metrics",
-    "io.opentelemetry:opentelemetry-sdk-trace",
-    "io.opentelemetry:opentelemetry-exporter-logging",
-    "io.opentelemetry:opentelemetry-exporter-otlp",
-    "io.opentelemetry:opentelemetry-exporter-otlp-common",
-    "io.opentelemetry:opentelemetry-exporter-otlp-http-trace",
-    "com.squareup.okio:okio",
-    "com.squareup.okhttp3:okhttp",
-})
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Logger;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {
+
+  @Rule
+  public DynamicPort serverPort = new DynamicPort("http.port");
 
   protected static final java.util.Queue<CoreEvent> CAPTURED = new ConcurrentLinkedDeque<>();
 
@@ -36,12 +32,6 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
   protected void doSetUpBeforeMuleContextCreation() throws Exception {
     super.doSetUpBeforeMuleContextCreation();
     System.setProperty(TEST_TIMEOUT_SYSTEM_PROPERTY, "120_000_000");
-    System.setProperty("otel.metrics.exporter", "none");
-  }
-
-  @Before
-  public void beforeTest() {
-    System.setProperty("otel.traces.exporter", "logging");
   }
 
   protected void withOtelEndpoint() {
@@ -52,9 +42,19 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
     System.setProperty("otel.exporter.otlp.protocol", "http/protobuf");
   }
 
-  protected void withZipkinExporter() {
-    System.setProperty("otel.traces.exporter", "zipkin");
-    System.setProperty("otel.exporter.zipkin.endpoint", "http://localhost:9411/api/v2/spans");
+  /**
+   * Gets a @{@link Logger} used by
+   * `io.opentelemetry.exporter.logging.LoggingSpanExporter`.
+   * Registers a @{@link TestLoggerHandler} as a log handler for log entry
+   * extraction during tests.
+   * 
+   * @return @{@link TestLoggerHandler}
+   */
+  protected TestLoggerHandler getTestLoggerHandler() {
+    Logger logger = Logger.getLogger("io.opentelemetry.exporter.logging.LoggingSpanExporter");
+    TestLoggerHandler loggerHandler = new TestLoggerHandler();
+    logger.addHandler(loggerHandler);
+    return loggerHandler;
   }
 
   protected CoreEvent getCapturedEvent(long timeout, String failureDescription) {
@@ -75,5 +75,23 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
                 failureDescription));
 
     return value.get();
+  }
+
+  protected void sendRequest(String correlationId, String path, int expectedStatus)
+      throws IOException {
+    sendRequest(correlationId, path, expectedStatus, Collections.emptyMap());
+  }
+
+  protected void sendRequest(String correlationId, String path, int expectedStatus, Map<String, String> headers)
+      throws IOException {
+    HttpGet getRequest = new HttpGet(String.format("http://localhost:%s/" + path, serverPort.getValue()));
+    getRequest.addHeader("X-CORRELATION-ID", correlationId);
+    headers.forEach(getRequest::addHeader);
+    // getRequest.addHeader();
+    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+      try (CloseableHttpResponse response = httpClient.execute(getRequest)) {
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(expectedStatus);
+      }
+    }
   }
 }

@@ -9,7 +9,7 @@
         <Logger name="io.opentelemetry" level="ALL">
             <AppenderRef ref="Console"/>
         </Logger>
-        <Root level="DEBUG">
+        <Root level="INFO">
             <AppenderRef ref="Console"/>
         </Root>
     </Loggers>

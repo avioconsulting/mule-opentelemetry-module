@@ -1,23 +1,14 @@
 package com.avioconsulting.mule.opentelemetry;
 
-import com.avioconsulting.mule.opentelemetry.internal.interceptor.FirstProcessorInterceptorFactory;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.junit.Ignore;
+import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.tck.junit4.rule.DynamicPort;
 
-import java.io.IOException;
-import java.util.UUID;
-
+import static com.avioconsulting.mule.opentelemetry.internal.interceptor.FirstProcessorInterceptorFactory.MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Ignore // This is for manually debugging. Make sure pom has required test dependencies
-// for shared
-// libraries.
 public class MuleOpenTelemetryDisabledInterceptorHttpTest extends AbstractMuleArtifactTraceTest {
 
   @Rule
@@ -31,25 +22,19 @@ public class MuleOpenTelemetryDisabledInterceptorHttpTest extends AbstractMuleAr
   @Override
   protected void doSetUpBeforeMuleContextCreation() throws Exception {
     super.doSetUpBeforeMuleContextCreation();
-    System.setProperty(FirstProcessorInterceptorFactory.MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME,
+    System.setProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME,
         "false");
   }
 
-  private void sendRequest(String correlationId, String path, int expectedStatus)
-      throws IOException {
-    HttpGet getRequest = new HttpGet(String.format("http://localhost:%s/" + path, serverPort.getValue()));
-    getRequest.addHeader("X-CORRELATION-ID", correlationId);
-    // getRequest.addHeader("traceparent",
-    // "00-3e864597bcb2431935133b0dec678ed4-f75931b2493ab2b2-00");
-    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-      try (CloseableHttpResponse response = httpClient.execute(getRequest)) {
-        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(expectedStatus);
-      }
-    }
+  @Override
+  protected void doTearDownAfterMuleContextDispose() throws Exception {
+    super.doTearDownAfterMuleContextDispose();
+    System.clearProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME);
   }
 
   @Test
   public void testDisabledHttpTracing() throws Exception {
-    sendRequest(UUID.randomUUID().toString(), "test", 200);
+    CoreEvent event = flowRunner("mule-opentelemetry-app-2-interceptor-test").run();
+    assertThat(event.getVariables()).doesNotContainKey(TransactionStore.TRACE_CONTEXT_MAP_KEY);
   }
 }
