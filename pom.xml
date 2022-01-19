@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.avioconsulting</groupId>
 	<artifactId>mule-open-telemetry-module</artifactId>
-	<version>0.0.24</version>
+	<version>0.0.29</version>
 	<packaging>mule-extension</packaging>
 	<name>OpenTelemetry Extension</name>
 
@@ -150,12 +150,6 @@
 			<version>3.20.2</version>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-inline</artifactId>
-			<version>3.8.0</version>
-			<scope>test</scope>
-		</dependency>
 
 		<!--	Open Telemetry	-->
 		<dependency>
@@ -188,62 +182,6 @@
 			<artifactId>opentelemetry-exporter-logging</artifactId>
 			<version>${opentelemetry.version}</version>
 		</dependency>
-		<!--		START: test dependencies for artifact testing Require deps in test class too-->
-<!--		<dependency>-->
-<!--			<groupId>io.opentelemetry</groupId>-->
-<!--			<artifactId>opentelemetry-sdk-metrics</artifactId>-->
-<!--			<version>${opentelemetry.version}-alpha</version>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>io.opentelemetry</groupId>-->
-<!--			<artifactId>opentelemetry-api-metrics</artifactId>-->
-<!--			<version>${opentelemetry.version}-alpha</version>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>io.opentelemetry</groupId>-->
-<!--			<artifactId>opentelemetry-sdk-extension-autoconfigure-spi</artifactId>-->
-<!--			<version>${opentelemetry.version}</version>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>io.opentelemetry</groupId>-->
-<!--			<artifactId>opentelemetry-sdk</artifactId>-->
-<!--			<version>${opentelemetry.version}</version>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>io.opentelemetry</groupId>-->
-<!--			<artifactId>opentelemetry-sdk-common</artifactId>-->
-<!--			<version>${opentelemetry.version}</version>-->
-<!--			<scope>test</scope>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>io.opentelemetry</groupId>-->
-<!--			<artifactId>opentelemetry-context</artifactId>-->
-<!--			<version>${opentelemetry.version}</version>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>io.opentelemetry</groupId>-->
-<!--			<artifactId>opentelemetry-sdk-trace</artifactId>-->
-<!--			<version>${opentelemetry.version}</version>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>com.squareup.okio</groupId>-->
-<!--			<artifactId>okio</artifactId>-->
-<!--			<version>1.17.5</version>-->
-<!--			<scope>test</scope>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>com.squareup.okhttp3</groupId>-->
-<!--			<artifactId>okhttp</artifactId>-->
-<!--			<version>3.14.9</version>-->
-<!--			<scope>test</scope>-->
-<!--		</dependency>-->
-<!--		<dependency>-->
-<!--			<groupId>io.opentelemetry</groupId>-->
-<!--			<artifactId>opentelemetry-exporter-otlp-common</artifactId>-->
-<!--			<version>${opentelemetry.version}</version>-->
-<!--			<scope>test</scope>-->
-<!--		</dependency>-->
-		<!--		END: test dependencies for artifact testing Require deps in test class too-->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>

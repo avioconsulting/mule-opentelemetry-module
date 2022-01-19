@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.config;
 
 import com.avioconsulting.mule.opentelemetry.api.config.OpenTelemetryResource;
+import com.avioconsulting.mule.opentelemetry.api.config.TracerConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.OpenTelemetryExporter;
 import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryOperations;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
@@ -39,6 +40,10 @@ public class OpenTelemetryExtensionConfiguration implements Startable {
   @Summary("Open Telemetry Resource Configuration. System or Environment Variables will override this configuration.")
   private OpenTelemetryResource resource;
 
+  @ParameterGroup(name = "Tracer")
+  @Placement(order = 2)
+  private TracerConfiguration tracerConfiguration;
+
   /**
    * Open Telemetry Exporter Configuration. System or Environment Variables will
    * override this configuration. See Documentation for variable details.
@@ -47,9 +52,13 @@ public class OpenTelemetryExtensionConfiguration implements Startable {
   @DisplayName(value = "OpenTelemetry Exporter")
   @Optional
   @Summary("Open Telemetry Exporter Configuration. System or Environment Variables will override this configuration.")
-  @Placement(order = 2)
+  @Placement(order = 3)
   @Expression(ExpressionSupport.NOT_SUPPORTED)
   private OpenTelemetryExporter exporter;
+
+  public TracerConfiguration getTracerConfiguration() {
+    return tracerConfiguration;
+  }
 
   public OpenTelemetryExporter getExporter() {
     return exporter;
@@ -78,7 +87,8 @@ public class OpenTelemetryExtensionConfiguration implements Startable {
     // TODO: Find another way to inject connections.
     MuleNotificationProcessor muleNotificationProcessor = new MuleNotificationProcessor(
         () -> OpenTelemetryConnection
-            .getInstance(new OpenTelemetryConfigWrapper(getResource(), getExporter())));
+            .getInstance(new OpenTelemetryConfigWrapper(getResource(), getExporter())),
+        getTracerConfiguration().isSpanAllProcessors());
     notificationListenerRegistry.registerListener(
         new MuleMessageProcessorNotificationListener(muleNotificationProcessor));
     notificationListenerRegistry.registerListener(

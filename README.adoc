@@ -53,19 +53,26 @@ Following example shows an OpenTelemetry Config with OTLP Exporter configured -
 
 [source,xml]
 ----
-  <opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" serviceName="api-app-1">
+  <opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" serviceName="api-app-1" spanAllProcessors="true">
     <opentelemetry:exporter >
-      <opentelemetry:otlp-exporter collectorEndpoint="http://localhost:55681/v1" protocol="HTTP_PROTOBUF" >
-         <opentelemetry:headers >
-          <opentelemetry:header key="testHeader" value="testHeaderValue" />
-        </opentelemetry:headers>
-      </opentelemetry:otlp-exporter>
+        <opentelemetry:otlp-exporter collectorEndpoint="http://localhost:55681/v1" protocol="HTTP_PROTOBUF" >
+            <opentelemetry:headers >
+                <opentelemetry:header key="testHeader" value="testHeaderValue" />
+            </opentelemetry:headers>
+        </opentelemetry:otlp-exporter>
     </opentelemetry:exporter>
     <opentelemetry:resource-attributes >
-      <opentelemetry:attribute key="mule.env" value="Dev" />
+        <opentelemetry:attribute key="mule.env" value="Dev" />
     </opentelemetry:resource-attributes>
-  </opentelemetry:config>
+</opentelemetry:config>
 ----
+
+Trace spans are created for only following mule components -
+
+- flows
+- http listener and request
+
+NOTE: This can be changed to create spans for every mule processors by setting `spanAllProcessors = "false"` (can be overridden by setting system property `mule.otel.span.processors.enable` to `true|false`).
 
 == Context Propagation
 

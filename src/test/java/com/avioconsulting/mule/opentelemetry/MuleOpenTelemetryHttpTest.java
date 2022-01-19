@@ -1,60 +1,99 @@
 package com.avioconsulting.mule.opentelemetry;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.IOException;
-import java.util.UUID;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.junit.Ignore;
-import org.junit.Rule;
+import com.avioconsulting.mule.opentelemetry.test.util.Span;
+import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
 import org.junit.Test;
-import org.mule.tck.junit4.rule.DynamicPort;
 
-@Ignore // This is for manually debugging. Make sure pom has required test dependencies
-// for shared
-// libraries.
+import java.util.List;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
+
 public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
-
-  @Rule
-  public DynamicPort serverPort = new DynamicPort("http.port");
 
   @Override
   protected String getConfigFile() {
     return "mule-opentelemetry-http.xml";
   }
 
-  private void sendRequest(String correlationId, String path, int expectedStatus)
-      throws IOException {
-    HttpGet getRequest = new HttpGet(String.format("http://localhost:%s/" + path, serverPort.getValue()));
-    getRequest.addHeader("X-CORRELATION-ID", correlationId);
-    // getRequest.addHeader("traceparent",
-    // "00-3e864597bcb2431935133b0dec678ed4-f75931b2493ab2b2-00");
-    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-      try (CloseableHttpResponse response = httpClient.execute(getRequest)) {
-        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(expectedStatus);
-      }
-    }
+  @Test
+  public void testValidHttpTracing() throws Exception {
+    TestLoggerHandler loggerHandler = getTestLoggerHandler();
+    sendRequest(UUID.randomUUID().toString(), "test", 200);
+    assertThat(Span.fromStrings(loggerHandler.getCapturedLogs()))
+        .hasSize(1)
+        .element(0)
+        .extracting("spanName", "spanKind")
+        .containsOnly("'/test'", "SERVER");
   }
 
   @Test
-  public void testHttpTracing() throws Exception {
-    withOtelEndpoint();
-    while (true) {
-      sendRequest(UUID.randomUUID().toString(), "test", 200);
-      Thread.sleep(2000);
-    }
+  public void testTraceContextExtraction() throws Exception {
+    TestLoggerHandler loggerHandler = getTestLoggerHandler();
+    sendRequest(UUID.randomUUID().toString(), "/test/propagation/source", 200);
+    List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
+    assertThat(spans)
+        .hasSize(3)
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:listener source flow")
+              .extracting("spanName", "spanKind", "traceId")
+              .containsOnly("'/test/propagation/source'", "SERVER", spans.get(0).getTraceId());
+        })
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:request target flow")
+              .extracting("spanName", "spanKind", "traceId")
+              .containsOnly("'/test/propagation/target'", "CLIENT", spans.get(0).getTraceId());
+        })
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:listener target flow")
+              .extracting("spanName", "spanKind", "traceId")
+              .containsOnly("'/test/propagation/target'", "SERVER", spans.get(0).getTraceId());
+        });
   }
 
   @Test
-  public void testInvalidRequest() throws Exception {
+  public void testInvalidHttpRequest() throws Exception {
+    TestLoggerHandler loggerHandler = getTestLoggerHandler();
     sendRequest(UUID.randomUUID().toString(), "test-invalid-request", 500);
+    List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
+    assertThat(spans)
+        .hasSize(2)
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:listener flow")
+              .extracting("spanName", "spanKind", "traceId")
+              .containsOnly("'/test-invalid-request'", "SERVER", spans.get(0).getTraceId());
+        })
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:request")
+              .extracting("spanName", "spanKind", "traceId")
+              .containsOnly("'/remote/invalid'", "CLIENT", spans.get(0).getTraceId());
+        });
+
+  }
+
+  @Test
+  public void testServer400Response() throws Exception {
+    TestLoggerHandler loggerHandler = getTestLoggerHandler();
+    sendRequest(UUID.randomUUID().toString(), "/test/error/400", 400);
+    List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
+    assertThat(spans)
+        .hasSize(1)
+        .element(0).as("Span for http:listener flow")
+        .extracting("spanName", "spanKind")
+        .containsOnly("'/test/error/400'", "SERVER");
   }
 
   @Test
   public void testInvalidRequestSubFlow() throws Exception {
-    flowRunner("mule-opentelemetry-app-2-private-Flow-requester-error").run();
+    Throwable exception = catchThrowable(() -> runFlow("mule-opentelemetry-app-2-private-Flow-requester-error"));
+    assertThat(exception)
+        .isNotNull()
+        .hasMessage("HTTP GET on resource 'http://0.0.0.0:9080/remote/invalid' failed: Connection refused.");
   }
 }

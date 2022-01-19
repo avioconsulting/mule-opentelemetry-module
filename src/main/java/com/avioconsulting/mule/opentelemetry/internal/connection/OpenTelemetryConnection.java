@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public final class OpenTelemetryConnection implements TraceContextHandler {
+public class OpenTelemetryConnection implements TraceContextHandler {
 
   private final Logger logger = LoggerFactory.getLogger(OpenTelemetryConnection.class);
 
@@ -82,6 +82,20 @@ public final class OpenTelemetryConnection implements TraceContextHandler {
     return openTelemetry.getPropagators().getTextMapPropagator().extract(Context.current(), carrier, textMapGetter);
   }
 
+  /**
+   * Get the trace context information for a given transaction id. This returns
+   * a @{@link Map<String, String>} with
+   * at least one entry with key {@link TransactionStore#TRACE_TRANSACTION_ID} and
+   * transactionId as value.
+   * The other entries in the map depends on the propagator used.
+   *
+   * For W3C Trace Context Propagator, it can contain entries for `traceparent`
+   * and optionally `tracestate`.
+   *
+   * @param transactionId
+   *            Local transaction id
+   * @return @{@link Map<String, String}
+   */
   public Map<String, String> getTraceContext(String transactionId) {
     Context transactionContext = getTransactionStore().getTransactionContext(transactionId);
     Map<String, String> traceContext = new HashMap<>();
