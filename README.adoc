@@ -152,12 +152,19 @@ otel.metrics.exporter=none
 otel.resource.attributes=deployment.environment=dev,service.name=test-api
 ----
 
--Dotel.traces.exporter=otlp
--Dotel.metrics.exporter=none
--Dotel.exporter.otlp.endpoint=http://localhost:55681/v1
--Dotel.exporter.otlp.traces.endpoint=http://localhost:55681/v1/traces
--Dotel.exporter.otlp.protocol=http/protobuf -Dotel.resource.attributes=deployment.environment=dev
+=== Running Example Mule Apps
 
+Import applications from `./examples` directory into Anypoint Studio. Both applications have an OpenTelemetry Configuration to send traces to local docker collector.
+
+Application 1 exposes `http://localhost:8081/app1/{userId}` endpoint for invocation. App 1 calls App 2 over http to simulate distributed tracing.
+
+Anypoint studio caches' the modules used. If you need to modify the extension and test it in imported applications, you need to bump up the version and update example projects with new version.
+
+You may use following command to keep incrementing patch version and install locally -
+[source,bash]
+----
+mvn build-helper:parse-version versions:set -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.nextIncrementalVersion}' versions:commit && mvn spotless:apply install
+----
 
 == TODO
 - Extension Features
