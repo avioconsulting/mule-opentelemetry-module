@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import io.opentelemetry.api.trace.SpanKind;
 import org.junit.Test;
@@ -8,6 +9,8 @@ import org.mule.extension.http.api.HttpResponseAttributes;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.event.EventContext;
 import org.mule.runtime.api.message.Error;
@@ -21,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -122,7 +126,10 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
     MessageProcessorNotification notification = MessageProcessorNotification.createFrom(event, componentLocation,
         component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
 
-    HttpProcessorComponent httpProcessorComponent = new HttpProcessorComponent();
+    ConfigurationComponentLocator componentLocator = mock(ConfigurationComponentLocator.class);
+    when(componentLocator.find(any(Location.class))).thenReturn(Optional.empty());
+    ProcessorComponent httpProcessorComponent = new HttpProcessorComponent()
+        .withConfigurationComponentLocator(componentLocator);
     TraceComponent endTraceComponent = httpProcessorComponent.getStartTraceComponent(notification);
 
     assertThat(endTraceComponent).isNotNull()

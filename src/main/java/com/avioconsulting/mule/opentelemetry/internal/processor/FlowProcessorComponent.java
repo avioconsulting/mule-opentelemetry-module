@@ -48,7 +48,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
 
     TraceComponent.Builder builder = startTraceComponent.toBuilder();
     ProcessorComponentService.getInstance()
-        .getProcessorComponentFor(sourceIdentifier)
+        .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator)
         .flatMap(processorComponent -> processorComponent.getSourceTraceComponent(notification,
             traceContextHandler))
         .ifPresent(sourceTrace -> {

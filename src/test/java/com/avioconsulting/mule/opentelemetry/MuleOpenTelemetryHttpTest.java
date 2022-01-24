@@ -78,6 +78,51 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
   }
 
   @Test
+  public void testHttpAttributes() throws Exception {
+    TestLoggerHandler loggerHandler = getTestLoggerHandler();
+    sendRequest(UUID.randomUUID().toString(), "test-invalid-request", 500);
+    List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
+    assertThat(spans)
+        .hasSize(2)
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:listener flow")
+              .extracting("spanName", "spanKind", "traceId")
+              .containsOnly("'/test-invalid-request'", "SERVER", spans.get(0).getTraceId());
+          assertThat(span.getAttributes().getDataMap())
+              .hasSize(9)
+              .containsEntry("mule.flow.name", "mule-opentelemetry-app-2Flow-requester-error")
+              .containsKey("mule.serverId")
+              .containsEntry("http.scheme", "http")
+              .containsEntry("http.method", "GET")
+              .containsEntry("http.route", "/test-invalid-request")
+              .containsKey("http.user_agent")
+              .hasEntrySatisfying("http.host", value -> assertThat(value).startsWith("localhost:"))
+              .containsEntry("http.flavor", "1.1");
+
+        })
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:request")
+              .extracting("spanName", "spanKind", "traceId")
+              .containsOnly("'/remote/invalid'", "CLIENT", spans.get(0).getTraceId());
+          assertThat(span.getAttributes().getDataMap())
+              .hasSize(10)
+              .containsEntry("mule.processor.name", "request")
+              .containsEntry("mule.processor.namespace", "http")
+              .containsEntry("mule.processor.docName", "Request")
+              .containsEntry("http.host", "0.0.0.0:9080")
+              .containsEntry("http.scheme", "http")
+              .containsEntry("net.peer.name", "0.0.0.0")
+              .containsEntry("http.request.configRef", "INVALID_HTTP_Request_configuration")
+              .containsEntry("http.method", "GET")
+              .containsEntry("http.route", "/remote/invalid")
+              .containsEntry("net.peer.port", "9080");
+        });
+
+  }
+
+  @Test
   public void testServer400Response() throws Exception {
     TestLoggerHandler loggerHandler = getTestLoggerHandler();
     sendRequest(UUID.randomUUID().toString(), "/test/error/400", 400);

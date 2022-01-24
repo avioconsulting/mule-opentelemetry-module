@@ -28,7 +28,8 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
         component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
 
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(() -> connection, false);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor();
+    notificationProcessor.init(() -> connection, false);
     notificationProcessor.handleProcessorStartEvent(notification);
 
     verifyZeroInteractions(connection);
@@ -48,7 +49,8 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
         component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
 
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(() -> connection, false);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor();
+    notificationProcessor.init(() -> connection, false);
     notificationProcessor.handleProcessorEndEvent(notification);
 
     verifyZeroInteractions(connection);
