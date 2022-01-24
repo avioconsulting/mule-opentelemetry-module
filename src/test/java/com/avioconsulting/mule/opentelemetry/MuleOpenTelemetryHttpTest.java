@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry;
 
 import com.avioconsulting.mule.opentelemetry.test.util.Span;
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -135,10 +136,38 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
   }
 
   @Test
-  public void testInvalidRequestSubFlow() throws Exception {
+  public void testRequestSpanWithoutBasePath() throws Exception {
+    TestLoggerHandler loggerHandler = getTestLoggerHandler();
     Throwable exception = catchThrowable(() -> runFlow("mule-opentelemetry-app-2-private-Flow-requester-error"));
     assertThat(exception)
         .isNotNull()
         .hasMessage("HTTP GET on resource 'http://0.0.0.0:9080/remote/invalid' failed: Connection refused.");
+
+    List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
+    assertThat(spans)
+        .anySatisfy(span -> {
+          assertThat(span)
+              .extracting("spanName", "spanKind")
+              .containsExactly("'/remote/invalid'", "CLIENT");
+        });
+  }
+
+  @Test
+  @Ignore(value = "Individual run of this test succeeds but when run in suite, it fails with error 'BeanFactory not initialized or already closed - call 'refresh' before accessing beans via the ApplicationContext'. TODO: Find root cause and enable test.")
+  public void testRequestSpanWithBasePath() throws Exception {
+    TestLoggerHandler loggerHandler = getTestLoggerHandler();
+    Throwable exception = catchThrowable(() -> runFlow("mule-opentelemetry-app-2-private-Flow-requester_basepath"));
+    assertThat(exception)
+        .isNotNull()
+        .hasMessage(
+            "HTTP GET on resource 'http://0.0.0.0:9085/api/remote/invalid' failed: Connection refused.");
+
+    List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
+    assertThat(spans)
+        .anySatisfy(span -> {
+          assertThat(span)
+              .extracting("spanName", "spanKind")
+              .containsExactly("'/api/remote/invalid'", "CLIENT");
+        });
   }
 }

@@ -13,12 +13,16 @@ import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   static final String NAMESPACE_URI_MULE = "http://www.mulesoft.org/schema/mule/core";
   public static final String NAMESPACE_MULE = "mule";
   public static final String FLOW = "flow";
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractProcessorComponent.class);
 
   protected ConfigurationComponentLocator configurationComponentLocator;
 
@@ -83,12 +87,30 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   }
 
   protected Map<String, String> getConfigConnectionParameters(EnrichedServerNotification notification) {
+    String componentConfigRef = getComponentConfigRef(notification);
     try {
-      String componentConfigRef = getComponentConfigRef(notification);
       return configurationComponentLocator
           .find(Location.builder().globalName(componentConfigRef).addConnectionPart().build())
           .map(this::getComponentParameters).orElse(Collections.emptyMap());
     } catch (Exception ex) {
+      LOGGER.trace(
+          "Failed to extract connection parameters for {}. Ignoring this failure - {}", componentConfigRef,
+          ex.getMessage());
+      return Collections.emptyMap();
+    }
+
+  }
+
+  protected Map<String, String> getConfigParameters(EnrichedServerNotification notification) {
+    String componentConfigRef = getComponentConfigRef(notification);
+    try {
+      return configurationComponentLocator
+          .find(Location.builder().globalName(componentConfigRef).build())
+          .map(this::getComponentParameters).orElse(Collections.emptyMap());
+    } catch (Exception ex) {
+      LOGGER.trace(
+          "Failed to extract connection parameters for {}. Ignoring this failure - {}", componentConfigRef,
+          ex.getMessage());
       return Collections.emptyMap();
     }
 
