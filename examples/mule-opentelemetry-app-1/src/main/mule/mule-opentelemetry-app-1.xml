@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:spring="http://www.mulesoft.org/schema/mule/spring" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd">
-	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="79881531-bfaa-49fd-8227-b67e35d64cf8" >
+http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/spring http://www.mulesoft.org/schema/mule/spring/current/mule-spring.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="79881531-bfaa-49fd-8227-b67e35d64cf8" basePath="/api">
 		<http:listener-connection host="0.0.0.0" port="8081" />
 	</http:listener-config>
-	<http:request-config name="HTTP_Request_configuration_App2" doc:name="HTTP Request configuration" doc:id="23878620-099a-4c33-8a3a-31cdc4f912d1">
+	<http:request-config name="HTTP_Request_configuration_App2" doc:name="HTTP Request configuration" doc:id="23878620-099a-4c33-8a3a-31cdc4f912d1" basePath="/api">
 		<http:request-connection host="localhost" port="8082" />
-		<http:default-headers >
+		<http:default-headers>
 			<http:default-header key="traceparent" value="#[vars.OTEL_TRACE_CONTEXT.traceparent as String]" />
 		</http:default-headers>
 	</http:request-config>
-	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1" spanAllProcessors="true">
+	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1">
 		<opentelemetry:exporter >
 			<opentelemetry:otlp-exporter collectorEndpoint="http://localhost:55681/v1" protocol="HTTP_PROTOBUF" >
  				<opentelemetry:headers >
@@ -26,11 +28,13 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 			<opentelemetry:attribute key="mule.env" value="Dev" />
 		</opentelemetry:resource-attributes>
 	</opentelemetry:config>
-	<flow name="app-1Flow" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
+	
+	<flow name="mule-opentelemetry-app-2Flow" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
 		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/app1/{userId}"/>
 		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" message="#[vars]"/>
 		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
 		<http:request method="GET" doc:name="Request" doc:id="f4ea22f3-9c9a-4c1a-827a-2383541900a1" config-ref="HTTP_Request_configuration_App2" path="/app2"/>
 		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
 	</flow>
+		
 </mule>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="4842c293-40f4-4293-a5f5-33f8dc66f66e" >
+		<db:generic-connection url="jdbc:derby:memory:demodb;create=true" driverClassName="org.apache.derby.jdbc.EmbeddedDriver" />
+	</db:config>
+	
+	<flow name="DB-SELECT-Flow" doc:id="3f254a47-6af7-4b6b-866d-8b96a2348568" >
+		<http:listener doc:name="Listener" doc:id="1c8300a4-56da-490e-a704-033cbdea75a2" config-ref="HTTP_Listener_config" path="/app1/db/select">
+			<http:error-response >
+				<http:body ><![CDATA[#[output text/plain --- 'Failed']]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="a9ed91cd-c7aa-4141-881e-14da5875da6f" message="#[vars]"/>
+		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="2097e093-80fd-4a72-ab6f-36aed3ce072c" />
+		<flow-ref doc:name="Flow Reference init-db" doc:id="3bfe1c2f-e8af-4977-a087-88e39b157d9d" name="init-db"/>
+		<db:select doc:name="Select" doc:id="ca3b24fc-4f6e-4a98-bc0b-8862449c5c94" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from testdb.users]]></db:sql>
+		</db:select>
+		<set-payload value="#[output applicaton/json --- payload]" doc:name="Set Payload" doc:id="f5b6ab5f-a2f5-4f75-a17b-59da8e8a2dcd" />
+		<logger level="INFO" doc:name="Logger" doc:id="595f6e2e-8508-4d28-8a83-590ccdecee1d" />
+	</flow>
+	<sub-flow name="init-db" doc:id="e917a69e-3ee2-4ff8-b60d-4a59f06a85f4" >
+		<db:execute-script doc:name="Execute script" doc:id="25fe326c-18dc-4a30-a4c1-fb9f7782d116" config-ref="Database_Config" file="create-db.sql" />
+	</sub-flow>	
+	
+</mule>
