@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry;
 
 import com.avioconsulting.mule.opentelemetry.test.util.Span;
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -78,6 +79,51 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
   }
 
   @Test
+  public void testHttpAttributes() throws Exception {
+    TestLoggerHandler loggerHandler = getTestLoggerHandler();
+    sendRequest(UUID.randomUUID().toString(), "test-invalid-request", 500);
+    List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
+    assertThat(spans)
+        .hasSize(2)
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:listener flow")
+              .extracting("spanName", "spanKind", "traceId")
+              .containsOnly("'/test-invalid-request'", "SERVER", spans.get(0).getTraceId());
+          assertThat(span.getAttributes().getDataMap())
+              .hasSize(9)
+              .containsEntry("mule.flow.name", "mule-opentelemetry-app-2Flow-requester-error")
+              .containsKey("mule.serverId")
+              .containsEntry("http.scheme", "http")
+              .containsEntry("http.method", "GET")
+              .containsEntry("http.route", "/test-invalid-request")
+              .containsKey("http.user_agent")
+              .hasEntrySatisfying("http.host", value -> assertThat(value).startsWith("localhost:"))
+              .containsEntry("http.flavor", "1.1");
+
+        })
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:request")
+              .extracting("spanName", "spanKind", "traceId")
+              .containsOnly("'/remote/invalid'", "CLIENT", spans.get(0).getTraceId());
+          assertThat(span.getAttributes().getDataMap())
+              .hasSize(10)
+              .containsEntry("mule.processor.name", "request")
+              .containsEntry("mule.processor.namespace", "http")
+              .containsEntry("mule.processor.docName", "Request")
+              .containsEntry("http.host", "0.0.0.0:9080")
+              .containsEntry("http.scheme", "http")
+              .containsEntry("net.peer.name", "0.0.0.0")
+              .containsEntry("http.request.configRef", "INVALID_HTTP_Request_configuration")
+              .containsEntry("http.method", "GET")
+              .containsEntry("http.route", "/remote/invalid")
+              .containsEntry("net.peer.port", "9080");
+        });
+
+  }
+
+  @Test
   public void testServer400Response() throws Exception {
     TestLoggerHandler loggerHandler = getTestLoggerHandler();
     sendRequest(UUID.randomUUID().toString(), "/test/error/400", 400);
@@ -90,10 +136,38 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
   }
 
   @Test
-  public void testInvalidRequestSubFlow() throws Exception {
+  public void testRequestSpanWithoutBasePath() throws Exception {
+    TestLoggerHandler loggerHandler = getTestLoggerHandler();
     Throwable exception = catchThrowable(() -> runFlow("mule-opentelemetry-app-2-private-Flow-requester-error"));
     assertThat(exception)
         .isNotNull()
         .hasMessage("HTTP GET on resource 'http://0.0.0.0:9080/remote/invalid' failed: Connection refused.");
+
+    List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
+    assertThat(spans)
+        .anySatisfy(span -> {
+          assertThat(span)
+              .extracting("spanName", "spanKind")
+              .containsExactly("'/remote/invalid'", "CLIENT");
+        });
+  }
+
+  @Test
+  @Ignore(value = "Individual run of this test succeeds but when run in suite, it fails with error 'BeanFactory not initialized or already closed - call 'refresh' before accessing beans via the ApplicationContext'. TODO: Find root cause and enable test.")
+  public void testRequestSpanWithBasePath() throws Exception {
+    TestLoggerHandler loggerHandler = getTestLoggerHandler();
+    Throwable exception = catchThrowable(() -> runFlow("mule-opentelemetry-app-2-private-Flow-requester_basepath"));
+    assertThat(exception)
+        .isNotNull()
+        .hasMessage(
+            "HTTP GET on resource 'http://0.0.0.0:9085/api/remote/invalid' failed: Connection refused.");
+
+    List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
+    assertThat(spans)
+        .anySatisfy(span -> {
+          assertThat(span)
+              .extracting("spanName", "spanKind")
+              .containsExactly("'/api/remote/invalid'", "CLIENT");
+        });
   }
 }

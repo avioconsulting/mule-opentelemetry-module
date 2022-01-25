@@ -1,12 +1,17 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor.service;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
-import java.util.*;
 import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.util.LazyValue;
+
+import java.util.*;
 
 public class ProcessorComponentService {
   private static ProcessorComponentService service;
   private final List<ProcessorComponent> processorComponents;
+  private static final LazyValue<ProcessorComponentService> VALUE = new LazyValue<>(new ProcessorComponentService());
+  private final List<ProcessorComponent> cached = new ArrayList<>();
 
   private ProcessorComponentService() {
     ServiceLoader<ProcessorComponent> loader = ServiceLoader.load(ProcessorComponent.class,
@@ -17,14 +22,21 @@ public class ProcessorComponentService {
   }
 
   public static synchronized ProcessorComponentService getInstance() {
-    if (service == null) {
-      service = new ProcessorComponentService();
-    }
-    return service;
+    return VALUE.get();
   }
 
-  public Optional<ProcessorComponent> getProcessorComponentFor(ComponentIdentifier identifier) {
-    ProcessorComponent processorComponent = null;
-    return processorComponents.stream().filter(p -> p.canHandle(identifier)).findFirst();
+  public Optional<ProcessorComponent> getProcessorComponentFor(ComponentIdentifier identifier,
+      ConfigurationComponentLocator configurationComponentLocator) {
+    Optional<ProcessorComponent> cachedPC = cached.stream().filter(p -> p.canHandle(identifier))
+        .findFirst();
+    if (!cachedPC.isPresent()) {
+      processorComponents.stream().filter(p -> p.canHandle(identifier))
+          .findFirst()
+          .map(pc -> pc.withConfigurationComponentLocator(configurationComponentLocator))
+          .ifPresent(cached::add);
+      cachedPC = cached.stream().filter(p -> p.canHandle(identifier))
+          .findFirst();
+    }
+    return cachedPC;
   }
 }

@@ -6,29 +6,46 @@ import com.avioconsulting.mule.opentelemetry.internal.processor.service.Processo
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
+import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+/**
+ * Notification Processor bean. This is injected through registry-bootstrap into
+ * Extension configuration,
+ * see @{@link com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration}.
+ */
 public class MuleNotificationProcessor {
 
   private static final Logger logger = LoggerFactory.getLogger(MuleNotificationProcessor.class);
   public static final String MULE_OTEL_SPAN_PROCESSORS_ENABLE_PROPERTY_NAME = "mule.otel.span.processors.enable";
 
-  private final Supplier<OpenTelemetryConnection> connectionSupplier;
-  private final boolean spanAllProcessors;
+  private Supplier<OpenTelemetryConnection> connectionSupplier;
+  private boolean spanAllProcessors;
   private OpenTelemetryConnection openTelemetryConnection;
 
-  public MuleNotificationProcessor(Supplier<OpenTelemetryConnection> connectionSupplier, boolean spanAllProcessors) {
+  @Inject
+  ConfigurationComponentLocator configurationComponentLocator;
+
+  private ProcessorComponentService processorComponentService;
+
+  public MuleNotificationProcessor() {
+
+  }
+
+  public void init(Supplier<OpenTelemetryConnection> connectionSupplier, boolean spanAllProcessors) {
     this.connectionSupplier = connectionSupplier;
     this.spanAllProcessors = Boolean.parseBoolean(System.getProperty(MULE_OTEL_SPAN_PROCESSORS_ENABLE_PROPERTY_NAME,
         Boolean.toString(spanAllProcessors)));
+    processorComponentService = ProcessorComponentService.getInstance();
   }
 
   private void init() {
@@ -63,8 +80,8 @@ public class MuleNotificationProcessor {
   }
 
   private Optional<ProcessorComponent> getProcessorComponent(MessageProcessorNotification notification) {
-    Optional<ProcessorComponent> processorComponent = ProcessorComponentService.getInstance()
-        .getProcessorComponentFor(notification.getComponent().getIdentifier());
+    Optional<ProcessorComponent> processorComponent = processorComponentService
+        .getProcessorComponentFor(notification.getComponent().getIdentifier(), configurationComponentLocator);
 
     if (!processorComponent.isPresent() && spanAllProcessors) {
       processorComponent = Optional.of(new GenericProcessorComponent());
@@ -106,7 +123,8 @@ public class MuleNotificationProcessor {
     try {
       logger.trace("Handling '{}' flow start event", notification.getResourceIdentifier());
       init();
-      ProcessorComponent flowProcessorComponent = new FlowProcessorComponent();
+      ProcessorComponent flowProcessorComponent = new FlowProcessorComponent()
+          .withConfigurationComponentLocator(configurationComponentLocator);
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceTraceComponent(notification, openTelemetryConnection).get();
       SpanBuilder spanBuilder = openTelemetryConnection
@@ -131,7 +149,8 @@ public class MuleNotificationProcessor {
     try {
       logger.trace("Handling '{}' flow end event", notification.getResourceIdentifier());
       init();
-      FlowProcessorComponent flowProcessorComponent = new FlowProcessorComponent();
+      ProcessorComponent flowProcessorComponent = new FlowProcessorComponent()
+          .withConfigurationComponentLocator(configurationComponentLocator);
       TraceComponent traceComponent = flowProcessorComponent.getEndTraceComponent(notification);
       openTelemetryConnection.getTransactionStore().endTransaction(
           traceComponent.getTransactionId(),

@@ -1,18 +1,37 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
+
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import javax.xml.namespace.QName;
+
+import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   static final String NAMESPACE_URI_MULE = "http://www.mulesoft.org/schema/mule/core";
   public static final String NAMESPACE_MULE = "mule";
   public static final String FLOW = "flow";
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractProcessorComponent.class);
+
+  protected ConfigurationComponentLocator configurationComponentLocator;
+
+  @Override
+  public ProcessorComponent withConfigurationComponentLocator(
+      ConfigurationComponentLocator configurationComponentLocator) {
+    this.configurationComponentLocator = configurationComponentLocator;
+    return this;
+  }
 
   @Override
   public TraceComponent getEndTraceComponent(EnrichedServerNotification notification) {
@@ -38,7 +57,12 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   protected <T> T getComponentAnnotation(
       String annotationName, EnrichedServerNotification notification) {
-    return (T) notification.getInfo().getComponent().getAnnotation(QName.valueOf(annotationName));
+    return getComponentAnnotation(annotationName, notification.getInfo().getComponent());
+  }
+
+  protected <T> T getComponentAnnotation(
+      String annotationName, Component component) {
+    return (T) component.getAnnotation(QName.valueOf(annotationName));
   }
 
   protected String getComponentParameterName(EnrichedServerNotification notification) {
@@ -54,8 +78,42 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
     return getComponentAnnotation("{config}componentParameters", notification);
   }
 
+  private Map<String, String> getComponentParameters(Component component) {
+    return getComponentAnnotation("{config}componentParameters", component);
+  }
+
   protected String getComponentConfigRef(EnrichedServerNotification notification) {
     return getComponentParameter(notification, "config-ref");
+  }
+
+  protected Map<String, String> getConfigConnectionParameters(EnrichedServerNotification notification) {
+    String componentConfigRef = getComponentConfigRef(notification);
+    try {
+      return configurationComponentLocator
+          .find(Location.builder().globalName(componentConfigRef).addConnectionPart().build())
+          .map(this::getComponentParameters).orElse(Collections.emptyMap());
+    } catch (Exception ex) {
+      LOGGER.trace(
+          "Failed to extract connection parameters for {}. Ignoring this failure - {}", componentConfigRef,
+          ex.getMessage());
+      return Collections.emptyMap();
+    }
+
+  }
+
+  protected Map<String, String> getConfigParameters(EnrichedServerNotification notification) {
+    String componentConfigRef = getComponentConfigRef(notification);
+    try {
+      return configurationComponentLocator
+          .find(Location.builder().globalName(componentConfigRef).build())
+          .map(this::getComponentParameters).orElse(Collections.emptyMap());
+    } catch (Exception ex) {
+      LOGGER.trace(
+          "Failed to extract connection parameters for {}. Ignoring this failure - {}", componentConfigRef,
+          ex.getMessage());
+      return Collections.emptyMap();
+    }
+
   }
 
   protected String getComponentDocName(EnrichedServerNotification notification) {

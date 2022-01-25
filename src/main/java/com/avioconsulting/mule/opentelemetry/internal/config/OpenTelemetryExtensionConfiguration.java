@@ -71,6 +71,9 @@ public class OpenTelemetryExtensionConfiguration implements Startable {
   @Inject
   NotificationListenerRegistry notificationListenerRegistry;
 
+  @Inject
+  MuleNotificationProcessor muleNotificationProcessor;
+
   @Override
   public void start() throws MuleException {
     // This phase is too early to initiate OpenTelemetry SDK. It fails with
@@ -85,7 +88,7 @@ public class OpenTelemetryExtensionConfiguration implements Startable {
     // Adding it here gives an opportunity to use Configuration parameters for
     // initializing the SDK. A future use case.
     // TODO: Find another way to inject connections.
-    MuleNotificationProcessor muleNotificationProcessor = new MuleNotificationProcessor(
+    muleNotificationProcessor.init(
         () -> OpenTelemetryConnection
             .getInstance(new OpenTelemetryConfigWrapper(getResource(), getExporter())),
         getTracerConfiguration().isSpanAllProcessors());

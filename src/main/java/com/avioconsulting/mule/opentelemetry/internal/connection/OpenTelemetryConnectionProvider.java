@@ -23,7 +23,7 @@ public class OpenTelemetryConnectionProvider
   @Override
   public OpenTelemetryConnection connect() throws ConnectionException {
     return OpenTelemetryConnection.get().orElseThrow(
-        () -> new ConnectionException("Configuration must fist start for OpenTelemetry connection."));
+        () -> new ConnectionException("Configuration must first start for OpenTelemetry connection."));
   }
 
   @Override

@@ -3,12 +3,15 @@ package com.avioconsulting.mule.opentelemetry.api.processor;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
 import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import java.util.Optional;
 
 public interface ProcessorComponent {
   boolean canHandle(ComponentIdentifier componentIdentifier);
+
+  ProcessorComponent withConfigurationComponentLocator(ConfigurationComponentLocator configurationComponentLocator);
 
   /**
    * Build a @{@link TraceComponent} for start of a flow-like container or a

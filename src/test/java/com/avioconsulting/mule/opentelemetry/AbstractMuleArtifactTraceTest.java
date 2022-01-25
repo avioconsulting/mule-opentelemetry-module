@@ -5,6 +5,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.junit.Before;
 import org.junit.Rule;
 import org.mule.functional.junit4.MuleArtifactFunctionalTestCase;
 import org.mule.runtime.core.api.event.CoreEvent;
@@ -27,6 +28,11 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
   public DynamicPort serverPort = new DynamicPort("http.port");
 
   protected static final java.util.Queue<CoreEvent> CAPTURED = new ConcurrentLinkedDeque<>();
+
+  @Before
+  public void beforeTest() {
+
+  }
 
   @Override
   protected void doSetUpBeforeMuleContextCreation() throws Exception {

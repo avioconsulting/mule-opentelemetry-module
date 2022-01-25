@@ -93,9 +93,28 @@ public class HttpProcessorComponent extends GenericProcessorComponent {
 
   private Map<String, String> getRequesterTags(EnrichedServerNotification notification) {
     Map<String, String> tags = new HashMap<>();
-    tags.put(HTTP_ROUTE.getKey(), getComponentParameter(notification, "path"));
+    String path = getComponentParameter(notification, "path");
+    Map<String, String> connectionParameters = getConfigConnectionParameters(notification);
+    if (!connectionParameters.isEmpty()) {
+      tags.put(HTTP_SCHEME.getKey(), connectionParameters.getOrDefault("protocol", "").toLowerCase());
+      tags.put(HTTP_HOST.getKey(), connectionParameters.getOrDefault("host", "").concat(":")
+          .concat(connectionParameters.getOrDefault("port", "")));
+      tags.put(NET_PEER_NAME.getKey(), connectionParameters.getOrDefault("host", ""));
+      tags.put(NET_PEER_PORT.getKey(), connectionParameters.getOrDefault("port", ""));
+    }
+    Map<String, String> configParameters = getConfigParameters(notification);
+    System.out.println(configParameters);
+    if (!configParameters.isEmpty()) {
+      if (configParameters.containsKey("basePath")
+          && !configParameters.get("basePath").equalsIgnoreCase("/")) {
+        path = configParameters.get("basePath").concat(path);
+      }
+    }
+    tags.put(HTTP_ROUTE.getKey(), path);
     tags.put(HTTP_METHOD.getKey(), getComponentParameter(notification, "method"));
-    tags.put("http.request.configRef", getComponentConfigRef(notification));
+    String componentConfigRef = getComponentConfigRef(notification);
+    tags.put("http.request.configRef", componentConfigRef);
+
     return tags;
   }
 
