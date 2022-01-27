@@ -16,7 +16,7 @@ public class GenericProcessorComponent extends AbstractProcessorComponent {
     Map<String, String> tags = new HashMap<>(getProcessorCommonTags(notification));
     return TraceComponent.newBuilder(notification.getComponent().getLocation().getLocation())
         .withLocation(notification.getComponent().getLocation().getLocation())
-        .withSpanName(notification.getComponent().getIdentifier().getName())
+        .withSpanName(getDefaultSpanName(notification))
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
         .build();

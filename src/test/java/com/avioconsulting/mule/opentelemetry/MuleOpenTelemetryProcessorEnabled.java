@@ -24,9 +24,9 @@ public class MuleOpenTelemetryProcessorEnabled extends AbstractMuleArtifactTrace
         .as("Spans for listener and processors")
         .hasSize(4)
         .extracting("spanName", "spanKind")
-        .containsOnly(tuple("'logger'", "INTERNAL"),
-            tuple("'set-payload'", "INTERNAL"),
-            tuple("'logger'", "INTERNAL"),
+        .containsOnly(tuple("'logger:Logger'", "INTERNAL"),
+            tuple("'set-payload:Set Payload'", "INTERNAL"),
+            tuple("'logger:Logger'", "INTERNAL"),
             tuple("'/test'", "SERVER"));
   }
 }

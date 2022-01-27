@@ -51,6 +51,11 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
         .withTransactionId(getTransactionId(notification));
   }
 
+  protected String getDefaultSpanName(EnrichedServerNotification notification) {
+    return notification.getComponent().getIdentifier().getName().concat(":")
+        .concat(getComponentDocName(notification));
+  }
+
   protected String getTransactionId(EnrichedServerNotification notification) {
     return notification.getEvent().getCorrelationId();
   }
