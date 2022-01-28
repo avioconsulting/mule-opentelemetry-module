@@ -53,14 +53,28 @@ public class Span {
         .toString();
   }
 
+  /**
+   * Parse the Span String into @{@link Span} object. Parsing is based on logic
+   * in @{@link io.opentelemetry.exporter.logging.LoggingSpanExporter#export(Collection)}
+   * class.
+   * 
+   * @param spanString
+   * @return
+   */
   public static Span fromString(String spanString) {
-    String[] spaceSplit = spanString.split(" ");
+
     Span span = new Span();
     span.rawString = spanString;
-    span.spanName = spaceSplit[0];
-    span.traceId = spaceSplit[2];
-    span.spanId = spaceSplit[3];
-    span.spanKind = spaceSplit[4];
+    String spanEndSign = "' : ";
+    span.spanName = spanString.substring(0, spanString.indexOf(spanEndSign) + 1).trim();
+
+    String idString = spanString
+        .substring(spanString.indexOf(spanEndSign) + spanEndSign.length(), spanString.indexOf("[tracer:"))
+        .trim();
+    String[] idParts = idString.split(" ");
+    span.traceId = idParts[0];
+    span.spanId = idParts[1];
+    span.spanKind = idParts[2];
 
     String attrMapKey = "AttributesMap{";
     String attrMap = spanString.substring(spanString.indexOf(attrMapKey) + attrMapKey.length(),
