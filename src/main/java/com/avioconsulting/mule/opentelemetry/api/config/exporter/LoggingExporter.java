@@ -1,16 +1,15 @@
 package com.avioconsulting.mule.opentelemetry.api.config.exporter;
 
-import com.avioconsulting.mule.opentelemetry.api.config.KeyValuePair;
 import org.mule.runtime.extension.api.annotation.param.Optional;
 import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
-public class LoggingExporter implements OpenTelemetryExporter {
+public class LoggingExporter extends AbstractExporter {
 
+  public static final String OTEL_EXPORTER_LOGGING_PREFIX_KEY = "otel.exporter.logging.prefix";
   @Parameter
   @Optional
   @Summary("An optional string printed in front of the span name and attributes")
@@ -21,12 +20,10 @@ public class LoggingExporter implements OpenTelemetryExporter {
   }
 
   @Override
-  public Map<String, String> getConfigProperties() {
-    Map<String, String> config = new HashMap<>();
-    config.put("otel.traces.exporter", "logging");
-    config.put("otel.metrics.exporter", "logging");
-    config.put("otel.logs.exporter", "logging");
-    config.put("otel.exporter.logging.prefix", getLogPrefix());
+  public Map<String, String> getExporterProperties() {
+    Map<String, String> config = super.getExporterProperties();
+    config.put(OpenTelemetryExporter.OTEL_TRACES_EXPORTER_KEY, "logging");
+    config.put(OTEL_EXPORTER_LOGGING_PREFIX_KEY, getLogPrefix());
     return Collections.unmodifiableMap(config);
   }
 }

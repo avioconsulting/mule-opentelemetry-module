@@ -52,7 +52,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
                 .commaSeparatedList(openTelemetryConfigWrapper.getResource().getResourceAttributes()));
       }
       if (openTelemetryConfigWrapper.getExporter() != null) {
-        configMap.putAll(openTelemetryConfigWrapper.getExporter().getConfigProperties());
+        configMap.putAll(openTelemetryConfigWrapper.getExporter().getExporterProperties());
       }
       builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
     }

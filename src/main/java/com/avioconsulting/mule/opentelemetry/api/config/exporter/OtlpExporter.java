@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class OtlpExporter implements OpenTelemetryExporter {
+public class OtlpExporter extends AbstractExporter {
 
   @Parameter
   @Optional
@@ -43,21 +43,21 @@ public class OtlpExporter implements OpenTelemetryExporter {
     return collectorEndpoint;
   }
 
-  public Map<String, String> getConfigProperties() {
-    Map<String, String> config = new HashMap<>();
-    config.put("otel.traces.exporter", "otlp");
+  public Map<String, String> getExporterProperties() {
+    Map<String, String> config = super.getExporterProperties();
+    config.put(OTEL_TRACES_EXPORTER_KEY, "otlp");
     config.put("otel.exporter.otlp.protocol", protocol.getValue());
     config.put("otel.exporter.otlp.endpoint", getCollectorEndpoint());
-    config.put("otel.exporter.otlp.traces.endpoint", getSingalEndpoint("traces"));
+    config.put("otel.exporter.otlp.traces.endpoint", getSignalEndpoint("traces"));
     config.put("otel.exporter.otlp.headers", KeyValuePair.commaSeparatedList(getHeaders()));
     return Collections.unmodifiableMap(config);
   }
 
-  private String getSingalEndpoint(String singal) {
+  private String getSignalEndpoint(String signal) {
     String endpoint = getCollectorEndpoint();
     if (!endpoint.endsWith("/"))
       endpoint = endpoint.concat("/");
-    return endpoint.concat(singal);
+    return endpoint.concat(signal);
   }
 
   @Override
