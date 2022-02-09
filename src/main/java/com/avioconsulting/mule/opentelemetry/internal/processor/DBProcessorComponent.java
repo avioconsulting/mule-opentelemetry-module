@@ -1,12 +1,13 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 public class DBProcessorComponent extends GenericProcessorComponent {
 
-  static final String NAMESPACE_URI = "http://www.mulesoft.org/schema/mule/http";
-  public static final String NAMESPACE = "DB";
+  public static final String NAMESPACE_URI = "http://www.mulesoft.org/schema/mule/db";
+  public static final String NAMESPACE = "db";
   public static final String LISTENER = "listener";
   public static final String OPERATION_SELECT = "select";
 
@@ -19,6 +20,8 @@ public class DBProcessorComponent extends GenericProcessorComponent {
 
   @Override
   public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
-    return super.getStartTraceComponent(notification);
+    return super.getStartTraceComponent(notification).toBuilder()
+        .withSpanKind(SpanKind.CLIENT)
+        .build();
   }
 }

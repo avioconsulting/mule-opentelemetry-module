@@ -12,6 +12,7 @@ import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.tck.junit4.rule.DynamicPort;
 import org.mule.tck.probe.JUnitLambdaProbe;
 import org.mule.tck.probe.PollingProber;
+import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -22,6 +23,7 @@ import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ArtifactClassLoaderRunnerConfig(applicationSharedRuntimeLibs = { "org.apache.derby:derby" })
 public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {
 
   @Rule

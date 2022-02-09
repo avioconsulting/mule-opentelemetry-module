@@ -1,14 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+<mule xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry" xmlns:db="http://www.mulesoft.org/schema/mule/db"
 	xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd">
 
-	<import file="global-common.xml"/>
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="79881531-bfaa-49fd-8227-b67e35d64cf8" >
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
+	</http:listener-config>
+
+	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1">
+		<opentelemetry:exporter >
+			<opentelemetry:logging-exporter logPrefix="test-log" />
+		</opentelemetry:exporter>
+		<opentelemetry:resource-attributes >
+			<opentelemetry:attribute key="mule.env" value="Dev" />
+		</opentelemetry:resource-attributes>
+	</opentelemetry:config>
 
 	<db:config name="Database_Config" doc:name="Database Config" doc:id="4842c293-40f4-4293-a5f5-33f8dc66f66e" >
 		<db:generic-connection url="jdbc:derby:memory:demodb;create=true" driverClassName="org.apache.derby.jdbc.EmbeddedDriver" />
