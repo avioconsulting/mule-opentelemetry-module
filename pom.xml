@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.avioconsulting</groupId>
 	<artifactId>mule-open-telemetry-module</artifactId>
-	<version>0.0.43</version>
+	<version>0.0.48</version>
 	<packaging>mule-extension</packaging>
 	<name>OpenTelemetry Extension</name>
 
@@ -200,7 +200,12 @@
 			<artifactId>slf4j-api</artifactId>
 			<version>1.7.30</version>
 		</dependency>
-
+		<dependency>
+			<groupId>org.awaitility</groupId>
+			<artifactId>awaitility</artifactId>
+			<version>4.1.0</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<repositories>

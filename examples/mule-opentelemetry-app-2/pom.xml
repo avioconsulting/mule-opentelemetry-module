@@ -13,7 +13,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-		<app.runtime>4.4.0-20211221</app.runtime>
+		<app.runtime>4.4.0-20211227</app.runtime>
 		<mule.maven.plugin.version>3.5.2</mule.maven.plugin.version>
 	</properties>
 
@@ -29,6 +29,9 @@
 				<artifactId>mule-maven-plugin</artifactId>
 				<version>${mule.maven.plugin.version}</version>
 				<extensions>true</extensions>
+				<configuration>
+					<classifier>mule-application</classifier>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
@@ -37,7 +40,7 @@
 		<dependency>
 			<groupId>com.avioconsulting</groupId>
 			<artifactId>mule-open-telemetry-module</artifactId>
-			<version>0.0.34</version>
+			<version>0.0.48</version>
 			<classifier>mule-plugin</classifier>
 		</dependency>
 		<dependency>

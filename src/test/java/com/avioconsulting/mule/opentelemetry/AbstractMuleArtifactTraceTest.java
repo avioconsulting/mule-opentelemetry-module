@@ -5,6 +5,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.awaitility.Awaitility;
 import org.junit.Before;
 import org.junit.Rule;
 import org.mule.functional.junit4.MuleArtifactFunctionalTestCase;
@@ -21,6 +22,8 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ArtifactClassLoaderRunnerConfig(applicationSharedRuntimeLibs = { "org.apache.derby:derby" })
@@ -33,7 +36,10 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
 
   @Before
   public void beforeTest() {
-
+    Awaitility.reset();
+    Awaitility.setDefaultPollDelay(100, MILLISECONDS);
+    Awaitility.setDefaultPollInterval(2, SECONDS);
+    Awaitility.setDefaultTimeout(10, SECONDS);
   }
 
   @Override

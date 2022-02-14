@@ -9,9 +9,15 @@ http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/cu
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
 	
 	<db:config name="Database_Config" doc:name="Database Config" doc:id="4842c293-40f4-4293-a5f5-33f8dc66f66e" >
-		<db:generic-connection url="jdbc:derby:memory:demodb;create=true" driverClassName="org.apache.derby.jdbc.EmbeddedDriver" />
+		<db:generic-connection url="jdbc:derby:memory:demodb;create=true" driverClassName="org.apache.derby.jdbc.EmbeddedDriver" user="test" password="test"/>
 	</db:config>
-	
+<!-- 
+	<db:config name="Database_Config1" doc:name="Database Config" doc:id="f6cae17c-cb1e-4ae2-8c02-b0acbe87ffee" >
+		<db:oracle-connection host="example.co" user="a" password="a" instance="a" serviceName="a" port="15212"/>
+		<db:mssql-connection host="example.com" instanceName="a" port="12234" user="a" password="a" databaseName="a" />
+		<db:my-sql-connection host="b" port="2323" user="b" password="b" database="b" />
+		
+	</db:config> -->
 	<flow name="DB-SELECT-Flow" doc:id="3f254a47-6af7-4b6b-866d-8b96a2348568" >
 		<http:listener doc:name="Listener" doc:id="1c8300a4-56da-490e-a704-033cbdea75a2" config-ref="HTTP_Listener_config" path="/app1/db/select">
 			<http:error-response >

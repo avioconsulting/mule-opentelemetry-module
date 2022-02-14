@@ -1,24 +1,52 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.mule.runtime.api.component.ComponentIdentifier;
-import org.mule.runtime.api.notification.EnrichedServerNotification;
+
+import java.util.Collections;
+import java.util.List;
 
 public class GenericProcessorComponent extends AbstractProcessorComponent {
+
+  /**
+   * This processor supports all components.
+   * 
+   * @param componentIdentifier
+   * @{@link ComponentIdentifier}
+   * @return <code>true</code> always.
+   */
   @Override
   public boolean canHandle(ComponentIdentifier componentIdentifier) {
     return true;
   }
 
+  /**
+   * This supports all namespaces.
+   * 
+   * @return @{@link String}
+   */
   @Override
-  public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
-    Map<String, String> tags = new HashMap<>(getProcessorCommonTags(notification));
-    return TraceComponent.newBuilder(notification.getComponent().getLocation().getLocation())
-        .withLocation(notification.getComponent().getLocation().getLocation())
-        .withSpanName(getDefaultSpanName(notification))
-        .withTags(tags)
-        .withTransactionId(getTransactionId(notification))
-        .build();
+  protected String getNamespace() {
+    return NAMESPACE_MULE;
   }
+
+  /**
+   * This supports all operations.
+   * 
+   * @return @{@link List<String>}
+   */
+  @Override
+  protected List<String> getOperations() {
+    return Collections.emptyList();
+  }
+
+  /**
+   * This supports all sources.
+   * 
+   * @return @{@link List<String>}
+   */
+  @Override
+  protected List<String> getSources() {
+    return Collections.emptyList();
+  }
+
 }

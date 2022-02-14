@@ -2,9 +2,7 @@ package com.avioconsulting.mule.opentelemetry;
 
 import com.avioconsulting.mule.opentelemetry.test.util.Span;
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
 
 import java.util.UUID;
 

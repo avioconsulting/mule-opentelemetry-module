@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.awaitility.Awaitility.await;
 
 public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
 
@@ -22,11 +23,11 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
   public void testValidHttpTracing() throws Exception {
     TestLoggerHandler loggerHandler = getTestLoggerHandler();
     sendRequest(UUID.randomUUID().toString(), "test", 200);
-    assertThat(Span.fromStrings(loggerHandler.getCapturedLogs()))
+    await().untilAsserted(() -> assertThat(Span.fromStrings(loggerHandler.getCapturedLogs()))
         .hasSize(1)
         .element(0)
         .extracting("spanName", "spanKind")
-        .containsOnly("'/test'", "SERVER");
+        .containsOnly("'/test'", "SERVER"));
   }
 
   @Test
@@ -34,7 +35,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
     TestLoggerHandler loggerHandler = getTestLoggerHandler();
     sendRequest(UUID.randomUUID().toString(), "/test/propagation/source", 200);
     List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
-    assertThat(spans)
+    await().untilAsserted(() -> assertThat(spans)
         .hasSize(3)
         .anySatisfy(span -> {
           assertThat(span)
@@ -53,7 +54,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
               .as("Span for http:listener target flow")
               .extracting("spanName", "spanKind", "traceId")
               .containsOnly("'/test/propagation/target'", "SERVER", spans.get(0).getTraceId());
-        });
+        }));
   }
 
   @Test
@@ -61,7 +62,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
     TestLoggerHandler loggerHandler = getTestLoggerHandler();
     sendRequest(UUID.randomUUID().toString(), "test-invalid-request", 500);
     List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
-    assertThat(spans)
+    await().untilAsserted(() -> assertThat(spans)
         .hasSize(2)
         .anySatisfy(span -> {
           assertThat(span)
@@ -74,7 +75,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
               .as("Span for http:request")
               .extracting("spanName", "spanKind", "traceId")
               .containsOnly("'/remote/invalid'", "CLIENT", spans.get(0).getTraceId());
-        });
+        }));
 
   }
 
@@ -83,7 +84,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
     TestLoggerHandler loggerHandler = getTestLoggerHandler();
     sendRequest(UUID.randomUUID().toString(), "test-invalid-request", 500);
     List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
-    assertThat(spans)
+    await().untilAsserted(() -> assertThat(spans)
         .hasSize(2)
         .anySatisfy(span -> {
           assertThat(span)
@@ -112,14 +113,14 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
               .containsEntry("mule.processor.name", "request")
               .containsEntry("mule.processor.namespace", "http")
               .containsEntry("mule.processor.docName", "Request")
+              .containsEntry("mule.processor.configRef", "INVALID_HTTP_Request_configuration")
               .containsEntry("http.host", "0.0.0.0:9080")
               .containsEntry("http.scheme", "http")
               .containsEntry("net.peer.name", "0.0.0.0")
-              .containsEntry("http.request.configRef", "INVALID_HTTP_Request_configuration")
               .containsEntry("http.method", "GET")
               .containsEntry("http.route", "/remote/invalid")
               .containsEntry("net.peer.port", "9080");
-        });
+        }));
 
   }
 
@@ -128,11 +129,11 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
     TestLoggerHandler loggerHandler = getTestLoggerHandler();
     sendRequest(UUID.randomUUID().toString(), "/test/error/400", 400);
     List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
-    assertThat(spans)
+    await().untilAsserted(() -> assertThat(spans)
         .hasSize(1)
         .element(0).as("Span for http:listener flow")
         .extracting("spanName", "spanKind")
-        .containsOnly("'/test/error/400'", "SERVER");
+        .containsOnly("'/test/error/400'", "SERVER"));
   }
 
   @Test
@@ -144,12 +145,12 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .hasMessage("HTTP GET on resource 'http://0.0.0.0:9080/remote/invalid' failed: Connection refused.");
 
     List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
-    assertThat(spans)
+    await().untilAsserted(() -> assertThat(spans)
         .anySatisfy(span -> {
           assertThat(span)
               .extracting("spanName", "spanKind")
               .containsExactly("'/remote/invalid'", "CLIENT");
-        });
+        }));
   }
 
   @Test
@@ -163,11 +164,11 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
             "HTTP GET on resource 'http://0.0.0.0:9085/api/remote/invalid' failed: Connection refused.");
 
     List<Span> spans = Span.fromStrings(loggerHandler.getCapturedLogs());
-    assertThat(spans)
+    await().untilAsserted(() -> assertThat(spans)
         .anySatisfy(span -> {
           assertThat(span)
               .extracting("spanName", "spanKind")
               .containsExactly("'/api/remote/invalid'", "CLIENT");
-        });
+        }));
   }
 }

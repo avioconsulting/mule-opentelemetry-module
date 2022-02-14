@@ -2,17 +2,31 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
+
+import java.util.*;
 
 public class FlowProcessorComponent extends AbstractProcessorComponent {
   @Override
   public boolean canHandle(ComponentIdentifier componentIdentifier) {
-    return FLOW.equalsIgnoreCase(componentIdentifier.getName());
+    return namespaceSupported(componentIdentifier)
+        && operationSupported(componentIdentifier);
+  }
+
+  @Override
+  protected String getNamespace() {
+    return NAMESPACE_MULE;
+  }
+
+  @Override
+  protected List<String> getSources() {
+    return Collections.emptyList();
+  }
+
+  @Override
+  protected List<String> getOperations() {
+    return Collections.singletonList("flow");
   }
 
   @Override
@@ -28,7 +42,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     TraceComponent.Builder builder = TraceComponent.newBuilder(notification.getResourceIdentifier());
 
     Map<String, String> tags = new HashMap<>();
-    tags.put("mule.flow.name", getComponentParameterName(notification));
+    tags.put("mule.flow.name", notification.getResourceIdentifier());
     tags.put("mule.serverId", notification.getServerId());
 
     builder.withTags(tags)

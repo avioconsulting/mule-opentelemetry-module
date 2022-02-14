@@ -78,6 +78,7 @@ public abstract class AbstractProcessorComponentTest {
   protected ComponentLocation getComponentLocation(String namespace, String name) {
     ComponentLocation componentLocation = mock(ComponentLocation.class);
     when(componentLocation.getLocation()).thenReturn("test/processors/0");
+    when(componentLocation.getRootContainerName()).thenReturn("test-flow");
 
     TypedComponentIdentifier typedComponentIdentifier = mock(TypedComponentIdentifier.class);
     ComponentIdentifier mockedIdentifier = getMockedIdentifier(namespace, name);

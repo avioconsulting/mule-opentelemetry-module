@@ -54,3 +54,6 @@ Thumbs.db
 *.mov
 *.wmv
 
+*.classpath
+**/target
+**/.mule
