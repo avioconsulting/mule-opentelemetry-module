@@ -19,7 +19,9 @@
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<mule.maven.plugin.version>3.2.7</mule.maven.plugin.version>
 		<build.plugins.plugin.version>2.3.2</build.plugins.plugin.version>
-		<opentelemetry.version>1.9.1</opentelemetry.version>
+		<opentelemetry.version>1.10.1</opentelemetry.version>
+		<munit.extensions.maven.plugin.version>1.1.2</munit.extensions.maven.plugin.version>
+		<munit.version>2.3.8</munit.version>
 	</properties>
 	<build>
 		<plugins>
@@ -174,6 +176,16 @@
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
 			<version>${opentelemetry.version}-alpha</version>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-sdk-extension-resources</artifactId>
+			<version>${opentelemetry.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry</groupId>
+			<artifactId>opentelemetry-sdk-extension-autoconfigure-spi</artifactId>
+			<version>${opentelemetry.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
