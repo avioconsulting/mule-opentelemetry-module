@@ -38,8 +38,8 @@ public class MuleResourceProviderTest {
         .containsEntry(MULE_WORKER_ID, "MULE_WORKER_ID")
         .containsEntry(MULE_APP_DOMAIN, "MULE_APP_DOMAIN")
         .containsEntry(MULE_APP_FULL_DOMAIN, "MULE_APP_FULL_DOMAIN")
-        .containsEntry(MULE_APP_AWS_REGION, "MULE_APP_AWS_REGION")
-        .containsEntry(MULE_ENV, "MULE_ENV");
+        .containsEntry(MULE_ENVIRONMENT_AWS_REGION, "MULE_APP_AWS_REGION")
+        .containsEntry(MULE_ENVIRONMENT_NAME, "MULE_ENV");
     props.forEach((key, value) -> System.clearProperty(key.toString()));
   }
 }

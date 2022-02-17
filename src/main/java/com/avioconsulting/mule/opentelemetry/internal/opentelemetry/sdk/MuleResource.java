@@ -27,8 +27,8 @@ public class MuleResource {
     addAttribute("worker.id", builder, MULE_WORKER_ID);
     addAttribute("domain", builder, MULE_APP_DOMAIN);
     addAttribute("fullDomain", builder, MULE_APP_FULL_DOMAIN);
-    addAttribute("application.aws.region", builder, MULE_APP_AWS_REGION);
-    addAttribute("mule.env", builder, MULE_ENV);
+    addAttribute("application.aws.region", builder, MULE_ENVIRONMENT_AWS_REGION);
+    addAttribute("mule.env", builder, MULE_ENVIRONMENT_NAME);
     Attributes build = builder.build();
     return Resource.create(build);
   }
