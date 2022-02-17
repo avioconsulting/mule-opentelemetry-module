@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.*;
 
 public class HttpProcessorComponent extends GenericProcessorComponent {
@@ -113,7 +114,7 @@ public class HttpProcessorComponent extends GenericProcessorComponent {
     tags.put(HTTP_ROUTE.getKey(), path);
     tags.put(HTTP_METHOD.getKey(), getComponentParameter(notification, "method"));
     String componentConfigRef = getComponentConfigRef(notification);
-    tags.put("http.request.configRef", componentConfigRef);
+    tags.put(MULE_APP_PROCESSOR_CONFIG_REF.getKey(), componentConfigRef);
 
     return tags;
   }

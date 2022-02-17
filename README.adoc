@@ -66,7 +66,7 @@ Following example shows an OpenTelemetry Config with OTLP Exporter configured -
 
 When additional properties from SDK Auto-configuration are needed for exporter, `config-properties` can be used to add those. Environment and System properties will still override those entries.
 
-=== Resources
+=== Common Resource Attributes
 Extension uses the OpenTelemetry SDK's https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#resource-provider-spi[Resource Provider SPI] to gather data of common resources such as Host, OS, Processes of the Mule runtime Server and host. SDK supported all common resources providers are configured by this module.
 
 .Example Set of tags captured with common resource providers
@@ -87,6 +87,25 @@ Extension uses the OpenTelemetry SDK's https://github.com/open-telemetry/opentel
 ----
 
 See https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#disabling-automatic-resourceproviders[Disabling Common Resource Providers] if any resource provider must be disabled.
+
+=== Mule Resource Attributes
+Extension is aware of https://help.mulesoft.com/s/article/CloudHub-Reserved-Properties[CloudHub Reserved Properties] and automatically adds some of that data into trace data.
+
+.Example Set of tags captured with Mule Resource Provider
+[source,json]
+----
+{
+    "mule.app.awsRegion": "us-west-2",
+    "mule.app.domain": "mule-opentelemetry-app",
+    "mule.app.fullDomain": "mule-opentelemetry-app.us-w2.cloudhub.io",
+    "mule.csOrganization.id": "f2ea2cb4-c600-gh87-gg78-e952ff5591ee",
+    "mule.env": "Dev",
+    "mule.environment.id": "c06ef9b7-19c0-ss78-kk44-598058b20aad",
+    "mule.environment.type": "sandbox",
+    "mule.home": "/opt/mule/mule-4.4.0",
+    "mule.worker.id": "0"
+}
+----
 
 === Exporters
 

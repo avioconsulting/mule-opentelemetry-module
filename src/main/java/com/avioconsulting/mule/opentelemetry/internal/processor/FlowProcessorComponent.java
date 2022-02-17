@@ -2,12 +2,15 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
+import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.notification.EnrichedServerNotification;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import org.mule.runtime.api.component.ComponentIdentifier;
-import org.mule.runtime.api.notification.EnrichedServerNotification;
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_APP_FLOW_NAME;
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_SERVER_ID;
 
 public class FlowProcessorComponent extends AbstractProcessorComponent {
   @Override
@@ -28,8 +31,8 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     TraceComponent.Builder builder = TraceComponent.newBuilder(notification.getResourceIdentifier());
 
     Map<String, String> tags = new HashMap<>();
-    tags.put("mule.flow.name", getComponentParameterName(notification));
-    tags.put("mule.serverId", notification.getServerId());
+    tags.put(MULE_APP_FLOW_NAME.getKey(), getComponentParameterName(notification));
+    tags.put(MULE_SERVER_ID.getKey(), notification.getServerId());
 
     builder.withTags(tags)
         .withTransactionId(getTransactionId(notification))

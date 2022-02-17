@@ -92,7 +92,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
               .containsOnly("'/test-invalid-request'", "SERVER", spans.get(0).getTraceId());
           assertThat(span.getAttributes().getDataMap())
               .hasSize(9)
-              .containsEntry("mule.flow.name", "mule-opentelemetry-app-2Flow-requester-error")
+              .containsEntry("mule.app.flow.name", "mule-opentelemetry-app-2Flow-requester-error")
               .containsKey("mule.serverId")
               .containsEntry("http.scheme", "http")
               .containsEntry("http.method", "GET")
@@ -109,13 +109,13 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
               .containsOnly("'/remote/invalid'", "CLIENT", spans.get(0).getTraceId());
           assertThat(span.getAttributes().getDataMap())
               .hasSize(10)
-              .containsEntry("mule.processor.name", "request")
-              .containsEntry("mule.processor.namespace", "http")
-              .containsEntry("mule.processor.docName", "Request")
+              .containsEntry("mule.app.processor.name", "request")
+              .containsEntry("mule.app.processor.namespace", "http")
+              .containsEntry("mule.app.processor.docName", "Request")
               .containsEntry("http.host", "0.0.0.0:9080")
               .containsEntry("http.scheme", "http")
               .containsEntry("net.peer.name", "0.0.0.0")
-              .containsEntry("http.request.configRef", "INVALID_HTTP_Request_configuration")
+              .containsEntry("mule.app.processor.configRef", "INVALID_HTTP_Request_configuration")
               .containsEntry("http.method", "GET")
               .containsEntry("http.route", "/remote/invalid")
               .containsEntry("net.peer.port", "9080");

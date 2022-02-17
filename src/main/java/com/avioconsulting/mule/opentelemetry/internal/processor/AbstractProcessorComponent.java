@@ -16,6 +16,8 @@ import org.mule.runtime.api.notification.EnrichedServerNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
+
 public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   static final String NAMESPACE_URI_MULE = "http://www.mulesoft.org/schema/mule/core";
@@ -128,12 +130,11 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   protected Map<String, String> getProcessorCommonTags(EnrichedServerNotification notification) {
     String docName = getComponentDocName(notification);
     Map<String, String> tags = new HashMap<>();
-    tags.put(
-        "mule.processor.namespace",
+    tags.put(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
         notification.getComponent().getIdentifier().getNamespace());
-    tags.put("mule.processor.name", notification.getComponent().getIdentifier().getName());
+    tags.put(MULE_APP_PROCESSOR_NAME.getKey(), notification.getComponent().getIdentifier().getName());
     if (docName != null)
-      tags.put("mule.processor.docName", docName);
+      tags.put(MULE_APP_PROCESSOR_DOC_NAME.getKey(), docName);
     return tags;
   }
 
