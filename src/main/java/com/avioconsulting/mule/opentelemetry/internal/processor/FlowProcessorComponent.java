@@ -5,6 +5,13 @@ import com.avioconsulting.mule.opentelemetry.internal.processor.service.Processo
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_APP_FLOW_NAME;
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_SERVER_ID;
+
 import java.util.*;
 
 public class FlowProcessorComponent extends AbstractProcessorComponent {
@@ -42,8 +49,8 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     TraceComponent.Builder builder = TraceComponent.newBuilder(notification.getResourceIdentifier());
 
     Map<String, String> tags = new HashMap<>();
-    tags.put("mule.flow.name", notification.getResourceIdentifier());
-    tags.put("mule.serverId", notification.getServerId());
+    tags.put(MULE_APP_FLOW_NAME.getKey(), notification.getResourceIdentifier());
+    tags.put(MULE_SERVER_ID.getKey(), notification.getServerId());
 
     builder.withTags(tags)
         .withTransactionId(getTransactionId(notification))

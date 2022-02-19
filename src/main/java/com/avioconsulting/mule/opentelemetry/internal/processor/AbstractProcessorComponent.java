@@ -14,6 +14,8 @@ import org.mule.runtime.api.notification.EnrichedServerNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
+
 public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   static final String NAMESPACE_URI_MULE = "http://www.mulesoft.org/schema/mule/core";
@@ -21,10 +23,6 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   public static final String FLOW = "flow";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractProcessorComponent.class);
-  public static final String MULE_PROCESSOR_NAMESPACE_KEY = "mule.processor.namespace";
-  public static final String MULE_PROCESSOR_NAME_KEY = "mule.processor.name";
-  public static final String MULE_PROCESSOR_DOC_NAME_KEY = "mule.processor.docName";
-  public static final String MULE_PROCESSOR_CONFIG_REF_KEY = "mule.processor.configRef";
 
   protected ConfigurationComponentLocator configurationComponentLocator;
 
@@ -83,8 +81,8 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   }
 
   protected String getDefaultSpanName(Map<String, String> tags) {
-    return tags.get(MULE_PROCESSOR_NAME_KEY).concat(":")
-        .concat(tags.get(MULE_PROCESSOR_DOC_NAME_KEY));
+    return tags.get(MULE_APP_PROCESSOR_NAME.getKey()).concat(":")
+        .concat(tags.get(MULE_APP_PROCESSOR_DOC_NAME.getKey()));
   }
 
   protected String getTransactionId(EnrichedServerNotification notification) {
@@ -95,14 +93,13 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
     ComponentWrapper componentWrapper = new ComponentWrapper(notification.getInfo().getComponent(),
         configurationComponentLocator);
     Map<String, String> tags = new HashMap<>();
-    tags.put(
-        MULE_PROCESSOR_NAMESPACE_KEY,
+    tags.put(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
         notification.getComponent().getIdentifier().getNamespace());
-    tags.put(MULE_PROCESSOR_NAME_KEY, notification.getComponent().getIdentifier().getName());
+    tags.put(MULE_APP_PROCESSOR_NAME.getKey(), notification.getComponent().getIdentifier().getName());
     if (componentWrapper.getDocName() != null)
-      tags.put(MULE_PROCESSOR_DOC_NAME_KEY, componentWrapper.getDocName());
+      tags.put(MULE_APP_PROCESSOR_DOC_NAME.getKey(), componentWrapper.getDocName());
     if (componentWrapper.getConfigRef() != null)
-      tags.put(MULE_PROCESSOR_CONFIG_REF_KEY, componentWrapper.getConfigRef());
+      tags.put(MULE_APP_PROCESSOR_CONFIG_REF.getKey(), componentWrapper.getConfigRef());
     return tags;
   }
 

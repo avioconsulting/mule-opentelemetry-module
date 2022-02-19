@@ -46,7 +46,7 @@
 		<dependency>
 			<groupId>com.avioconsulting</groupId>
 			<artifactId>mule-open-telemetry-module</artifactId>
-			<version>0.0.48</version>
+			<version>0.0.53</version>
 			<classifier>mule-plugin</classifier>
 		</dependency>
 		<dependency>
