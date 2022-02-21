@@ -1,11 +1,14 @@
 package com.avioconsulting.mule.opentelemetry;
 
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter;
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.awaitility.Awaitility;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.mule.functional.junit4.MuleArtifactFunctionalTestCase;
@@ -26,7 +29,9 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ArtifactClassLoaderRunnerConfig(applicationSharedRuntimeLibs = { "org.apache.derby:derby" })
+@ArtifactClassLoaderRunnerConfig(exportPluginClasses = {
+    DelegatedLoggingSpanExporterProvider.class }, applicationSharedRuntimeLibs = {
+        "org.apache.derby:derby" })
 public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {
 
   @Rule
@@ -40,6 +45,12 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
     Awaitility.setDefaultPollDelay(100, MILLISECONDS);
     Awaitility.setDefaultPollInterval(2, SECONDS);
     Awaitility.setDefaultTimeout(10, SECONDS);
+  }
+
+  @After
+  public void clearSpansQueue() {
+    Awaitility.await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue).isNotEmpty());
+    DelegatedLoggingSpanExporter.spanQueue.clear();
   }
 
   @Override

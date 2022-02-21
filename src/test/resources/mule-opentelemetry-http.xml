@@ -66,4 +66,14 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test/propagation/target"/>
 		<set-payload value="From Propagation target" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
 	</flow>
+
+	<flow name="mule-opentelemetry-app-requester-remote" >
+		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test-remote-request"/>
+		<http:request method="GET" doc:name="Request" config-ref="SELF_HTTP_Request_configuration" path="/test/remote/target"/>
+		<logger level="INFO" doc:name="Logger"/>
+	</flow>
+	<flow name="mule-opentelemetry-app-2-remote-target" >
+		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test/remote/target"/>
+		<set-payload value="From Remote target" doc:name="Set Payload"/>
+	</flow>
 </mule>
