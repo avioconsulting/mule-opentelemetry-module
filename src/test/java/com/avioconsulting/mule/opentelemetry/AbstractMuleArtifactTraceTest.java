@@ -45,6 +45,9 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
     Awaitility.setDefaultPollDelay(100, MILLISECONDS);
     Awaitility.setDefaultPollInterval(2, SECONDS);
     Awaitility.setDefaultTimeout(10, SECONDS);
+
+    // Reduce the time between batch export. Speeds up tese completion.
+    System.setProperty("otel.bsp.schedule.delay", "100");
   }
 
   @After
