@@ -5,6 +5,7 @@ import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import org.mule.extension.http.api.HttpRequestAttributes;
 import org.mule.extension.http.api.HttpResponseAttributes;
+import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.Message;
@@ -13,34 +14,46 @@ import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.*;
+import static java.util.Collections.singletonList;
 
-public class HttpProcessorComponent extends GenericProcessorComponent {
+public class HttpProcessorComponent extends AbstractProcessorComponent {
 
   static final String NAMESPACE_URI = "http://www.mulesoft.org/schema/mule/http";
   public static final String NAMESPACE = "http";
-  public static final String LISTENER = "listener";
-  public static final String REQUESTER = "request";
 
   @Override
-  public boolean canHandle(ComponentIdentifier componentIdentifier) {
-    return NAMESPACE.equalsIgnoreCase(componentIdentifier.getNamespace())
-        && (LISTENER.equalsIgnoreCase(componentIdentifier.getName())
-            || REQUESTER.equalsIgnoreCase(componentIdentifier.getName()));
+  protected String getNamespace() {
+    return NAMESPACE;
+  }
+
+  @Override
+  protected List<String> getOperations() {
+    return singletonList("request");
+  }
+
+  @Override
+  protected List<String> getSources() {
+    return singletonList("listener");
+  }
+
+  @Override
+  protected SpanKind getSpanKind() {
+    return SpanKind.CLIENT;
   }
 
   private boolean isRequester(ComponentIdentifier componentIdentifier) {
-    return NAMESPACE.equalsIgnoreCase(componentIdentifier.getNamespace())
-        && REQUESTER.equalsIgnoreCase(componentIdentifier.getName());
+    return namespaceSupported(componentIdentifier)
+        && operationSupported(componentIdentifier);
   }
 
   private boolean isHttpListener(ComponentIdentifier componentIdentifier) {
-    return NAMESPACE.equalsIgnoreCase(componentIdentifier.getNamespace())
-        && LISTENER.equalsIgnoreCase(componentIdentifier.getName());
+    return namespaceSupported(componentIdentifier)
+        && sourceSupported(componentIdentifier);
   }
 
   private boolean isListenerFlowEvent(EnrichedServerNotification notification) {
@@ -80,7 +93,8 @@ public class HttpProcessorComponent extends GenericProcessorComponent {
 
     TraceComponent traceComponent = super.getStartTraceComponent(notification);
 
-    Map<String, String> requesterTags = getRequesterTags(notification);
+    Map<String, String> requesterTags = getAttributes(notification.getInfo().getComponent(),
+        notification.getEvent().getMessage().getAttributes());
     requesterTags.putAll(traceComponent.getTags());
 
     return TraceComponent.newBuilder(notification.getResourceIdentifier())
@@ -88,14 +102,27 @@ public class HttpProcessorComponent extends GenericProcessorComponent {
         .withLocation(notification.getComponent().getLocation().getLocation())
         .withSpanName(requesterTags.get(HTTP_ROUTE.getKey()))
         .withTransactionId(traceComponent.getTransactionId())
-        .withSpanKind(SpanKind.CLIENT)
+        .withSpanKind(getSpanKind())
         .build();
   }
 
-  private Map<String, String> getRequesterTags(EnrichedServerNotification notification) {
+  @Override
+  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
+    ComponentWrapper componentWrapper = new ComponentWrapper(component, configurationComponentLocator);
     Map<String, String> tags = new HashMap<>();
-    String path = getComponentParameter(notification, "path");
-    Map<String, String> connectionParameters = getConfigConnectionParameters(notification);
+    if (isRequester(component.getIdentifier())) {
+      tags.putAll(getRequesterTags(componentWrapper));
+    } else {
+      HttpRequestAttributes attr = (HttpRequestAttributes) attributes.getValue();
+      tags.putAll(attributesToTags(attr));
+    }
+    return tags;
+  }
+
+  private Map<String, String> getRequesterTags(ComponentWrapper componentWrapper) {
+    Map<String, String> tags = new HashMap<>();
+    String path = componentWrapper.getParameters().get("path");
+    Map<String, String> connectionParameters = componentWrapper.getConfigConnectionParameters();
     if (!connectionParameters.isEmpty()) {
       tags.put(HTTP_SCHEME.getKey(), connectionParameters.getOrDefault("protocol", "").toLowerCase());
       tags.put(HTTP_HOST.getKey(), connectionParameters.getOrDefault("host", "").concat(":")
@@ -103,8 +130,7 @@ public class HttpProcessorComponent extends GenericProcessorComponent {
       tags.put(NET_PEER_NAME.getKey(), connectionParameters.getOrDefault("host", ""));
       tags.put(NET_PEER_PORT.getKey(), connectionParameters.getOrDefault("port", ""));
     }
-    Map<String, String> configParameters = getConfigParameters(notification);
-    System.out.println(configParameters);
+    Map<String, String> configParameters = componentWrapper.getConfigParameters();
     if (!configParameters.isEmpty()) {
       if (configParameters.containsKey("basePath")
           && !configParameters.get("basePath").equalsIgnoreCase("/")) {
@@ -112,10 +138,7 @@ public class HttpProcessorComponent extends GenericProcessorComponent {
       }
     }
     tags.put(HTTP_ROUTE.getKey(), path);
-    tags.put(HTTP_METHOD.getKey(), getComponentParameter(notification, "method"));
-    String componentConfigRef = getComponentConfigRef(notification);
-    tags.put(MULE_APP_PROCESSOR_CONFIG_REF.getKey(), componentConfigRef);
-
+    tags.put(HTTP_METHOD.getKey(), componentWrapper.getParameters().get("method"));
     return tags;
   }
 
@@ -128,7 +151,7 @@ public class HttpProcessorComponent extends GenericProcessorComponent {
     TypedValue<HttpRequestAttributes> attributesTypedValue = notification.getEvent().getMessage().getAttributes();
     HttpRequestAttributes attributes = attributesTypedValue.getValue();
     Map<String, String> tags = attributesToTags(attributes);
-    TraceComponent traceComponent = TraceComponent.newBuilder(getComponentParameterName(notification))
+    TraceComponent traceComponent = TraceComponent.newBuilder(notification.getResourceIdentifier())
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
         .withSpanName(attributes.getListenerPath())

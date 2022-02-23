@@ -1,1 +1,2 @@
 com.avioconsulting.mule.opentelemetry.internal.processor.HttpProcessorComponent
+com.avioconsulting.mule.opentelemetry.internal.processor.DBProcessorComponent

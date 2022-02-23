@@ -12,10 +12,28 @@ import java.util.Optional;
 import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_APP_FLOW_NAME;
 import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_SERVER_ID;
 
+import java.util.*;
+
 public class FlowProcessorComponent extends AbstractProcessorComponent {
   @Override
   public boolean canHandle(ComponentIdentifier componentIdentifier) {
-    return FLOW.equalsIgnoreCase(componentIdentifier.getName());
+    return namespaceSupported(componentIdentifier)
+        && operationSupported(componentIdentifier);
+  }
+
+  @Override
+  protected String getNamespace() {
+    return NAMESPACE_MULE;
+  }
+
+  @Override
+  protected List<String> getSources() {
+    return Collections.emptyList();
+  }
+
+  @Override
+  protected List<String> getOperations() {
+    return Collections.singletonList("flow");
   }
 
   @Override
@@ -31,7 +49,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     TraceComponent.Builder builder = TraceComponent.newBuilder(notification.getResourceIdentifier());
 
     Map<String, String> tags = new HashMap<>();
-    tags.put(MULE_APP_FLOW_NAME.getKey(), getComponentParameterName(notification));
+    tags.put(MULE_APP_FLOW_NAME.getKey(), notification.getResourceIdentifier());
     tags.put(MULE_SERVER_ID.getKey(), notification.getServerId());
 
     builder.withTags(tags)

@@ -2,16 +2,14 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import javax.xml.namespace.QName;
+import java.util.*;
 
+import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
-import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.message.Error;
+import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +33,35 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
     return this;
   }
 
+  protected abstract String getNamespace();
+
+  protected abstract List<String> getOperations();
+
+  protected abstract List<String> getSources();
+
+  protected SpanKind getSpanKind() {
+    return SpanKind.INTERNAL;
+  }
+
+  @Override
+  public boolean canHandle(ComponentIdentifier componentIdentifier) {
+    return getNamespace().equalsIgnoreCase(componentIdentifier.getNamespace())
+        && (getOperations().contains(componentIdentifier.getName().toLowerCase())
+            || getSources().contains(componentIdentifier.getName().toLowerCase()));
+  }
+
+  protected boolean namespaceSupported(ComponentIdentifier componentIdentifier) {
+    return getNamespace().equalsIgnoreCase(componentIdentifier.getNamespace().toLowerCase());
+  }
+
+  protected boolean operationSupported(ComponentIdentifier componentIdentifier) {
+    return getOperations().contains(componentIdentifier.getName().toLowerCase());
+  }
+
+  protected boolean sourceSupported(ComponentIdentifier componentIdentifier) {
+    return getSources().contains(componentIdentifier.getName().toLowerCase());
+  }
+
   @Override
   public TraceComponent getEndTraceComponent(EnrichedServerNotification notification) {
     return TraceComponent.newBuilder(notification.getResourceIdentifier())
@@ -53,88 +80,26 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
         .withTransactionId(getTransactionId(notification));
   }
 
-  protected String getDefaultSpanName(EnrichedServerNotification notification) {
-    return notification.getComponent().getIdentifier().getName().concat(":")
-        .concat(getComponentDocName(notification));
+  protected String getDefaultSpanName(Map<String, String> tags) {
+    return tags.get(MULE_APP_PROCESSOR_NAME.getKey()).concat(":")
+        .concat(tags.get(MULE_APP_PROCESSOR_DOC_NAME.getKey()));
   }
 
   protected String getTransactionId(EnrichedServerNotification notification) {
     return notification.getEvent().getCorrelationId();
   }
 
-  protected <T> T getComponentAnnotation(
-      String annotationName, EnrichedServerNotification notification) {
-    return getComponentAnnotation(annotationName, notification.getInfo().getComponent());
-  }
-
-  protected <T> T getComponentAnnotation(
-      String annotationName, Component component) {
-    return (T) component.getAnnotation(QName.valueOf(annotationName));
-  }
-
-  protected String getComponentParameterName(EnrichedServerNotification notification) {
-    return getComponentParameter(notification, "name");
-  }
-
-  protected String getComponentParameter(
-      EnrichedServerNotification notification, String parameter) {
-    return getComponentParameters(notification).get(parameter);
-  }
-
-  private Map<String, String> getComponentParameters(EnrichedServerNotification notification) {
-    return getComponentAnnotation("{config}componentParameters", notification);
-  }
-
-  private Map<String, String> getComponentParameters(Component component) {
-    return getComponentAnnotation("{config}componentParameters", component);
-  }
-
-  protected String getComponentConfigRef(EnrichedServerNotification notification) {
-    return getComponentParameter(notification, "config-ref");
-  }
-
-  protected Map<String, String> getConfigConnectionParameters(EnrichedServerNotification notification) {
-    String componentConfigRef = getComponentConfigRef(notification);
-    try {
-      return configurationComponentLocator
-          .find(Location.builder().globalName(componentConfigRef).addConnectionPart().build())
-          .map(this::getComponentParameters).orElse(Collections.emptyMap());
-    } catch (Exception ex) {
-      LOGGER.trace(
-          "Failed to extract connection parameters for {}. Ignoring this failure - {}", componentConfigRef,
-          ex.getMessage());
-      return Collections.emptyMap();
-    }
-
-  }
-
-  protected Map<String, String> getConfigParameters(EnrichedServerNotification notification) {
-    String componentConfigRef = getComponentConfigRef(notification);
-    try {
-      return configurationComponentLocator
-          .find(Location.builder().globalName(componentConfigRef).build())
-          .map(this::getComponentParameters).orElse(Collections.emptyMap());
-    } catch (Exception ex) {
-      LOGGER.trace(
-          "Failed to extract connection parameters for {}. Ignoring this failure - {}", componentConfigRef,
-          ex.getMessage());
-      return Collections.emptyMap();
-    }
-
-  }
-
-  protected String getComponentDocName(EnrichedServerNotification notification) {
-    return getComponentParameter(notification, "doc:name");
-  }
-
   protected Map<String, String> getProcessorCommonTags(EnrichedServerNotification notification) {
-    String docName = getComponentDocName(notification);
+    ComponentWrapper componentWrapper = new ComponentWrapper(notification.getInfo().getComponent(),
+        configurationComponentLocator);
     Map<String, String> tags = new HashMap<>();
     tags.put(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
         notification.getComponent().getIdentifier().getNamespace());
     tags.put(MULE_APP_PROCESSOR_NAME.getKey(), notification.getComponent().getIdentifier().getName());
-    if (docName != null)
-      tags.put(MULE_APP_PROCESSOR_DOC_NAME.getKey(), docName);
+    if (componentWrapper.getDocName() != null)
+      tags.put(MULE_APP_PROCESSOR_DOC_NAME.getKey(), componentWrapper.getDocName());
+    if (componentWrapper.getConfigRef() != null)
+      tags.put(MULE_APP_PROCESSOR_CONFIG_REF.getKey(), componentWrapper.getConfigRef());
     return tags;
   }
 
@@ -150,5 +115,29 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
           .getIdentifier();
     }
     return sourceIdentifier;
+  }
+
+  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
+    return Collections.emptyMap();
+  }
+
+  @Override
+  public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
+    Map<String, String> tags = new HashMap<>(getProcessorCommonTags(notification));
+    tags.putAll(getAttributes(notification.getInfo().getComponent(),
+        notification.getEvent().getMessage().getAttributes()));
+    return TraceComponent.newBuilder(notification.getComponent().getLocation().getLocation())
+        .withLocation(notification.getComponent().getLocation().getLocation())
+        .withSpanName(getDefaultSpanName(tags))
+        .withTags(tags)
+        .withSpanKind(getSpanKind())
+        .withTransactionId(getTransactionId(notification))
+        .build();
+  }
+
+  protected void addTagIfPresent(Map<String, String> sourceMap, String sourceKey, Map<String, String> targetMap,
+      String targetKey) {
+    if (sourceMap.containsKey(sourceKey))
+      targetMap.put(targetKey, sourceMap.get(sourceKey));
   }
 }

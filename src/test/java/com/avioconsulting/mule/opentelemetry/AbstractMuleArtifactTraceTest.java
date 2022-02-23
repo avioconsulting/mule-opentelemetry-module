@@ -1,10 +1,14 @@
 package com.avioconsulting.mule.opentelemetry;
 
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter;
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.awaitility.Awaitility;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.mule.functional.junit4.MuleArtifactFunctionalTestCase;
@@ -12,6 +16,7 @@ import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.tck.junit4.rule.DynamicPort;
 import org.mule.tck.probe.JUnitLambdaProbe;
 import org.mule.tck.probe.PollingProber;
+import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -20,8 +25,13 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ArtifactClassLoaderRunnerConfig(exportPluginClasses = {
+    DelegatedLoggingSpanExporterProvider.class }, applicationSharedRuntimeLibs = {
+        "org.apache.derby:derby" })
 public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {
 
   @Rule
@@ -31,7 +41,19 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
 
   @Before
   public void beforeTest() {
+    Awaitility.reset();
+    Awaitility.setDefaultPollDelay(100, MILLISECONDS);
+    Awaitility.setDefaultPollInterval(2, SECONDS);
+    Awaitility.setDefaultTimeout(10, SECONDS);
 
+    // Reduce the time between batch export. Speeds up tese completion.
+    System.setProperty("otel.bsp.schedule.delay", "100");
+  }
+
+  @After
+  public void clearSpansQueue() {
+    Awaitility.await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue).isNotEmpty());
+    DelegatedLoggingSpanExporter.spanQueue.clear();
   }
 
   @Override

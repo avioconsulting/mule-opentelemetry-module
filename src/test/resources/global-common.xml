@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="79881531-bfaa-49fd-8227-b67e35d64cf8" >
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
+	</http:listener-config>
+
+	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1">
+		<opentelemetry:exporter >
+<!--			<opentelemetry:logging-exporter logPrefix="test-log" />-->
+			<opentelemetry:generic-exporter >
+				<opentelemetry:config-properties >
+					<opentelemetry:config-property key="otel.traces.exporter" value="delegatedLogging" />
+				</opentelemetry:config-properties>
+			</opentelemetry:generic-exporter>
+		</opentelemetry:exporter>
+		<opentelemetry:resource-attributes >
+			<opentelemetry:attribute key="mule.env" value="Dev" />
+		</opentelemetry:resource-attributes>
+	</opentelemetry:config>
+	<http:request-config name="INVALID_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="c18eed36-eb42-4c29-abc9-9e7a2c6049e1" >
+		<http:request-connection host="0.0.0.0" port="9080" />
+	</http:request-config>
+	<http:request-config name="SELF_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="c18eed36-eb42-4c29-abc9-9e7a2c6049e1" >
+		<http:request-connection host="0.0.0.0" port="${http.port}" />
+	</http:request-config>
+
+</mule>
