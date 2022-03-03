@@ -30,8 +30,8 @@ To use this extension, add following dependency to your mule application project
 ----
     <dependency>
       <groupId>com.avioconsulting</groupId>
-      <artifactId>mule-open-telemetry-module</artifactId>
-      <version>${mule-open-telemetry-module-version}</version>
+      <artifactId>mule-opentelemetry-module</artifactId>
+      <version>${mule-opentelemetry-module-version}</version>
       <classifier>mule-plugin</classifier>
     </dependency>
 ----
