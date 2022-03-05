@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<anypoint-mq:config name="Anypoint_MQ_Config" doc:name="Anypoint MQ Config" doc:id="a047a18c-70b4-48ce-9239-204fdcab95f2" >
+		<anypoint-mq:connection clientId="2327057f85ab4340b2f27c7b1b20cb07" clientSecret="c5560F1a99D842a91234567894cf2DA7"/>
+	</anypoint-mq:config>
+	<flow name="anypoint-mq-flowsFlow" doc:id="63b1f87a-16ba-4d59-a17e-5cdf9f278763" maxConcurrency="1" >
+		<anypoint-mq:subscriber doc:name="Subscriber" doc:id="7f4b30f5-2be5-4678-aedd-8ca0752aa664" config-ref="Anypoint_MQ_Config" destination="otel-test-queue-1" acknowledgementTimeout="1" acknowledgementTimeoutUnit="MINUTES">
+			<anypoint-mq:subscriber-type >
+				<anypoint-mq:polling >
+					<scheduling-strategy >
+						<fixed-frequency frequency="1" startDelay="1" timeUnit="SECONDS"/>
+					</scheduling-strategy>
+				</anypoint-mq:polling>
+			</anypoint-mq:subscriber-type>
+		</anypoint-mq:subscriber>
+		<logger level="INFO" doc:name="Logger" doc:id="c84cb73c-98b7-4c07-b417-8c819cb365d5" message="#[attributes.properties]"/>
+	</flow>
+</mule>

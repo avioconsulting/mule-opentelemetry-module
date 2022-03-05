@@ -2,7 +2,6 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import io.opentelemetry.api.trace.SpanKind;
-import io.opentelemetry.context.propagation.TextMapGetter;
 import org.mule.extension.http.api.HttpRequestAttributes;
 import org.mule.extension.http.api.HttpResponseAttributes;
 import org.mule.runtime.api.component.Component;
@@ -155,7 +154,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
         .withSpanName(attributes.getListenerPath())
-        .withContext(traceContextHandler.getTraceContext(attributes, ContextMapGetter.INSTANCE))
+        .withContext(traceContextHandler.getTraceContext(attributes.getHeaders(), ContextMapGetter.INSTANCE))
         .build();
     return Optional.of(traceComponent);
   }
@@ -176,18 +175,4 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     return tags;
   }
 
-  private enum ContextMapGetter implements TextMapGetter<HttpRequestAttributes> {
-    INSTANCE;
-
-    @Override
-    public Iterable<String> keys(HttpRequestAttributes httpRequestAttributes) {
-      return httpRequestAttributes.getHeaders().keySet();
-    }
-
-    @Nullable
-    @Override
-    public String get(@Nullable HttpRequestAttributes httpRequestAttributes, String s) {
-      return httpRequestAttributes == null ? null : httpRequestAttributes.getHeaders().get(s);
-    }
-  }
 }

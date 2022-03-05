@@ -40,7 +40,7 @@
 		<dependency>
 			<groupId>com.avioconsulting</groupId>
 			<artifactId>mule-opentelemetry-module</artifactId>
-			<version>0.0.53</version>
+			<version>1.0.0-SNAPSHOT</version>
 			<classifier>mule-plugin</classifier>
 		</dependency>
 		<dependency>
@@ -53,6 +53,12 @@
 			<groupId>org.mule.connectors</groupId>
 			<artifactId>mule-sockets-connector</artifactId>
 			<version>1.2.2</version>
+			<classifier>mule-plugin</classifier>
+		</dependency>
+		<dependency>
+			<groupId>com.mulesoft.connectors</groupId>
+			<artifactId>anypoint-mq-connector</artifactId>
+			<version>3.1.6</version>
 			<classifier>mule-plugin</classifier>
 		</dependency>
 	</dependencies>
