@@ -5,14 +5,18 @@ import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import java.util.*;
 
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.context.propagation.TextMapGetter;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 
 import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
 
@@ -81,8 +85,9 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   }
 
   protected String getDefaultSpanName(Map<String, String> tags) {
-    return tags.get(MULE_APP_PROCESSOR_NAME.getKey()).concat(":")
-        .concat(tags.get(MULE_APP_PROCESSOR_DOC_NAME.getKey()));
+    String name = tags.get(MULE_APP_PROCESSOR_NAME.getKey());
+    return name.concat(":")
+        .concat(tags.getOrDefault(MULE_APP_PROCESSOR_DOC_NAME.getKey(), name));
   }
 
   protected String getTransactionId(EnrichedServerNotification notification) {
@@ -139,5 +144,26 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
       String targetKey) {
     if (sourceMap.containsKey(sourceKey))
       targetMap.put(targetKey, sourceMap.get(sourceKey));
+  }
+
+  protected Optional<Component> getSourceComponent(EnrichedServerNotification notification) {
+    Optional<Component> component = configurationComponentLocator.find(Location.builderFromStringRepresentation(
+        notification.getEvent().getContext().getOriginatingLocation().getLocation()).build());
+    return component;
+  }
+
+  protected enum ContextMapGetter implements TextMapGetter<Map<String, String>> {
+    INSTANCE;
+
+    @Override
+    public Iterable<String> keys(Map<String, String> map) {
+      return map.keySet();
+    }
+
+    @Nullable
+    @Override
+    public String get(@Nullable Map<String, String> map, String s) {
+      return map == null ? null : map.get(s);
+    }
   }
 }

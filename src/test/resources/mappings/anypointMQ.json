@@ -1,0 +1,65 @@
+{
+  "mappings" : [{
+    "id" : "47b59a51-1ef9-4535-a9cd-26ef11f07381",
+    "name" : "api_v1_authorize",
+    "request" : {
+      "url" : "/api/v1/authorize",
+      "method" : "POST",
+      "bodyPatterns" : [ {
+        "equalTo" : "client_id=2327057f85ab4340b2f27c7b1b20cb07&client_secret=c5560F1a99D842a91234567894cf2DA7&grant_type=client_credentials",
+        "caseInsensitive" : false
+      } ]
+    },
+    "response" : {
+      "status" : 200,
+      "body" : "{\"access_token\":\"aab0268c-f690-4f5c-9ee8-cc087d205c5b\",\"simple_client\":{\"envId\":\"c06ef9b7-19c0-4e87-add9-60ed58b20aad\",\"orgId\":\"f2ea2cb4-c600-4bb5-88e8-e952ff5591ee\"},\"token_type\":\"bearer\"}",
+      "headers" : {
+        "content-type" : "application/json",
+        "date" : "Fri, 04 Mar 2022 03:53:33 GMT",
+        "server" : "istio-envoy",
+        "vary" : "Origin",
+        "x-anypnt-trx-id" : "2cabca98-b4d7-4fd4-bb17-e762a47c2d67",
+        "x-envoy-decorator-operation" : "service-msg.anypoint-mq.svc.cluster.local:443/*",
+        "x-envoy-upstream-service-time" : "78",
+        "x-request-id" : "56c68da0-a237-48f9-a816-dcc94f751b83"
+      }
+    },
+    "uuid" : "47b59a51-1ef9-4535-a9cd-26ef11f07381",
+    "persistent" : true,
+    "scenarioName" : "scenario-1-api-v1-authorize",
+    "requiredScenarioState" : "scenario-1-api-v1-authorize-2"
+  }, {
+    "id" : "d95ff0e8-6a2f-43ab-a41a-02ec5ae78605",
+    "name" : "api_v1_authorize",
+    "request" : {
+      "url" : "/api/v1/authorize",
+      "method" : "POST",
+      "bodyPatterns" : [ {
+        "equalTo" : "client_id=2327057f85ab4340b2f27c7b1b20cb07&client_secret=c5560F1a99D842a91234567894cf2DA7&grant_type=client_credentials",
+        "caseInsensitive" : false
+      } ]
+    },
+    "response" : {
+      "status" : 200,
+      "body" : "{\"access_token\":\"aab0268c-f690-4f5c-9ee8-cc087d205c5b\",\"simple_client\":{\"envId\":\"c06ef9b7-19c0-4e87-add9-60ed58b20aad\",\"orgId\":\"f2ea2cb4-c600-4bb5-88e8-e952ff5591ee\"},\"token_type\":\"bearer\"}",
+      "headers" : {
+        "content-type" : "application/json",
+        "date" : "Fri, 04 Mar 2022 03:53:32 GMT",
+        "server" : "istio-envoy",
+        "vary" : "Origin",
+        "x-anypnt-trx-id" : "dc7e05a2-b3ec-45b9-b439-13d100601050",
+        "x-envoy-decorator-operation" : "service-msg.anypoint-mq.svc.cluster.local:443/*",
+        "x-envoy-upstream-service-time" : "89",
+        "x-request-id" : "5c9560b7-c2ed-405c-a8c4-203ba0a0b1a3"
+      }
+    },
+    "uuid" : "d95ff0e8-6a2f-43ab-a41a-02ec5ae78605",
+    "persistent" : true,
+    "scenarioName" : "scenario-1-api-v1-authorize",
+    "requiredScenarioState" : "Started",
+    "newScenarioState" : "scenario-1-api-v1-authorize-2"
+  } ],
+  "meta" : {
+    "total" : 5
+  }
+}

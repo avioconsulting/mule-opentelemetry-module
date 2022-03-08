@@ -145,8 +145,10 @@ Following example shows possible configuration for to send traces to Zipkin. Thi
 == Trace Spans
 Trace spans are created for only following mule components -
 
-- flows
-- http listener and request
+- Flows
+- HTTP Listener and Request
+- Database Connector
+- Anypoint MQ Connector
 
 NOTE: This can be changed to create spans for every mule processors by setting `spanAllProcessors = "false"` (can be overridden by setting system property `mule.otel.span.processors.enable` to `true|false`).
 
@@ -209,6 +211,18 @@ This will ensure sending context headers for each outbound request.
 
 As described above in context extraction, if the target endpoint is another mule app with this extension configured, it will be able to extract this context on the listener and attach its own span to it.
 
+=== Anypoint MQ Context Injection
+
+When using Anypoint MQ, the `publish` operation can add `vars.OTEL_TRACE_CONTEXT` to user properties. If the extension is being used by the Anypoint MQ Subscription application, the Context will be extracted from the user properties and linked to the parent incoming trace.
+
+
+[source,xml]
+----
+    <anypoint-mq:publish doc:name="Publish" doc:id="8e707130-9ead-4dac-a31e-f7bcb5ce7740" config-ref="Anypoint_MQ_Config" destination="otel-test-queue-1">
+        <anypoint-mq:properties ><![CDATA[#[vars.OTEL_TRACE_CONTEXT]]]></anypoint-mq:properties>
+    </anypoint-mq:publish>
+----
+
 == Limitations
 - Automatic header/attribute injections for outbound requests is not supported
 
@@ -249,20 +263,3 @@ You may use following command to keep incrementing patch version and install loc
 ----
 mvn build-helper:parse-version versions:set -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.nextIncrementalVersion}' versions:commit && mvn spotless:apply install
 ----
-
-== TODO
-- Extension Features
-  - OpenTelemetry SDK
-    - [ ] Create Mule Environment https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#resource-provider-spi[Resource]
-  - [x] Mule SDK Based OpenTelemetry Connection Management
-  - Configuration
-    - [x] Allow setting service name on configuration
-    - [x] Allow configuring OpenTelemetry Collector endpoint in configuration. System variables should override this configuration.
-    - [x] Allow disabling the interceptor processing if needed. This will result in loosing context injection in flow variables.
-  - Operations
-    - [x] Add an operation to retrieve current trace context. SDK does not allow adding variables. Users may have to use `targetVariable` feature.
-    - [ ] If possible, add a DW function to retrieve trace context as a Map. Users can add this map to any existing outbound headers.
-  - Scopes
-    - [ ] Add a custom scope container to execute components in a span.
-  - Outbound
-    - [ ] Auto-inject trace context in outbound requests.

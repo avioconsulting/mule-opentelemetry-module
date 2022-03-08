@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	  xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+	  xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+	<import file="global-common.xml"/>
+
+	<anypoint-mq:config name="Anypoint_MQ_Config" doc:name="Anypoint MQ Config" doc:id="a047a18c-70b4-48ce-9239-204fdcab95f2" >
+		<anypoint-mq:connection clientId="2327057f85ab4340b2f27c7b1b20cb07" clientSecret="c5560F1a99D842a91234567894cf2DA7" url="http://localhost:${anypoint.mq.port}/api/v1" />
+	</anypoint-mq:config>
+	<flow name="anypoint-mq-flowsFlow1" doc:id="8ac5b3aa-e00d-44c5-9114-6e8b1a593e25" >
+		<http:listener doc:name="Listener" doc:id="af2c890c-0866-4893-84ef-8fe91914ecf7" config-ref="HTTP_Listener_config" path="/test/amq/publish"/>
+		<set-payload value="#[output json --- {id: 1}]" doc:name="Set Payload" doc:id="f9f160b9-4325-4c52-8ac8-a94eb3bd2045" />
+		<anypoint-mq:publish doc:name="Publish" doc:id="8e707130-9ead-4dac-a31e-f7bcb5ce7740" config-ref="Anypoint_MQ_Config" destination="otel-test-queue-1" messageId="65894714-e890-4054-9696-7f6614a048e9">
+			<anypoint-mq:properties ><![CDATA[#[vars.OTEL_TRACE_CONTEXT]]]></anypoint-mq:properties>
+		</anypoint-mq:publish>
+	</flow>
+	<flow name="anypoint-mq-flowsFlow" doc:id="63b1f87a-16ba-4d59-a17e-5cdf9f278763" maxConcurrency="1">
+		<anypoint-mq:subscriber doc:name="Subscriber" doc:id="7f4b30f5-2be5-4678-aedd-8ca0752aa664" config-ref="Anypoint_MQ_Config" destination="otel-test-queue-1" acknowledgementMode="MANUAL" acknowledgementTimeout="1" acknowledgementTimeoutUnit="MINUTES">
+			<anypoint-mq:subscriber-type >
+				<anypoint-mq:polling >
+					<scheduling-strategy >
+						<fixed-frequency frequency="10" startDelay="2" timeUnit="SECONDS"/>
+					</scheduling-strategy>
+				</anypoint-mq:polling>
+			</anypoint-mq:subscriber-type>
+		</anypoint-mq:subscriber>
+		<logger level="INFO" doc:name="Logger" doc:id="c84cb73c-98b7-4c07-b417-8c819cb365d5" message="#[attributes.properties]"/>
+	</flow>
+</mule>
