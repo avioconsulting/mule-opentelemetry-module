@@ -124,9 +124,7 @@ Extension contains all dependencies needed to send traces to a `java.util.Logger
 ==== Generic Exporter
 This generic exporter allows to configure any other exporters supported by https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#exporters[sdk-extensions/autoconfigure#exporters].
 
-WARNING: Required external dependencies must be added to the application.
-
-Following example shows possible configuration for to send traces to Zipkin. This will require Zipkin dependencies to be added to the application.
+Following example shows possible configuration for to send traces to Zipkin.
 
 [source,xml]
 ----
@@ -141,6 +139,36 @@ Following example shows possible configuration for to send traces to Zipkin. Thi
     </opentelemetry:exporter>
 </opentelemetry:config>
 ----
+
+The required Zipkin exporter dependencies must be configured as an https://docs.mulesoft.com/mule-runtime/4.4/mmp-concept#configure-plugin-dependencies[Additional Plugin Dependencies] for Mule Maven Plugin.
+
+[source, xml]
+----
+<plugin>
+    <groupId>org.mule.tools.maven</groupId>
+    <artifactId>mule-maven-plugin</artifactId>
+    <version>${mule.maven.plugin.version}</version>
+    <extensions>true</extensions>
+    <configuration>
+        <additionalPluginDependencies>
+            <plugin>
+                <groupId>com.avioconsulting</groupId>
+                <artifactId>mule-opentelemetry-module</artifactId>
+                <additionalDependencies>
+                    <dependency>
+                        <groupId>io.opentelemetry</groupId>
+                        <artifactId>opentelemetry-exporter-zipkin</artifactId>
+                        <version>1.10.1</version>
+                    </dependency>
+                </additionalDependencies>
+            </plugin>
+        </additionalPluginDependencies>
+    </configuration>
+</plugin>
+----
+
+
+
 
 == Trace Spans
 Trace spans are created for only following mule components -
