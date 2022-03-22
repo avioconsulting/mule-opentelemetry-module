@@ -55,6 +55,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         configMap.putAll(openTelemetryConfigWrapper.getExporter().getExporterProperties());
       }
       builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
+      logger.info("Creating OpenTelemetryConnection with properties: [" + configMap + "]");
     }
     builder.setServiceClassLoader(AutoConfiguredOpenTelemetrySdkBuilder.class.getClassLoader());
     openTelemetry = builder.build().getOpenTelemetrySdk();
@@ -101,9 +102,12 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     Context transactionContext = getTransactionStore().getTransactionContext(transactionId);
     Map<String, String> traceContext = new HashMap<>();
     traceContext.put(TransactionStore.TRACE_TRANSACTION_ID, transactionId);
+    traceContext.put(TransactionStore.TRACE_ID, getTransactionStore().getTraceIdForTransaction(transactionId));
+    logger.debug("Creating trace context for TRACE_TRANSACTION_ID=" + transactionId);
     try (Scope scope = transactionContext.makeCurrent()) {
       injectTraceContext(traceContext, HashMapTextMapSetter.INSTANCE);
     }
+    logger.debug("traceContext: [" + traceContext + "]");
     return Collections.unmodifiableMap(traceContext);
   }
 
