@@ -55,7 +55,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         configMap.putAll(openTelemetryConfigWrapper.getExporter().getExporterProperties());
       }
       builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
-      logger.info("Creating OpenTelemetryConnection with properties: [" + configMap + "]");
+      logger.debug("Creating OpenTelemetryConnection with properties: [" + configMap + "]");
     }
     builder.setServiceClassLoader(AutoConfiguredOpenTelemetrySdkBuilder.class.getClassLoader());
     openTelemetry = builder.build().getOpenTelemetrySdk();
