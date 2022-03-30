@@ -48,7 +48,8 @@ public class InMemoryTransactionStore implements TransactionStore {
           span.getSpanContext().getTraceId());
       transactionMap.put(
           transactionId,
-          new Transaction(transactionId, rootFlowName, new FlowSpan(rootFlowName, span)));
+          new Transaction(transactionId, span.getSpanContext().getTraceId(), rootFlowName,
+              new FlowSpan(rootFlowName, span)));
     }
   }
 
@@ -62,6 +63,15 @@ public class InMemoryTransactionStore implements TransactionStore {
         .map(FlowSpan::getSpan)
         .map(s -> s.storeInContext(Context.current()))
         .orElse(Context.current());
+  }
+
+  public String getTraceIdForTransaction(String transactionId) {
+    Optional<Transaction> transaction = getTransaction(transactionId);
+    if (transaction.isPresent()) {
+      return transaction.get().getTraceId();
+    } else {
+      return null;
+    }
   }
 
   @Override

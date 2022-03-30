@@ -48,7 +48,10 @@ public class OtlpExporter extends AbstractExporter {
     config.put(OTEL_TRACES_EXPORTER_KEY, "otlp");
     config.put("otel.exporter.otlp.protocol", protocol.getValue());
     config.put("otel.exporter.otlp.endpoint", getCollectorEndpoint());
-    config.put("otel.exporter.otlp.traces.endpoint", getSignalEndpoint("traces"));
+    // Set Traces endpoint when using HTTP/Protobuf only
+    if (protocol.equals(Protocol.HTTP_PROTOBUF)) {
+      config.put("otel.exporter.otlp.traces.endpoint", getSignalEndpoint("traces"));
+    }
     config.put("otel.exporter.otlp.headers", KeyValuePair.commaSeparatedList(getHeaders()));
     return Collections.unmodifiableMap(config);
   }

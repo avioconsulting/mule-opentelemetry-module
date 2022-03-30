@@ -6,11 +6,13 @@ public class Transaction implements Serializable {
   private final String transactionId;
   private final String rootFlowName;
   private final FlowSpan rootFlowSpan;
+  private final String traceId;
 
-  public Transaction(String transactionId, String rootFlowName, FlowSpan rootFlowSpan) {
+  public Transaction(String transactionId, String traceId, String rootFlowName, FlowSpan rootFlowSpan) {
     this.transactionId = transactionId;
     this.rootFlowName = rootFlowName;
     this.rootFlowSpan = rootFlowSpan;
+    this.traceId = traceId;
   }
 
   public String getTransactionId() {
@@ -23,5 +25,9 @@ public class Transaction implements Serializable {
 
   public FlowSpan getRootFlowSpan() {
     return rootFlowSpan;
+  }
+
+  public String getTraceId() {
+    return traceId;
   }
 }

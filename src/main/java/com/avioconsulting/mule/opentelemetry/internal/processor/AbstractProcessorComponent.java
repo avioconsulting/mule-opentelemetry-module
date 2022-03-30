@@ -111,7 +111,9 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   protected ComponentIdentifier getSourceIdentifier(EnrichedServerNotification notification) {
     ComponentIdentifier sourceIdentifier = null;
     if (notification.getEvent() != null
-        && notification.getEvent().getContext().getOriginatingLocation() != null) {
+        && notification.getEvent().getContext().getOriginatingLocation() != null
+        && notification.getResourceIdentifier().equalsIgnoreCase(
+            notification.getEvent().getContext().getOriginatingLocation().getRootContainerName())) {
       sourceIdentifier = notification
           .getEvent()
           .getContext()

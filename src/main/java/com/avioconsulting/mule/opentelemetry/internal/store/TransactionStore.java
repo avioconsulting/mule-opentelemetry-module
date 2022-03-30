@@ -12,6 +12,7 @@ public interface TransactionStore {
 
   String TRACE_TRANSACTION_ID = "TRACE_TRANSACTION_ID";
   String TRACE_CONTEXT_MAP_KEY = "OTEL_TRACE_CONTEXT";
+  String TRACE_ID = "traceId";
 
   /**
    * A default implementation to get a mule correlation id as a local transaction
@@ -53,6 +54,14 @@ public interface TransactionStore {
    * @return @{@link Context}
    */
   Context getTransactionContext(String transactionId);
+
+  /**
+   * Get the Trace Id associated the transaction
+   *
+   * @param transactionId
+   * @return traceId
+   */
+  public String getTraceIdForTransaction(String transactionId);
 
   /**
    * End a transaction represented by provided transaction id and rootFlowName, if
