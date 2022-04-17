@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
+import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
@@ -63,18 +64,21 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
   public Optional<TraceComponent> getSourceTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
     TraceComponent startTraceComponent = getStartTraceComponent(notification);
+    TraceComponent.Builder builder = startTraceComponent.toBuilder().withSpanKind(SpanKind.SERVER);
     ComponentIdentifier sourceIdentifier = getSourceIdentifier(notification);
-    if (sourceIdentifier == null)
-      return Optional.of(startTraceComponent);
-
-    TraceComponent.Builder builder = startTraceComponent.toBuilder();
+    if (sourceIdentifier == null) {
+      return Optional.of(builder.build());
+    }
     ProcessorComponentService.getInstance()
         .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator)
         .flatMap(processorComponent -> processorComponent.getSourceTraceComponent(notification,
             traceContextHandler))
         .ifPresent(sourceTrace -> {
+          SpanKind sourceKind = sourceTrace.getSpanKind() != null ? sourceTrace.getSpanKind()
+              : SpanKind.SERVER;
           startTraceComponent.getTags().putAll(sourceTrace.getTags());
-          builder.withSpanName(sourceTrace.getSpanName())
+          builder.withSpanKind(sourceKind)
+              .withSpanName(sourceTrace.getSpanName())
               .withTransactionId(sourceTrace.getTransactionId())
               .withContext(sourceTrace.getContext());
         });

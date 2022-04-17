@@ -19,6 +19,10 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 			<anypoint-mq:properties ><![CDATA[#[vars.OTEL_TRACE_CONTEXT]]]></anypoint-mq:properties>
 		</anypoint-mq:publish>
 	</flow>
+	<flow name="anypoint-mq-consume-operation" doc:id="8ac5b3aa-e00d-44c5-9114-6e8b1a593e25" >
+		<set-payload value="#[output json --- {id: 1}]" doc:name="Set Payload" doc:id="f9f160b9-4325-4c52-8ac8-a94eb3bd2045" />
+		<anypoint-mq:consume doc:name="Consume" config-ref="Anypoint_MQ_Config" destination="otel-test-queue-1" pollingTime="0" acknowledgementMode="MANUAL"/>
+	</flow>
 	<flow name="anypoint-mq-flowsFlow" doc:id="63b1f87a-16ba-4d59-a17e-5cdf9f278763" maxConcurrency="1">
 		<anypoint-mq:subscriber doc:name="Subscriber" doc:id="7f4b30f5-2be5-4678-aedd-8ca0752aa664" config-ref="Anypoint_MQ_Config" destination="otel-test-queue-1" acknowledgementMode="MANUAL" acknowledgementTimeout="1" acknowledgementTimeoutUnit="MINUTES">
 			<anypoint-mq:subscriber-type >
