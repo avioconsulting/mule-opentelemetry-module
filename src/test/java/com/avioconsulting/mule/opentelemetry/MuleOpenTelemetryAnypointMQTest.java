@@ -4,9 +4,7 @@ import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.Delegate
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import junitparams.JUnitParamsRunner;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.mule.tck.junit4.rule.DynamicPort;
 import org.mule.test.runner.RunnerDelegateTo;
 
@@ -21,8 +19,14 @@ import static org.awaitility.Awaitility.await;
 @RunnerDelegateTo(JUnitParamsRunner.class)
 public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTest {
 
-  @Rule
-  public DynamicPort amqPort = new DynamicPort("anypoint.mq.port");
+  /**
+   * Use static @{@link ClassRule} for port. Avoids unpredictable port usage
+   * across tests.
+   * Making it a @{@link Rule} may cause failure in assertions related to port
+   * usage when all tests run.
+   */
+  @ClassRule
+  public static DynamicPort amqPort = new DynamicPort("anypoint.mq.port");
 
   @Rule
   public WireMockRule wireMockRule = new WireMockRule(wireMockConfig().port(amqPort.getNumber()));
@@ -42,7 +46,11 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
             .willReturn(aResponse().withStatus(201).withBody(
                 "{\n  \"messageId\" : \"65894714-e890-4054-9696-7f6614a048e9\",\n  \"status\" : \"successful\",\n  \"statusMessage\" : \"Send operation successful\"\n}")
                 .withHeader("content-type", "application/json")));
+  }
 
+  @After
+  public void stopWireMock() {
+    wireMockRule.stop();
   }
 
   @Override
@@ -52,22 +60,23 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
 
   private void assertSpan(DelegatedLoggingSpanExporterProvider.Span span, String docName, String spanKind) {
 
-    assertThat(span)
-        .extracting("spanName", "spanKind")
-        .containsOnly("otel-test-queue-1", spanKind);
-
     assertThat(span.getAttributes())
-        .containsEntry("anypoint.mq.destination", "otel-test-queue-1")
-        .containsEntry("anypoint.mq.url", "http://localhost:" + amqPort.getNumber() + "/api/v1")
-        .containsEntry("anypoint.mq.clientId", "2327057f85ab4340b2f27c7b1b20cb07");
-    if (spanKind.equalsIgnoreCase("CLIENT")) {
-      assertThat(span.getAttributes())
-          .containsEntry("mule.app.processor.configRef", "Anypoint_MQ_Config")
-          .containsEntry("mule.app.processor.name", docName.toLowerCase())
-          .containsEntry("mule.app.processor.docName", docName)
-          .containsEntry("mule.app.processor.namespace", "anypoint-mq");
-
+        .containsEntry("messaging.system", "anypointmq")
+        .containsEntry("messaging.destination_kind", "queue")
+        .containsEntry("messaging.url", "http://localhost:" + wireMockRule.port() + "/api/v1")
+        .containsEntry("messaging.consumer_id", "2327057f85ab4340b2f27c7b1b20cb07")
+        .containsEntry("messaging.destination", "otel-test-queue-1")
+        .containsEntry("messaging.protocol", "http")
+        .containsEntry("mule.app.processor.configRef", "Anypoint_MQ_Config")
+        .containsEntry("mule.app.processor.name", docName.toLowerCase())
+        .containsEntry("mule.app.processor.docName", docName)
+        .containsEntry("mule.app.processor.namespace", "anypoint-mq");
+    if (spanKind.equalsIgnoreCase("PRODUCER")) {
+      assertThat(span)
+          .extracting("spanName", "spanKind")
+          .containsOnly("otel-test-queue-1 send", spanKind);
     }
+
   }
 
   @Test
@@ -78,8 +87,22 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
         .hasSizeGreaterThanOrEqualTo(3));
     assertThat(DelegatedLoggingSpanExporter.spanQueue)
-        .anySatisfy(span -> assertSpan(span, "Publish", "CLIENT"))
+        .anySatisfy(span -> assertSpan(span, "Publish", "PRODUCER"))
         .anySatisfy(span -> assertSpan(span, "Publish", "SERVER"));
   }
 
+  @Test
+  public void testValid_AnypointMQ_ConsumeTrace() throws Exception {
+    wireMockRule.stubFor(get(urlEqualTo(
+        "/api/v1/organizations/f2ea2cb4-c600-4bb5-88e8-e952ff5591ee/environments/c06ef9b7-19c0-4e87-add9-60ed58b20aad/destinations/otel-test-queue-1/messages"))
+            .willReturn(okJson(
+                "[ {\n  \"properties\" : {\n    \"traceparent\" : \"00-56e7765c3b2a673b0394a9fe7b2b7253-7658fdea51c1ec71-01\",\n    \"TRACE_TRANSACTION_ID\" : \"19fe6800-0eb5-4da7-97b4-8c560b98a31b\",\n    \"contentType\" : \"application/json; charset=UTF-8\",\n    \"MULE_ENCODING\" : \"UTF-8\"\n  },\n  \"headers\" : {\n    \"messageId\" : \"65894714-e890-4054-9696-7f6614a048e9\",\n    \"lockId\" : \"a\",\n    \"ttl\" : \"120000\",\n    \"created\" : \"Fri, 4 Mar 2022 03:53:34 GMT\",\n    \"deliveryCount\" : \"1\"\n  },\n  \"body\" : \"{\\n  \\\"id\\\": 1\\n}\"\n} ]")
+                    .withHeader("content-type", "application/json")));
+    runFlow("anypoint-mq-consume-operation");
+    await().untilAsserted(() -> {
+      assertThat(DelegatedLoggingSpanExporter.spanQueue)
+          .hasSizeGreaterThanOrEqualTo(2)
+          .anySatisfy(span -> assertSpan(span, "Consume", "CONSUMER"));
+    });
+  }
 }

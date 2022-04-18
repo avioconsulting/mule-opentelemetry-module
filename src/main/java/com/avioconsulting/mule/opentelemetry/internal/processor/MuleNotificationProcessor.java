@@ -129,7 +129,7 @@ public class MuleNotificationProcessor {
           .getSourceTraceComponent(notification, openTelemetryConnection).get();
       SpanBuilder spanBuilder = openTelemetryConnection
           .spanBuilder(traceComponent.getSpanName())
-          .setSpanKind(SpanKind.SERVER)
+          .setSpanKind(traceComponent.getSpanKind())
           .setParent(traceComponent.getContext())
           .setStartTimestamp(Instant.ofEpochMilli(notification.getTimestamp()));
       traceComponent.getTags().forEach(spanBuilder::setAttribute);

@@ -29,9 +29,4 @@ public class SemanticAttributes {
   public static final AttributeKey<String> MULE_APP_DOMAIN = AttributeKey.stringKey("mule.app.domain");
   public static final AttributeKey<String> MULE_APP_FULL_DOMAIN = AttributeKey.stringKey("mule.app.fullDomain");
 
-  public static final AttributeKey<String> ANYPOINT_MQ_URL = AttributeKey.stringKey("anypoint.mq.url");
-  public static final AttributeKey<String> ANYPOINT_MQ_CLIENT_ID = AttributeKey.stringKey("anypoint.mq.clientId");
-  public static final AttributeKey<String> ANYPOINT_MQ_DESTINATION = AttributeKey
-      .stringKey("anypoint.mq.destination");
-  public static final AttributeKey<String> ANYPOINT_MQ_MESSAGE_ID = AttributeKey.stringKey("anypoint.mq.messageId");
 }
