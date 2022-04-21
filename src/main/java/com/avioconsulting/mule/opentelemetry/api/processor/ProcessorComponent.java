@@ -45,7 +45,20 @@ public interface ProcessorComponent {
    * @{@link TraceContextHandler} to help extract OpenTelemetry context
    * @return @{@link Optional<TraceComponent>}
    */
-  default Optional<TraceComponent> getSourceTraceComponent(EnrichedServerNotification notification,
+  default Optional<TraceComponent> getSourceStartTraceComponent(EnrichedServerNotification notification,
+      TraceContextHandler traceContextHandler) {
+    return Optional.empty();
+  }
+
+  /**
+   * For flows with a source component, this method can allow processor components
+   * to build source specific traces.
+   *
+   * @param notification
+   * @param traceContextHandler
+   * @return
+   */
+  default Optional<TraceComponent> getSourceEndTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
     return Optional.empty();
   }

@@ -61,7 +61,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  public Optional<TraceComponent> getSourceTraceComponent(EnrichedServerNotification notification,
+  public Optional<TraceComponent> getSourceStartTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
     TraceComponent startTraceComponent = getStartTraceComponent(notification);
     TraceComponent.Builder builder = startTraceComponent.toBuilder().withSpanKind(SpanKind.SERVER);
@@ -69,9 +69,12 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     if (sourceIdentifier == null) {
       return Optional.of(builder.build());
     }
+    // Find if there is a processor component to handle flow source component.
+    // If exists, allow it to process notification and build any additional tags to
+    // include in a trace.
     ProcessorComponentService.getInstance()
         .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator)
-        .flatMap(processorComponent -> processorComponent.getSourceTraceComponent(notification,
+        .flatMap(processorComponent -> processorComponent.getSourceStartTraceComponent(notification,
             traceContextHandler))
         .ifPresent(sourceTrace -> {
           SpanKind sourceKind = sourceTrace.getSpanKind() != null ? sourceTrace.getSpanKind()
@@ -85,4 +88,28 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     return Optional.of(builder.build());
   }
 
+  @Override
+  public Optional<TraceComponent> getSourceEndTraceComponent(EnrichedServerNotification notification,
+      TraceContextHandler traceContextHandler) {
+    TraceComponent traceComponent = getEndTraceComponent(notification);
+    TraceComponent.Builder builder = traceComponent.toBuilder().withSpanKind(SpanKind.SERVER);
+    ComponentIdentifier sourceIdentifier = getSourceIdentifier(notification);
+    if (sourceIdentifier == null) {
+      return Optional.of(builder.build());
+    }
+
+    // Find if there is a processor component to handle flow source component.
+    // If exists, allow it to process notification and build any additional tags to
+    // include in a trace.
+    ProcessorComponentService.getInstance()
+        .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator)
+        .flatMap(processorComponent -> processorComponent.getSourceEndTraceComponent(notification,
+            traceContextHandler))
+        .ifPresent(sourceTrace -> {
+          traceComponent.getTags().putAll(sourceTrace.getTags());
+          builder.withStatsCode(sourceTrace.getStatusCode());
+          builder.withTags(traceComponent.getTags());
+        });
+    return Optional.of(builder.build());
+  }
 }

@@ -74,7 +74,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
 
     assertThat(endTraceComponent).isNotNull()
         .extracting("errorMessage").isEqualTo("Something failed");
-    assertThat(endTraceComponent.getTags()).isNull();
+    assertThat(endTraceComponent.getTags()).isEmpty();
 
   }
 
@@ -98,7 +98,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
 
     assertThat(endTraceComponent).isNotNull()
         .extracting("errorMessage").isEqualTo("Something failed");
-    assertThat(endTraceComponent.getTags()).isNull();
+    assertThat(endTraceComponent.getTags()).isEmpty();
   }
 
   @Test
@@ -146,7 +146,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
   }
 
   @Test
-  public void onSuccessWithResponseAttributes_getSourceTraceComponent() {
+  public void onSuccessWithResponseAttributes_getSourceStartTraceComponent() {
     Event event = mock(Event.class);
     when(event.getCorrelationId()).thenReturn("testCorrelationId");
     EventContext eventContext = mock(EventContext.class);
@@ -181,7 +181,8 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
 
     HttpProcessorComponent httpProcessorComponent = new HttpProcessorComponent();
     TraceContextHandler traceContextHandler = mock(TraceContextHandler.class);
-    Optional<TraceComponent> sourceTraceComponent = httpProcessorComponent.getSourceTraceComponent(notification,
+    Optional<TraceComponent> sourceTraceComponent = httpProcessorComponent.getSourceStartTraceComponent(
+        notification,
         traceContextHandler);
 
     assertThat(sourceTraceComponent)

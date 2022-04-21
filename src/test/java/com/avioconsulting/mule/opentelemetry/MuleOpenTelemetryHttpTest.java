@@ -6,8 +6,6 @@ import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.*;
 import static org.awaitility.Awaitility.await;
 
@@ -19,18 +17,64 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
   }
 
   @Test
-  public void testValidHttpTracing() throws Exception {
-    sendRequest(UUID.randomUUID().toString(), "test", 200);
+  public void testHttpTracing_WithWildCardListener() throws Exception {
+    sendRequest(CORRELATION_ID, "/test-wildcard/a/b/c", 200);
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
         .hasSize(1)
         .element(0)
-        .extracting("spanName", "spanKind")
-        .containsOnly("/test", "SERVER"));
+        .extracting("spanName", "spanKind", "spanStatus")
+        .containsOnly("/test-wildcard/*", "SERVER", "UNSET"));
+    assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .element(0)
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
+        .containsEntry("http.status_code", "200");
+  }
+
+  @Test
+  public void testHttpTracing_WithResponseStatusCode() throws Exception {
+    sendRequest(CORRELATION_ID, "test", 200);
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .hasSize(1)
+        .element(0)
+        .extracting("spanName", "spanKind", "spanStatus")
+        .containsOnly("/test", "SERVER", "UNSET"));
+    assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .element(0)
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
+        .containsEntry("http.status_code", "200");
+  }
+
+  @Test
+  public void testHttpTracing_WithErrorResponseStatusCode() throws Exception {
+    sendRequest(CORRELATION_ID, "/test/error-status", 500);
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .hasSize(1)
+        .element(0)
+        .extracting("spanName", "spanKind", "spanStatus")
+        .containsOnly("/test/error-status", "SERVER", "ERROR"));
+    assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .element(0)
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
+        .containsEntry("http.status_code", "500");
+  }
+
+  @Test
+  public void testHttpTracing_WithNoStatusCode() throws Exception {
+    sendRequest(CORRELATION_ID, "/test/no-status", 200);
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .hasSize(1)
+        .element(0)
+        .extracting("spanName", "spanKind", "spanStatus")
+        .containsOnly("/test/no-status", "SERVER", "UNSET"));
+    assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .element(0)
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
+        .doesNotContainKey("http.status_code");
   }
 
   @Test
   public void testTraceContextExtraction() throws Exception {
-    sendRequest(UUID.randomUUID().toString(), "/test/propagation/source", 200);
+    sendRequest(CORRELATION_ID, "/test/propagation/source", 200);
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
         .isNotEmpty());
     DelegatedLoggingSpanExporterProvider.Span head = DelegatedLoggingSpanExporter.spanQueue.peek();
@@ -61,7 +105,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
 
   @Test
   public void testInvalidHttpRequest() throws Exception {
-    sendRequest(UUID.randomUUID().toString(), "test-invalid-request", 500);
+    sendRequest(CORRELATION_ID, "test-invalid-request", 500);
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
         .isNotEmpty());
     DelegatedLoggingSpanExporterProvider.Span head = DelegatedLoggingSpanExporter.spanQueue.peek();
@@ -86,7 +130,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
 
   @Test
   public void testHttpAttributes() throws Exception {
-    sendRequest(UUID.randomUUID().toString(), "test-remote-request", 200);
+    sendRequest(CORRELATION_ID, "test-remote-request", 200);
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
         .isNotEmpty()
         .hasSize(3));
@@ -135,7 +179,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
 
   @Test
   public void testServer400Response() throws Exception {
-    sendRequest(UUID.randomUUID().toString(), "/test/error/400", 400);
+    sendRequest(CORRELATION_ID, "/test/error/400", 400);
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
         .hasSize(1)
         .element(0).as("Span for http:listener flow")
