@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.StatusCode;
 import org.mule.extension.http.api.HttpRequestAttributes;
 import org.mule.extension.http.api.HttpResponseAttributes;
 import org.mule.runtime.api.component.Component;
@@ -11,7 +12,6 @@ import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
-import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.*;
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 
 public class HttpProcessorComponent extends AbstractProcessorComponent {
 
@@ -72,19 +73,39 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         .map(Error::getErrorMessage)
         .orElse(notification.getEvent().getMessage());
     TypedValue<HttpResponseAttributes> responseAttributes = responseMessage.getAttributes();
+
     if (responseAttributes.getValue() == null
         || !(responseAttributes.getValue() instanceof HttpResponseAttributes)) {
+      // When HTTP Requester executes successfully (eg. 200), notification event DOES
+      // NOT include the response attribute.
+      // Instead, it includes the original input event. In that case, the attribute
+      // may not be http response attributes.
       return endTraceComponent;
     }
+    // If HTTP Requester generates an error (eg. 404), then error message does
+    // include the HTTP Response attributes.
+    TraceComponent.Builder builder = endTraceComponent.toBuilder();
     HttpResponseAttributes attributes = responseAttributes.getValue();
     Map<String, String> tags = new HashMap<>();
     tags.put(HTTP_STATUS_CODE.getKey(), Integer.toString(attributes.getStatusCode()));
+    builder.withStatsCode(getSpanStatus(false, attributes.getStatusCode()));
     tags.put(
         HTTP_RESPONSE_CONTENT_LENGTH.getKey(),
         attributes.getHeaders().get("content-length"));
     if (endTraceComponent.getTags() != null)
       tags.putAll(endTraceComponent.getTags());
-    return endTraceComponent.toBuilder().withTags(tags).build();
+    return builder.withTags(tags).build();
+  }
+
+  private StatusCode getSpanStatus(boolean isServer, int statusCode) {
+    StatusCode result;
+    int maxStatus = isServer ? 500 : 400;
+    if (statusCode >= 100 && statusCode < maxStatus) {
+      result = StatusCode.UNSET;
+    } else {
+      result = StatusCode.ERROR;
+    }
+    return result;
   }
 
   @Override
@@ -142,7 +163,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  public Optional<TraceComponent> getSourceTraceComponent(EnrichedServerNotification notification,
+  public Optional<TraceComponent> getSourceStartTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
     if (!isListenerFlowEvent(notification)) {
       return Optional.empty();
@@ -153,10 +174,29 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     TraceComponent traceComponent = TraceComponent.newBuilder(notification.getResourceIdentifier())
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
-        .withSpanName(attributes.getListenerPath())
+        .withSpanName(attributes.getListenerPath()) // In case of wildcard, it may be to generic. Eg. /api/*
         .withContext(traceContextHandler.getTraceContext(attributes.getHeaders(), ContextMapGetter.INSTANCE))
         .build();
     return Optional.of(traceComponent);
+  }
+
+  @Override
+  public Optional<TraceComponent> getSourceEndTraceComponent(EnrichedServerNotification notification,
+      TraceContextHandler traceContextHandler) {
+    // Notification event does not expose any information about HTTP Response
+    // object.
+    // APIKit based flows use httpStatus variable to set response status code.
+    // We use this variable to extract response status code.
+    // Not APIKit flows must set this variable.
+    TypedValue<?> httpStatus = notification.getEvent().getVariables().get("httpStatus");
+    if (httpStatus != null) {
+      String statusCode = TypedValue.unwrap(httpStatus).toString();
+      TraceComponent.Builder builder = getTraceComponentBuilderFor(notification);
+      builder.withTags(singletonMap(HTTP_STATUS_CODE.getKey(), statusCode));
+      builder.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
+      return Optional.of(builder.build());
+    }
+    return Optional.empty();
   }
 
   private Map<String, String> attributesToTags(HttpRequestAttributes attributes) {

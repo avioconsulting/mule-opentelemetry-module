@@ -21,6 +21,7 @@ import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
@@ -34,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "org.apache.derby:derby" })
 public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {
 
+  public static final String CORRELATION_ID = UUID.randomUUID().toString();
   @Rule
   public DynamicPort serverPort = new DynamicPort("http.port");
 

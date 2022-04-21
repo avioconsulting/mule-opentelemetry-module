@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
 import java.util.Map;
 
@@ -13,6 +14,7 @@ public class TraceComponent {
   private Context context;
   private SpanKind spanKind = SpanKind.INTERNAL;
   private String errorMessage;
+  private StatusCode statusCode = StatusCode.UNSET;
 
   private TraceComponent(Builder builder) {
     tags = builder.tags;
@@ -23,6 +25,7 @@ public class TraceComponent {
     context = builder.context;
     spanKind = builder.spanKind;
     errorMessage = builder.errorMessage;
+    statusCode = builder.statusCode;
   }
 
   public static Builder newBuilder(String name) {
@@ -69,10 +72,16 @@ public class TraceComponent {
         .withTags(this.getTags())
         .withSpanName(this.getSpanName())
         .withLocation(this.getLocation())
-        .withSpanKind(this.getSpanKind());
+        .withSpanKind(this.getSpanKind())
+        .withStatsCode(this.getStatusCode());
+  }
+
+  public StatusCode getStatusCode() {
+    return statusCode;
   }
 
   public static final class Builder {
+    public StatusCode statusCode;
     private Map<String, String> tags;
     private final String name;
     private String transactionId;
@@ -118,6 +127,11 @@ public class TraceComponent {
 
     public Builder withErrorMessage(String val) {
       errorMessage = val;
+      return this;
+    }
+
+    public Builder withStatsCode(StatusCode statusCode) {
+      this.statusCode = statusCode;
       return this;
     }
 

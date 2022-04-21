@@ -4,7 +4,6 @@ import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
 import io.opentelemetry.api.trace.SpanBuilder;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.message.Error;
@@ -103,6 +102,7 @@ public class MuleNotificationProcessor {
                 traceComponent.getTransactionId(),
                 traceComponent.getLocation(),
                 span -> {
+
                   if (notification.getEvent().getError().isPresent()) {
                     Error error = notification.getEvent().getError().get();
                     span.setStatus(StatusCode.ERROR, error.getDescription());
@@ -126,7 +126,7 @@ public class MuleNotificationProcessor {
       ProcessorComponent flowProcessorComponent = new FlowProcessorComponent()
           .withConfigurationComponentLocator(configurationComponentLocator);
       TraceComponent traceComponent = flowProcessorComponent
-          .getSourceTraceComponent(notification, openTelemetryConnection).get();
+          .getSourceStartTraceComponent(notification, openTelemetryConnection).get();
       SpanBuilder spanBuilder = openTelemetryConnection
           .spanBuilder(traceComponent.getSpanName())
           .setSpanKind(traceComponent.getSpanKind())
@@ -151,14 +151,18 @@ public class MuleNotificationProcessor {
       init();
       ProcessorComponent flowProcessorComponent = new FlowProcessorComponent()
           .withConfigurationComponentLocator(configurationComponentLocator);
-      TraceComponent traceComponent = flowProcessorComponent.getEndTraceComponent(notification);
+      TraceComponent traceComponent = flowProcessorComponent
+          .getSourceEndTraceComponent(notification, openTelemetryConnection).get();
       openTelemetryConnection.getTransactionStore().endTransaction(
           traceComponent.getTransactionId(),
           traceComponent.getName(),
           rootSpan -> {
+            traceComponent.getTags().forEach(rootSpan::setAttribute);
+            if (traceComponent.getStatusCode() != null
+                && !StatusCode.UNSET.equals(traceComponent.getStatusCode())) {
+              rootSpan.setStatus(traceComponent.getStatusCode());
+            }
             if (notification.getException() != null) {
-              rootSpan.setStatus(
-                  StatusCode.ERROR, notification.getException().getMessage());
               rootSpan.recordException(notification.getException());
             }
           },

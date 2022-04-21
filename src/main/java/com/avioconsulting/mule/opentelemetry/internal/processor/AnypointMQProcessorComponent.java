@@ -84,7 +84,7 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  public Optional<TraceComponent> getSourceTraceComponent(EnrichedServerNotification notification,
+  public Optional<TraceComponent> getSourceStartTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
     TypedValue<AnypointMQMessageAttributes> attributesTypedValue = notification.getEvent().getMessage()
         .getAttributes();

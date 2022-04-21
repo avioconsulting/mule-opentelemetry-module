@@ -68,12 +68,17 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   @Override
   public TraceComponent getEndTraceComponent(EnrichedServerNotification notification) {
+    return getTraceComponentBuilderFor(notification)
+        .build();
+  }
+
+  protected TraceComponent.Builder getTraceComponentBuilderFor(EnrichedServerNotification notification) {
     return TraceComponent.newBuilder(notification.getResourceIdentifier())
         .withTransactionId(getTransactionId(notification))
         .withLocation(notification.getComponent().getLocation().getLocation())
+        .withTags(new HashMap<>())
         .withErrorMessage(
-            notification.getEvent().getError().map(Error::getDescription).orElse(null))
-        .build();
+            notification.getEvent().getError().map(Error::getDescription).orElse(null));
   }
 
   protected TraceComponent.Builder getBaseTraceComponent(

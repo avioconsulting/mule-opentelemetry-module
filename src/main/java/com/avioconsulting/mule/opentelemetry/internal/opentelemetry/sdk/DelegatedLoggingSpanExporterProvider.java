@@ -49,6 +49,7 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
         span.setSpanId(spanData.getSpanId());
         span.setSpanKind(spanData.getKind().toString());
         span.setTraceId(spanData.getTraceId());
+        span.setSpanStatus(spanData.getStatus().getStatusCode().name());
         Map<String, Object> attributes = new HashMap<>();
         spanData.getAttributes().forEach((key, value) -> attributes.put(key.getKey(), value));
         span.setAttributes(attributes);
@@ -78,8 +79,16 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
     private String traceId;
     private String spanId;
     private String spanKind;
-    private String rawString;
+    private String spanStatus;
     private Map<String, Object> attributes;
+
+    public String getSpanStatus() {
+      return spanStatus;
+    }
+
+    public void setSpanStatus(String spanStatus) {
+      this.spanStatus = spanStatus;
+    }
 
     public void setSpanName(String spanName) {
       this.spanName = spanName;
@@ -95,10 +104,6 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
 
     public void setSpanKind(String spanKind) {
       this.spanKind = spanKind;
-    }
-
-    public void setRawString(String rawString) {
-      this.rawString = rawString;
     }
 
     public void setAttributes(Map<String, Object> attributes) {
@@ -121,10 +126,6 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
       return spanKind;
     }
 
-    public String getRawString() {
-      return rawString;
-    }
-
     public Map<String, Object> getAttributes() {
       return attributes;
     }
@@ -136,7 +137,7 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
           ", traceId='" + traceId + '\'' +
           ", spanId='" + spanId + '\'' +
           ", spanKind='" + spanKind + '\'' +
-          ", rawString='" + rawString + '\'' +
+          ", spanStatus='" + spanStatus + '\'' +
           ", attributes=" + attributes +
           '}';
     }
