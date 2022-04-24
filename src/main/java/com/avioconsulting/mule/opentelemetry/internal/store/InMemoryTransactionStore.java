@@ -11,8 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * In-memory @{@link TransactionStore}. This implementation uses
- * in-memory @{@link java.util.Map} to
+ * In-memory {@link TransactionStore}. This implementation uses
+ * in-memory {@link java.util.Map} to
  * store transactions and related processor spans. Transactions are kept in
  * memory until they end.
  */

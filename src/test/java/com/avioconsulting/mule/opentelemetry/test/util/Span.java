@@ -54,8 +54,9 @@ public class Span {
   }
 
   /**
-   * Parse the Span String into @{@link Span} object. Parsing is based on logic
-   * in @{@link io.opentelemetry.exporter.logging.LoggingSpanExporter#export(Collection)}
+   * Parse the Span String into {@link Span} object. Parsing is based on logic
+   * in
+   * {@link io.opentelemetry.exporter.logging.LoggingSpanExporter#export(Collection)}
    * class.
    * 
    * @param spanString

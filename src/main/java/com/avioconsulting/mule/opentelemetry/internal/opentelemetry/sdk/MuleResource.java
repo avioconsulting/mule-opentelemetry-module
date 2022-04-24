@@ -8,7 +8,7 @@ import io.opentelemetry.sdk.resources.Resource;
 import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
 
 /**
- * Creates an OpenTelemetry @{@link Resource} that adds Mule Runtime specific
+ * Creates an OpenTelemetry {@link Resource} that adds Mule Runtime specific
  * attributes in trace data.
  */
 public class MuleResource {

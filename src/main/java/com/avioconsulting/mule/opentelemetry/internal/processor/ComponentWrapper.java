@@ -38,7 +38,7 @@ public class ComponentWrapper {
   /**
    * Get Component Parameters (Unmodifiable) Map
    * 
-   * @return @{@link Map<String, String}
+   * @return {@link Map}
    */
   public Map<String, String> getParameters() {
     return parameters;

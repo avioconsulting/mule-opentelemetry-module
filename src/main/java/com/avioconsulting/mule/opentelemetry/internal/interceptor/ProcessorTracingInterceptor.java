@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 
 /**
  * Interceptor to set tracing context information in flow a variable
- * named @{@link TransactionStore#TRACE_CONTEXT_MAP_KEY}.
+ * named {@link TransactionStore#TRACE_CONTEXT_MAP_KEY}.
  * See {@link TransactionStore#getTransactionContext(String)} for possible
  * entries in the map.
  */
