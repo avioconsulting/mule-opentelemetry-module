@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.mulesoft.extension.mq.api.attributes.AnypointMQMessageAttributes;
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.StatusCode;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
@@ -11,6 +12,7 @@ import java.util.*;
 
 import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.*;
+import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MessagingOperationValues.PROCESS;
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MessagingOperationValues.RECEIVE;
 
 public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
@@ -91,15 +93,26 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
     AnypointMQMessageAttributes attributes = attributesTypedValue.getValue();
     Map<String, String> tags = getAttributes(getSourceComponent(notification).orElse(notification.getComponent()),
         attributesTypedValue);
-    tags.put(MESSAGING_OPERATION.getKey(), RECEIVE);
+    tags.put(MESSAGING_OPERATION.getKey(), PROCESS);
     TraceComponent traceComponent = TraceComponent.newBuilder(notification.getResourceIdentifier())
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
-        .withSpanName(formattedSpanName(attributes.getDestination(), RECEIVE))
+        .withSpanName(formattedSpanName(attributes.getDestination(), PROCESS))
+        .withStatsCode(StatusCode.OK)
         .withSpanKind(SpanKind.CONSUMER)
         .withContext(traceContextHandler.getTraceContext(attributes.getProperties(), ContextMapGetter.INSTANCE))
         .build();
     return Optional.of(traceComponent);
   }
 
+  @Override
+  public TraceComponent getEndTraceComponent(EnrichedServerNotification notification) {
+    return getTraceComponentBuilderFor(notification).withStatsCode(StatusCode.OK).build();
+  }
+
+  @Override
+  public Optional<TraceComponent> getSourceEndTraceComponent(EnrichedServerNotification notification,
+      TraceContextHandler traceContextHandler) {
+    return Optional.of(getTraceComponentBuilderFor(notification).withStatsCode(StatusCode.OK).build());
+  }
 }
