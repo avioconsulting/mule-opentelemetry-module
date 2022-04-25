@@ -86,7 +86,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
 
   /**
    * Get the trace context information for a given transaction id. This returns
-   * a @{@link Map<String, String>} with
+   * a {@link Map} with
    * at least one entry with key {@link TransactionStore#TRACE_TRANSACTION_ID} and
    * transactionId as value.
    * The other entries in the map depends on the propagator used.
@@ -96,7 +96,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    *
    * @param transactionId
    *            Local transaction id
-   * @return @{@link Map<String, String}
+   * @return Map<String, String>
    */
   public Map<String, String> getTraceContext(String transactionId) {
     Context transactionContext = getTransactionStore().getTransactionContext(transactionId);

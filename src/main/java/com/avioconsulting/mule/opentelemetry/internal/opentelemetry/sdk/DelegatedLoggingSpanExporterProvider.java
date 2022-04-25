@@ -17,8 +17,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * Used during tests. This is not configured in module service loader provider,
  * so cannot be used by module.
  *
- * This delegates spans to @{@link LoggingSpanExporter} and also stores them
- * in @{@link DelegatedLoggingSpanExporter#spanQueue} for tests to access and
+ * This delegates spans to {@link LoggingSpanExporter} and also stores them
+ * in {@link DelegatedLoggingSpanExporter#spanQueue} for tests to access and
  * verify.
  */
 public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExporterProvider {

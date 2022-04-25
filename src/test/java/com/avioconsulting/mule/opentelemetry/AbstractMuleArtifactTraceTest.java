@@ -73,12 +73,12 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
   }
 
   /**
-   * Gets a @{@link Logger} used by
+   * Gets a {@link Logger} used by
    * `io.opentelemetry.exporter.logging.LoggingSpanExporter`.
-   * Registers a @{@link TestLoggerHandler} as a log handler for log entry
+   * Registers a {@link TestLoggerHandler} as a log handler for log entry
    * extraction during tests.
    * 
-   * @return @{@link TestLoggerHandler}
+   * @return {@link TestLoggerHandler}
    */
   protected TestLoggerHandler getTestLoggerHandler() {
     Logger logger = Logger.getLogger("io.opentelemetry.exporter.logging.LoggingSpanExporter");

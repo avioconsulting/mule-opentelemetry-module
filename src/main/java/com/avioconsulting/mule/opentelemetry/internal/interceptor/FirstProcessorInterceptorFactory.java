@@ -31,8 +31,8 @@ public class FirstProcessorInterceptorFactory implements ProcessorInterceptorFac
    * sub-flow.
    *
    * @param location
-   * @{@link ComponentLocation}
-   * @return
+   *            {@link ComponentLocation}
+   * @return true if intercept
    */
   @Override
   public boolean intercept(ComponentLocation location) {

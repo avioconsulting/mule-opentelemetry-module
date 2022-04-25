@@ -11,7 +11,7 @@ public class GenericProcessorComponent extends AbstractProcessorComponent {
    * This processor supports all components.
    * 
    * @param componentIdentifier
-   * @{@link ComponentIdentifier}
+   *            {@link ComponentIdentifier}
    * @return <code>true</code> always.
    */
   @Override
@@ -22,7 +22,7 @@ public class GenericProcessorComponent extends AbstractProcessorComponent {
   /**
    * This supports all namespaces.
    * 
-   * @return @{@link String}
+   * @return {@link String}
    */
   @Override
   protected String getNamespace() {
@@ -32,7 +32,7 @@ public class GenericProcessorComponent extends AbstractProcessorComponent {
   /**
    * This supports all operations.
    * 
-   * @return @{@link List<String>}
+   * @return {@link List}
    */
   @Override
   protected List<String> getOperations() {
@@ -42,7 +42,7 @@ public class GenericProcessorComponent extends AbstractProcessorComponent {
   /**
    * This supports all sources.
    * 
-   * @return @{@link List<String>}
+   * @return {@link List}
    */
   @Override
   protected List<String> getSources() {

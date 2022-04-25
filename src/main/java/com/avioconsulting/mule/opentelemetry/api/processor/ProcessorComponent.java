@@ -14,24 +14,24 @@ public interface ProcessorComponent {
   ProcessorComponent withConfigurationComponentLocator(ConfigurationComponentLocator configurationComponentLocator);
 
   /**
-   * Build a @{@link TraceComponent} for start of a flow-like container or a
+   * Build a {@link TraceComponent} for start of a flow-like container or a
    * message processor.
    * 
    * @param notification
-   * @{@link EnrichedServerNotification}
-   * @return @{@link TraceComponent}
+   *            {@link EnrichedServerNotification}
+   * @return {@link TraceComponent}
    */
   TraceComponent getStartTraceComponent(EnrichedServerNotification notification);
 
   /**
-   * Build a @{@link TraceComponent} for end of a flow-like container or a message
+   * Build a {@link TraceComponent} for end of a flow-like container or a message
    * processor.
    * This may need light processing compared to
    * {@link #getStartTraceComponent(EnrichedServerNotification)}.
    * 
    * @param notification
-   * @{@link EnrichedServerNotification}
-   * @return @{@link TraceComponent}
+   *            {@link EnrichedServerNotification}
+   * @return {@link TraceComponent}
    */
   TraceComponent getEndTraceComponent(EnrichedServerNotification notification);
 
@@ -40,10 +40,10 @@ public interface ProcessorComponent {
    * do more processing of a component.
    * 
    * @param notification
-   * @{@link EnrichedServerNotification}
+   *            {@link EnrichedServerNotification}
    * @param traceContextHandler
-   * @{@link TraceContextHandler} to help extract OpenTelemetry context
-   * @return @{@link Optional<TraceComponent>}
+   *            {@link TraceContextHandler} to help extract OpenTelemetry context
+   * @return {@link Optional}
    */
   default Optional<TraceComponent> getSourceStartTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
@@ -56,7 +56,7 @@ public interface ProcessorComponent {
    *
    * @param notification
    * @param traceContextHandler
-   * @return
+   * @return Optional trace component
    */
   default Optional<TraceComponent> getSourceEndTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {

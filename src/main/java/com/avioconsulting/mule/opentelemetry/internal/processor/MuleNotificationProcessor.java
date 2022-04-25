@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
+import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.StatusCode;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
@@ -20,7 +21,8 @@ import java.util.function.Supplier;
 /**
  * Notification Processor bean. This is injected through registry-bootstrap into
  * Extension configuration,
- * see @{@link com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration}.
+ * see
+ * {@link com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration}.
  */
 public class MuleNotificationProcessor {
 
@@ -105,9 +107,9 @@ public class MuleNotificationProcessor {
 
                   if (notification.getEvent().getError().isPresent()) {
                     Error error = notification.getEvent().getError().get();
-                    span.setStatus(StatusCode.ERROR, error.getDescription());
                     span.recordException(error.getCause());
                   }
+                  setSpanStatus(traceComponent, span);
                   if (traceComponent.getTags() != null)
                     traceComponent.getTags().forEach(span::setAttribute);
                 },
@@ -158,10 +160,7 @@ public class MuleNotificationProcessor {
           traceComponent.getName(),
           rootSpan -> {
             traceComponent.getTags().forEach(rootSpan::setAttribute);
-            if (traceComponent.getStatusCode() != null
-                && !StatusCode.UNSET.equals(traceComponent.getStatusCode())) {
-              rootSpan.setStatus(traceComponent.getStatusCode());
-            }
+            setSpanStatus(traceComponent, rootSpan);
             if (notification.getException() != null) {
               rootSpan.recordException(notification.getException());
             }
@@ -172,6 +171,13 @@ public class MuleNotificationProcessor {
           "Error in handling " + notification.getResourceIdentifier() + " flow end event",
           ex);
       throw ex;
+    }
+  }
+
+  private void setSpanStatus(TraceComponent traceComponent, Span span) {
+    if (traceComponent.getStatusCode() != null
+        && !StatusCode.UNSET.equals(traceComponent.getStatusCode())) {
+      span.setStatus(traceComponent.getStatusCode());
     }
   }
 }

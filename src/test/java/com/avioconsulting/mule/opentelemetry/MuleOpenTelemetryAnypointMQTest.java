@@ -20,9 +20,9 @@ import static org.awaitility.Awaitility.await;
 public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTest {
 
   /**
-   * Use static @{@link ClassRule} for port. Avoids unpredictable port usage
+   * Use static {@link ClassRule} for port. Avoids unpredictable port usage
    * across tests.
-   * Making it a @{@link Rule} may cause failure in assertions related to port
+   * Making it a {@link Rule} may cause failure in assertions related to port
    * usage when all tests run.
    */
   @ClassRule
@@ -66,15 +66,24 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
         .containsEntry("messaging.url", "http://localhost:" + wireMockRule.port() + "/api/v1")
         .containsEntry("messaging.consumer_id", "2327057f85ab4340b2f27c7b1b20cb07")
         .containsEntry("messaging.destination", "otel-test-queue-1")
-        .containsEntry("messaging.protocol", "http")
-        .containsEntry("mule.app.processor.configRef", "Anypoint_MQ_Config")
-        .containsEntry("mule.app.processor.name", docName.toLowerCase())
-        .containsEntry("mule.app.processor.docName", docName)
-        .containsEntry("mule.app.processor.namespace", "anypoint-mq");
+        .containsEntry("messaging.protocol", "http");
     if (spanKind.equalsIgnoreCase("PRODUCER")) {
       assertThat(span)
-          .extracting("spanName", "spanKind")
-          .containsOnly("otel-test-queue-1 send", spanKind);
+          .extracting("spanName", "spanKind", "spanStatus")
+          .containsOnly("otel-test-queue-1 send", spanKind, "OK");
+    }
+    if (spanKind.equalsIgnoreCase("CONSUMER")
+        && docName.equalsIgnoreCase("Subscriber")) {
+      assertThat(span.getAttributes())
+          .containsEntry("mule.app.flow.source.name", docName.toLowerCase())
+          .containsEntry("mule.app.flow.source.namespace", "anypoint-mq")
+          .containsEntry("mule.app.flow.source.configRef", "Anypoint_MQ_Config");
+    } else {
+      assertThat(span.getAttributes())
+          .containsEntry("mule.app.processor.configRef", "Anypoint_MQ_Config")
+          .containsEntry("mule.app.processor.name", docName.toLowerCase())
+          .containsEntry("mule.app.processor.docName", docName)
+          .containsEntry("mule.app.processor.namespace", "anypoint-mq");
     }
 
   }
@@ -103,6 +112,17 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
       assertThat(DelegatedLoggingSpanExporter.spanQueue)
           .hasSizeGreaterThanOrEqualTo(2)
           .anySatisfy(span -> assertSpan(span, "Consume", "CONSUMER"));
+    });
+  }
+
+  @Test
+  public void testSubscriberTrace() throws Exception {
+    runFlow("anypoint-mq-flowsFlow");
+    await().untilAsserted(() -> {
+      assertThat(DelegatedLoggingSpanExporter.spanQueue)
+          .hasSizeGreaterThanOrEqualTo(2)
+          .filteredOn(span -> span.getSpanKind().equals("CONSUMER"))
+          .allSatisfy(span -> assertSpan(span, "Subscriber", "CONSUMER"));
     });
   }
 }

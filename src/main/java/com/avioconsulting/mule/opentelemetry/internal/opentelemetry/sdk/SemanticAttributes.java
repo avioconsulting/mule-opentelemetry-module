@@ -25,6 +25,12 @@ public class SemanticAttributes {
   public static final AttributeKey<String> MULE_APP_PROCESSOR_CONFIG_REF = AttributeKey
       .stringKey("mule.app.processor.configRef");
   public static final AttributeKey<String> MULE_APP_FLOW_NAME = AttributeKey.stringKey("mule.app.flow.name");
+  public static final AttributeKey<String> MULE_APP_FLOW_SOURCE_CONFIG_REF = AttributeKey
+      .stringKey("mule.app.flow.source.configRef");
+  public static final AttributeKey<String> MULE_APP_FLOW_SOURCE_NAMESPACE = AttributeKey
+      .stringKey("mule.app.flow.source.namespace");
+  public static final AttributeKey<String> MULE_APP_FLOW_SOURCE_NAME = AttributeKey
+      .stringKey("mule.app.flow.source.name");
 
   public static final AttributeKey<String> MULE_APP_DOMAIN = AttributeKey.stringKey("mule.app.domain");
   public static final AttributeKey<String> MULE_APP_FULL_DOMAIN = AttributeKey.stringKey("mule.app.fullDomain");

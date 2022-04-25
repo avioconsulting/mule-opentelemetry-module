@@ -3,17 +3,18 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
 import io.opentelemetry.api.trace.SpanKind;
+import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_APP_FLOW_NAME;
-import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_SERVER_ID;
-
 import java.util.*;
+
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
 
 public class FlowProcessorComponent extends AbstractProcessorComponent {
   @Override
@@ -69,6 +70,12 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     if (sourceIdentifier == null) {
       return Optional.of(builder.build());
     }
+    startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_NAME.getKey(), sourceIdentifier.getName());
+    startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_NAMESPACE.getKey(), sourceIdentifier.getNamespace());
+    Component sourceComponent = configurationComponentLocator.find(Location.builderFromStringRepresentation(
+        notification.getEvent().getContext().getOriginatingLocation().getLocation()).build()).get();
+    ComponentWrapper sourceWrapper = new ComponentWrapper(sourceComponent, configurationComponentLocator);
+    startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey(), sourceWrapper.getConfigRef());
     // Find if there is a processor component to handle flow source component.
     // If exists, allow it to process notification and build any additional tags to
     // include in a trace.

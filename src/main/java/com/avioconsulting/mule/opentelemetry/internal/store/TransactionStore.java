@@ -19,8 +19,8 @@ public interface TransactionStore {
    * id.
    *
    * @param muleEvent
-   * @{@link Event}
-   * @return @{@link String} transaction id
+   *            {@link Event}
+   * @return {@link String} transaction id
    */
   default String transactionIdFor(Event muleEvent) {
     return muleEvent.getCorrelationId();
@@ -41,17 +41,17 @@ public interface TransactionStore {
    * @param rootFlowName
    *            Name of the flow requesting to start transaction.
    * @param rootFlowSpan
-   * @{@link SpanBuilder} for building the root span.
+   *            {@link SpanBuilder} for building the root span.
    */
   void startTransaction(String transactionId, String rootFlowName, SpanBuilder rootFlowSpan);
 
   /**
-   * Get the @{@link Context} of the initiating flow span. This may be required to
+   * Get the {@link Context} of the initiating flow span. This may be required to
    * propagate
    * context for a given transaction.
    *
    * @param transactionId
-   * @return @{@link Context}
+   * @return {@link Context}
    */
   Context getTransactionContext(String transactionId);
 
@@ -79,8 +79,8 @@ public interface TransactionStore {
 
   /**
    * End a transaction represented by provided transaction id and rootFlowName, if
-   * exists. @{@link
-   * Consumer<Span>} parameter allows updating the Span before ending. This is
+   * exists. {@link
+   * Consumer} parameter allows updating the Span before ending. This is
    * useful in scenarios
    * like setting processing status code to error.
    *
@@ -100,7 +100,7 @@ public interface TransactionStore {
    * @param rootFlowName
    *            Name of the flow requesting to start transaction.
    * @param spanUpdater
-   * @{@link Consumer<Span>} to allow updating Span before ending.
+   *            {@link Consumer} to allow updating Span before ending.
    */
   default void endTransaction(
       String transactionId, String rootFlowName, Consumer<Span> spanUpdater) {
@@ -140,7 +140,7 @@ public interface TransactionStore {
   }
 
   /**
-   * End an existing span under an existing transaction. @{@link Consumer<Span>}
+   * End an existing span under an existing transaction. {@link Consumer}
    * parameter allows
    * updating the Span before ending. This is useful in scenarios like setting
    * processing status
@@ -161,7 +161,7 @@ public interface TransactionStore {
    * @param transactionId
    * @param location
    * @param spanUpdater
-   * @{@link Consumer<Span>} to allow updating Span before ending.
+   *            {@link Consumer} to allow updating Span before ending.
    */
   default void endProcessorSpan(
       String transactionId, String location, Consumer<Span> spanUpdater) {
