@@ -56,7 +56,7 @@ jobs:
       - name: Publish to Maven Central
         id: publish-to-maven-central
         if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
-        run: ./mvnw clean deploy -Drelease=true -DskipTests=true
+        run: gpg --list-keys && ./mvnw clean deploy -Drelease=true -DskipTests=true
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}

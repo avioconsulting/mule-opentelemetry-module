@@ -22,7 +22,6 @@
         <repository.url>git@github.com:${project.github.repository}.git</repository.url>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <GPG_PASSPHRASE>something</GPG_PASSPHRASE>
         <nexus.url>https://oss.sonatype.org</nexus.url>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -394,8 +393,6 @@
             </activation>
             <properties>
                 <gpg.executable>gpg</gpg.executable>
-                <!--Set Passphrase to this env variable-->
-                <gpg.passphrase>${GPG_PASSPHRASE}</gpg.passphrase>
             </properties>
             <build>
                 <plugins>
