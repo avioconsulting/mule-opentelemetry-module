@@ -34,9 +34,6 @@ jobs:
         id: set-version
         run: echo ::set-output name=version::$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
 
-      - name: List GPG Keys
-        run: gpg --list-keys
-
       - name: Print Version
         run: echo "Version ${{ steps.set-version.outputs.version }}"
 
@@ -44,7 +41,7 @@ jobs:
         run: ./mvnw compile
 
       - name: Verify
-        run: ./mvnw --batch-mode verify -DskipTests=true
+        run: ./mvnw --batch-mode verify
 
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v1
@@ -53,14 +50,14 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           files: ./**/surefire-reports/*.xml
 
-      - name: Publish to Maven Central
-        id: publish-to-maven-central
-        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
-        run: gpg --list-keys && ./mvnw clean deploy -Drelease=true -DskipTests=true
-        env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+      #- name: Publish to Maven Central
+      #  id: publish-to-maven-central
+      #  if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
+      #  run: gpg --list-keys && ./mvnw clean deploy -Drelease=true -DskipTests=true
+      #  env:
+      #    OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+      #    OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+      #    MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
       - name: Perform Release
         if: ${{ !contains(steps.set-version.outputs.version, 'SNAPSHOT') && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'}}
