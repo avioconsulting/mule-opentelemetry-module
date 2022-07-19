@@ -143,12 +143,17 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     Map<String, String> tags = new HashMap<>();
     String path = componentWrapper.getParameters().get("path");
     Map<String, String> connectionParameters = componentWrapper.getConfigConnectionParameters();
+    String url = "";
     if (!connectionParameters.isEmpty()) {
-      tags.put(HTTP_SCHEME.getKey(), connectionParameters.getOrDefault("protocol", "").toLowerCase());
-      tags.put(HTTP_HOST.getKey(), connectionParameters.getOrDefault("host", "").concat(":")
-          .concat(connectionParameters.getOrDefault("port", "")));
-      tags.put(NET_PEER_NAME.getKey(), connectionParameters.getOrDefault("host", ""));
-      tags.put(NET_PEER_PORT.getKey(), connectionParameters.getOrDefault("port", ""));
+      String httpScheme = connectionParameters.getOrDefault("protocol", "").toLowerCase();
+      String port = connectionParameters.getOrDefault("port", "");
+      String host = connectionParameters.getOrDefault("host", "");
+      String httpHost = host.concat(":").concat(port);
+      tags.put(HTTP_SCHEME.getKey(), httpScheme);
+      tags.put(HTTP_HOST.getKey(), httpHost);
+      tags.put(NET_PEER_NAME.getKey(), host);
+      tags.put(NET_PEER_PORT.getKey(), port);
+      url = httpScheme + "://" + httpHost;
     }
     Map<String, String> configParameters = componentWrapper.getConfigParameters();
     if (!configParameters.isEmpty()) {
@@ -159,6 +164,9 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     }
     tags.put(HTTP_ROUTE.getKey(), path);
     tags.put(HTTP_METHOD.getKey(), componentWrapper.getParameters().get("method"));
+    tags.put(HTTP_TARGET.getKey(), path);
+    tags.put(HTTP_URL.getKey(), url + path);
+
     return tags;
   }
 
