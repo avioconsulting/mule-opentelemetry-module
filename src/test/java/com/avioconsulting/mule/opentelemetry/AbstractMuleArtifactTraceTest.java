@@ -48,13 +48,15 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
     Awaitility.setDefaultPollInterval(2, SECONDS);
     Awaitility.setDefaultTimeout(10, SECONDS);
 
-    // Reduce the time between batch export. Speeds up tese completion.
+    // Reduce the time between batch export. Speeds up test completion.
     System.setProperty("otel.bsp.schedule.delay", "100");
   }
 
   @After
   public void clearSpansQueue() {
-    Awaitility.await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue).isNotEmpty());
+//    Awaitility.await().untilAsserted(() ->
+//            assertThat(DelegatedLoggingSpanExporter.spanQueue).isNotEmpty()
+//    );
     DelegatedLoggingSpanExporter.spanQueue.clear();
   }
 
@@ -112,7 +114,11 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
     sendRequest(correlationId, path, expectedStatus, Collections.emptyMap());
   }
 
-  protected void sendRequest(String correlationId, String path, int expectedStatus, Map<String, String> headers)
+  protected void sendRequest(String correlationId, String path, int expectedStatus, Map<String, String> headers) throws IOException {
+    sendRequest(correlationId, "localhost", path, expectedStatus, headers);
+  }
+
+  protected void sendRequest(String correlationId, String host, String path, int expectedStatus, Map<String, String> headers)
       throws IOException {
     HttpGet getRequest = new HttpGet(String.format("http://localhost:%s/" + path, serverPort.getValue()));
     getRequest.addHeader("X-CORRELATION-ID", correlationId);
