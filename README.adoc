@@ -49,7 +49,7 @@ Following example shows an OpenTelemetry Config with OTLP Exporter configured -
 ----
 <opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1">
     <opentelemetry:exporter >
-        <opentelemetry:otlp-exporter collectorEndpoint="http://localhost:55681/v1" protocol="HTTP_PROTOBUF" >
+        <opentelemetry:otlp-exporter collectorEndpoint="http://localhost:55681/v1" protocol="HTTP_PROTOBUF" requestCompression="GZIP">
             <opentelemetry:headers >
                 <opentelemetry:header key="testHeader" value="testHeaderValue" />
             </opentelemetry:headers>

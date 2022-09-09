@@ -22,6 +22,14 @@ public abstract class KeyValuePair {
     return value;
   }
 
+  public KeyValuePair() {
+  }
+
+  public KeyValuePair(String key, String value) {
+    this.key = key;
+    this.value = value;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o)
