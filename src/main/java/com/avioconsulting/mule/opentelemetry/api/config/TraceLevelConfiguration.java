@@ -7,7 +7,7 @@ import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
-public class TracerConfiguration {
+public class TraceLevelConfiguration {
 
   @Parameter
   @Optional(defaultValue = "false")
@@ -19,4 +19,5 @@ public class TracerConfiguration {
   public boolean isSpanAllProcessors() {
     return spanAllProcessors;
   }
+
 }

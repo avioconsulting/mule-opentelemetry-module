@@ -1,6 +1,5 @@
 package com.avioconsulting.mule.opentelemetry.internal.connection;
 
-import com.avioconsulting.mule.opentelemetry.api.config.KeyValuePair;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
 import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
@@ -44,15 +43,13 @@ public class OpenTelemetryConnection implements TraceContextHandler {
       // TODO: Process other config elements for OTEL SDK
       final Map<String, String> configMap = new HashMap<>();
       if (openTelemetryConfigWrapper.getResource() != null) {
-        if (openTelemetryConfigWrapper.getResource().getServiceName() != null) {
-          configMap.put("otel.service.name", openTelemetryConfigWrapper.getResource().getServiceName());
-        }
-        configMap.put("otel.resource.attributes",
-            KeyValuePair
-                .commaSeparatedList(openTelemetryConfigWrapper.getResource().getResourceAttributes()));
+        configMap.putAll(openTelemetryConfigWrapper.getResource().getConfigMap());
       }
       if (openTelemetryConfigWrapper.getExporter() != null) {
         configMap.putAll(openTelemetryConfigWrapper.getExporter().getExporterProperties());
+      }
+      if (openTelemetryConfigWrapper.getSpanProcessorConfiguration() != null) {
+        configMap.putAll(openTelemetryConfigWrapper.getSpanProcessorConfiguration().getConfigMap());
       }
       builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
       logger.debug("Creating OpenTelemetryConnection with properties: [" + configMap + "]");

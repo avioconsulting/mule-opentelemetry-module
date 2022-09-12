@@ -1,8 +1,9 @@
 package com.avioconsulting.mule.opentelemetry.internal.config;
 
+import com.avioconsulting.mule.opentelemetry.api.config.ExporterConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.config.OpenTelemetryResource;
-import com.avioconsulting.mule.opentelemetry.api.config.TracerConfiguration;
-import com.avioconsulting.mule.opentelemetry.api.config.exporter.OpenTelemetryExporter;
+import com.avioconsulting.mule.opentelemetry.api.config.SpanProcessorConfiguration;
+import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryOperations;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnectionProvider;
@@ -17,10 +18,7 @@ import org.mule.runtime.extension.api.annotation.Configuration;
 import org.mule.runtime.extension.api.annotation.Expression;
 import org.mule.runtime.extension.api.annotation.Operations;
 import org.mule.runtime.extension.api.annotation.connectivity.ConnectionProviders;
-import org.mule.runtime.extension.api.annotation.param.Optional;
-import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.ParameterGroup;
-import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Placement;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
@@ -36,32 +34,38 @@ public class OpenTelemetryExtensionConfiguration implements Startable {
    * override this configuration. See Documentation for variable details.
    */
   @ParameterGroup(name = "Resource")
-  @Placement(order = 1)
+  @Placement(order = 10)
   @Summary("Open Telemetry Resource Configuration. System or Environment Variables will override this configuration.")
   private OpenTelemetryResource resource;
-
-  @ParameterGroup(name = "Tracer")
-  @Placement(order = 2)
-  private TracerConfiguration tracerConfiguration;
 
   /**
    * Open Telemetry Exporter Configuration. System or Environment Variables will
    * override this configuration. See Documentation for variable details.
    */
-  @Parameter
-  @DisplayName(value = "OpenTelemetry Exporter")
-  @Optional
-  @Summary("Open Telemetry Exporter Configuration. System or Environment Variables will override this configuration.")
-  @Placement(order = 3)
+  @ParameterGroup(name = "Exporter")
+  @Placement(order = 20)
   @Expression(ExpressionSupport.NOT_SUPPORTED)
-  private OpenTelemetryExporter exporter;
+  private ExporterConfiguration exporterConfiguration;
 
-  public TracerConfiguration getTracerConfiguration() {
-    return tracerConfiguration;
+  @ParameterGroup(name = "Trace Levels")
+  @Placement(order = 30)
+  private TraceLevelConfiguration traceLevelConfiguration;
+
+  @ParameterGroup(name = "Span Processor")
+  @Placement(order = 40, tab = "Tracer Settings")
+  @Expression(ExpressionSupport.NOT_SUPPORTED)
+  private SpanProcessorConfiguration spanProcessorConfiguration;
+
+  public TraceLevelConfiguration getTraceLevelConfiguration() {
+    return traceLevelConfiguration;
   }
 
-  public OpenTelemetryExporter getExporter() {
-    return exporter;
+  public ExporterConfiguration getExporterConfiguration() {
+    return exporterConfiguration;
+  }
+
+  public SpanProcessorConfiguration getSpanProcessorConfiguration() {
+    return spanProcessorConfiguration;
   }
 
   public OpenTelemetryResource getResource() {
@@ -90,8 +94,9 @@ public class OpenTelemetryExtensionConfiguration implements Startable {
     // TODO: Find another way to inject connections.
     muleNotificationProcessor.init(
         () -> OpenTelemetryConnection
-            .getInstance(new OpenTelemetryConfigWrapper(getResource(), getExporter())),
-        getTracerConfiguration().isSpanAllProcessors());
+            .getInstance(new OpenTelemetryConfigWrapper(getResource(),
+                getExporterConfiguration().getExporter(), getSpanProcessorConfiguration())),
+        getTraceLevelConfiguration().isSpanAllProcessors());
     notificationListenerRegistry.registerListener(
         new MuleMessageProcessorNotificationListener(muleNotificationProcessor));
     notificationListenerRegistry.registerListener(
