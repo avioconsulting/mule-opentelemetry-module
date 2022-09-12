@@ -8,11 +8,10 @@ import org.mule.runtime.extension.api.annotation.param.Optional;
 import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Alias("resource")
-public class OpenTelemetryResource {
+public class OpenTelemetryResource implements OtelConfigMapProvider {
 
   @Parameter
   @Summary("Service name for this application.")
@@ -32,6 +31,15 @@ public class OpenTelemetryResource {
     return resourceAttributes;
   }
 
+  public OpenTelemetryResource() {
+
+  }
+
+  public OpenTelemetryResource(String serviceName, List<Attribute> resourceAttributes) {
+    this.serviceName = serviceName;
+    this.resourceAttributes = resourceAttributes;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o)
@@ -46,5 +54,17 @@ public class OpenTelemetryResource {
   @Override
   public int hashCode() {
     return Objects.hash(serviceName, resourceAttributes);
+  }
+
+  @Override
+  public Map<String, String> getConfigMap() {
+    Map<String, String> configMap = new HashMap<>();
+    if (getServiceName() != null) {
+      configMap.put("otel.service.name", getServiceName());
+    }
+    configMap.put("otel.resource.attributes",
+        KeyValuePair
+            .commaSeparatedList(getResourceAttributes()));
+    return Collections.unmodifiableMap(configMap);
   }
 }

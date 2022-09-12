@@ -9,7 +9,12 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 		<http:listener-connection host="0.0.0.0" port="${http.port}" />
 	</http:listener-config>
 
-	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1">
+	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1"  maxQueueSize="2048"
+						  maxBatchExportSize="512" batchExportDelayInterval="5000"
+						  exportTimeout="30000">
+		<opentelemetry:resource-attributes >
+			<opentelemetry:attribute key="mule.env" value="Dev" />
+		</opentelemetry:resource-attributes>
 		<opentelemetry:exporter >
 <!--			<opentelemetry:logging-exporter logPrefix="test-log" />-->
 			<opentelemetry:generic-exporter >
@@ -18,9 +23,6 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 				</opentelemetry:config-properties>
 			</opentelemetry:generic-exporter>
 		</opentelemetry:exporter>
-		<opentelemetry:resource-attributes >
-			<opentelemetry:attribute key="mule.env" value="Dev" />
-		</opentelemetry:resource-attributes>
 	</opentelemetry:config>
 	<http:request-config name="INVALID_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="c18eed36-eb42-4c29-abc9-9e7a2c6049e1" >
 		<http:request-connection host="0.0.0.0" port="9080" />

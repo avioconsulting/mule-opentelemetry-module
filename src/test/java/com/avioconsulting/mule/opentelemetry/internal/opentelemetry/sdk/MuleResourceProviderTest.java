@@ -25,6 +25,7 @@ public class MuleResourceProviderTest {
     props.setProperty("application.aws.region", "MULE_APP_AWS_REGION");
     props.setProperty("mule.env", "MULE_ENV");
     props.forEach((key, value) -> System.setProperty(key.toString(), value.toString()));
+    MuleResource.refresh(); // Ensure the static map is reloaded
     MuleResourceProvider provider = new MuleResourceProvider();
     ConfigProperties configProperties = Mockito.mock(ConfigProperties.class);
     Resource resource = provider.createResource(configProperties);

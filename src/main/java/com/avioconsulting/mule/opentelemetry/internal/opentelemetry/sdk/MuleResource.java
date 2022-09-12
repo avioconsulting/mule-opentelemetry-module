@@ -12,10 +12,18 @@ import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.S
  * attributes in trace data.
  */
 public class MuleResource {
-  private static final Resource INSTANCE = buildResource();
+  private static Resource INSTANCE = buildResource();
 
   public static Resource get() {
     return INSTANCE;
+  }
+
+  /**
+   * Used to refresh the loaded properties. Currently used by tests to reset the
+   * instances between testing.
+   */
+  public static void refresh() {
+    INSTANCE = buildResource();
   }
 
   private static Resource buildResource() {
