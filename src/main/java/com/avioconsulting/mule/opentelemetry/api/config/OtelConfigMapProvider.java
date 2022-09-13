@@ -11,10 +11,10 @@ public interface OtelConfigMapProvider {
 
   /**
    * The implementation of {@link #getConfigMap()} must return a
-   * {@link Map<String, String>}
+   * {@link Map}
    * with OpenTelemetry semantic attribute keys and appropriate values.
    * 
-   * @return {@link Map<String, String>}
+   * @return {@link Map}
    */
   Map<String, String> getConfigMap();
 }

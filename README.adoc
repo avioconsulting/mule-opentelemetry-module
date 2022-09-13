@@ -167,8 +167,21 @@ The required Zipkin exporter dependencies must be configured as an https://docs.
 </plugin>
 ----
 
+=== Span Processors
+For non-logging exporters, Tracing SDK uses https://opentelemetry.io/docs/reference/specification/trace/sdk/#batching-processor[Batch Span Processor]. Global Configuration allows to customize Batch span processor settings -
 
-
+[source,xml]
+.OpenTelemetry config with Batch span processor default values
+----
+<opentelemetry:config name="OpenTelemetry_Config"
+    serviceName="otel-comparison-test"
+    maxQueueSize="2048"
+    maxBatchExportSize="512"
+    batchExportDelayInterval="5000"
+    exportTimeout="30000">
+.... other config ....
+</opentelemetry:config>
+----
 
 == Trace Spans
 Trace spans are created for only following mule components -
@@ -178,7 +191,36 @@ Trace spans are created for only following mule components -
 - Database Connector
 - Anypoint MQ Connector
 
-NOTE: This can be changed to create spans for every mule processors by setting `spanAllProcessors = "false"` (can be overridden by setting system property `mule.otel.span.processors.enable` to `true|false`).
+=== Trace Levels
+
+Module can create spans for every mule processors by setting `spanAllProcessors = "true"`. This can be overridden by setting a system property `mule.otel.span.processors.enable` to `true|false`.
+
+When the span generation for all processors is enabled, `opentelemetry:ignore-mule-components` allows to set a list of processors to exclude from span generation.
+
+[source,xml]
+.OpenTelemetry Config with trace level configuration
+----
+<opentelemetry:config name="OpenTelemetry_Generic" doc:name="OpenTelemetry Config" serviceName="app1"  spanAllProcessors="true">
+    <opentelemetry:exporter >
+        <opentelemetry:generic-exporter >
+            <opentelemetry:config-properties >
+                <opentelemetry:config-property key="otel.traces.exporter" value="zipkin" />
+                <opentelemetry:config-property key="otel.exporter.zipkin.endpoint" value="http://localhost:9411/api/v2/spans" />
+            </opentelemetry:config-properties>
+        </opentelemetry:generic-exporter>
+    </opentelemetry:exporter>
+    <opentelemetry:ignore-mule-components >
+        <opentelemetry:mule-component namespace="MULE" name="LOGGER" />
+        <opentelemetry:mule-component namespace="os" name="*" />
+    </opentelemetry:ignore-mule-components>
+</opentelemetry:config>
+----
+
+To disable span generation for all processors in a specific namespace, set the `name` attribute to `*`
+-
+----
+<opentelemetry:mule-component namespace="os" name="*" />
+----
 
 == Context Propagation
 

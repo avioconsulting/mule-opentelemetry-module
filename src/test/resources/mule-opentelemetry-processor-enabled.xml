@@ -1,25 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry" xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns="http://www.mulesoft.org/schema/mule/core"
 	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd">
+http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
 	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="79881531-bfaa-49fd-8227-b67e35d64cf8" >
 		<http:listener-connection host="0.0.0.0" port="${http.port}" />
 	</http:listener-config>
 
+
+
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="df3c6709-b188-4756-a0d8-e580e16dc9d1" />
 	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config"
 						  doc:id="91477cb5-36f7-48ad-90b7-c339af87b408"
 						  serviceName="api-app-1"
 						  spanAllProcessors="true">
-		<opentelemetry:exporter >
-			<opentelemetry:logging-exporter logPrefix="test-log" />
-		</opentelemetry:exporter>
 		<opentelemetry:resource-attributes >
 			<opentelemetry:attribute key="mule.env" value="Dev" />
 		</opentelemetry:resource-attributes>
+		<opentelemetry:exporter >
+			<opentelemetry:generic-exporter >
+				<opentelemetry:config-properties >
+					<opentelemetry:config-property key="otel.traces.exporter" value="delegatedLogging" />
+				</opentelemetry:config-properties>
+			</opentelemetry:generic-exporter>
+		</opentelemetry:exporter>
+<!--		<opentelemetry:ignore-mule-components>-->
+<!--			&lt;!&ndash; Mule functional test is unable to recognize `name` parameter-->
+<!--			 	keeps throwing `Parameter 'name' is required but was not found`-->
+<!--			 &ndash;&gt;-->
+<!--			<opentelemetry:mule-component name="test" namespace="db"/>-->
+<!--		</opentelemetry:ignore-mule-components>-->
 	</opentelemetry:config>
+	<flow name="otel-processor-flow" doc:id="d58f62ae-050a-4c54-8187-434673d8bcc6" >
+		<http:listener doc:name="Listener" doc:id="a10ef589-ef0d-455e-b794-61bb12e43c9e" config-ref="HTTP_Listener_config" path="/otel-processor-flow"/>
+		<logger level="INFO" doc:name="Logger" doc:id="f62676af-28bd-4a53-a503-e8016f5036e1" />
+		<os:store doc:name="Store" doc:id="18002e6a-2374-43f2-a46c-f8ebc9301e56" key="test" objectStore="Object_store"/>
+		<set-payload value="#['Hello']" doc:name="Set Payload" doc:id="110a2c1c-3824-4358-87e5-74c9c489f174" mimeType="text/plain"/>
+		<os:clear doc:name="Clear" doc:id="594dc5b4-8539-4277-b82c-fa3e2d2f9478" objectStore="Object_store"/>
+	</flow>
 	<flow name="mule-opentelemetry-app-2Flow" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
 		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test"/>
 		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />

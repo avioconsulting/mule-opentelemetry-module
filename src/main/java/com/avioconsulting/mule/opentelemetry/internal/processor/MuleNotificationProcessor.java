@@ -1,11 +1,13 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.StatusCode;
+import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
@@ -15,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -31,6 +34,7 @@ public class MuleNotificationProcessor {
 
   private Supplier<OpenTelemetryConnection> connectionSupplier;
   private boolean spanAllProcessors;
+  private TraceLevelConfiguration traceLevelConfiguration;
   private OpenTelemetryConnection openTelemetryConnection;
 
   @Inject
@@ -43,9 +47,15 @@ public class MuleNotificationProcessor {
   }
 
   public void init(Supplier<OpenTelemetryConnection> connectionSupplier, boolean spanAllProcessors) {
+    init(connectionSupplier, new TraceLevelConfiguration(spanAllProcessors, Collections.emptyList()));
+  }
+
+  public void init(Supplier<OpenTelemetryConnection> connectionSupplier,
+      TraceLevelConfiguration traceLevelConfiguration) {
     this.connectionSupplier = connectionSupplier;
     this.spanAllProcessors = Boolean.parseBoolean(System.getProperty(MULE_OTEL_SPAN_PROCESSORS_ENABLE_PROPERTY_NAME,
-        Boolean.toString(spanAllProcessors)));
+        Boolean.toString(traceLevelConfiguration.isSpanAllProcessors())));
+    this.traceLevelConfiguration = traceLevelConfiguration;
     processorComponentService = ProcessorComponentService.getInstance();
   }
 
@@ -80,9 +90,16 @@ public class MuleNotificationProcessor {
     }
   }
 
-  private Optional<ProcessorComponent> getProcessorComponent(MessageProcessorNotification notification) {
+  Optional<ProcessorComponent> getProcessorComponent(MessageProcessorNotification notification) {
+    ComponentIdentifier identifier = notification.getComponent().getIdentifier();
+    boolean ignored = traceLevelConfiguration.getIgnoreMuleComponents().stream()
+        .anyMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
+            & (mc.getName().equalsIgnoreCase(identifier.getName()) || "*".equalsIgnoreCase(mc.getName())));
+    if (spanAllProcessors && ignored)
+      return Optional.empty();
+
     Optional<ProcessorComponent> processorComponent = processorComponentService
-        .getProcessorComponentFor(notification.getComponent().getIdentifier(), configurationComponentLocator);
+        .getProcessorComponentFor(identifier, configurationComponentLocator);
 
     if (!processorComponent.isPresent() && spanAllProcessors) {
       processorComponent = Optional.of(new GenericProcessorComponent());

@@ -96,7 +96,7 @@ public class OpenTelemetryExtensionConfiguration implements Startable {
         () -> OpenTelemetryConnection
             .getInstance(new OpenTelemetryConfigWrapper(getResource(),
                 getExporterConfiguration().getExporter(), getSpanProcessorConfiguration())),
-        getTraceLevelConfiguration().isSpanAllProcessors());
+        getTraceLevelConfiguration());
     notificationListenerRegistry.registerListener(
         new MuleMessageProcessorNotificationListener(muleNotificationProcessor));
     notificationListenerRegistry.registerListener(
