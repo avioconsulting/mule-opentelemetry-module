@@ -54,7 +54,9 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
 
   @After
   public void clearSpansQueue() {
-    Awaitility.await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue).isNotEmpty());
+    Awaitility.await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue).as(
+        "Cleaning span queue with @Before. If It is expected to be empty, override clearSpansQueue from abstract test.")
+        .isNotEmpty());
     DelegatedLoggingSpanExporter.spanQueue.clear();
   }
 

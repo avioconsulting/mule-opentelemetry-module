@@ -12,22 +12,35 @@ import com.avioconsulting.mule.opentelemetry.internal.listeners.MulePipelineMess
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.lifecycle.Startable;
+import org.mule.runtime.api.lifecycle.Stoppable;
 import org.mule.runtime.api.meta.ExpressionSupport;
 import org.mule.runtime.api.notification.NotificationListenerRegistry;
 import org.mule.runtime.extension.api.annotation.Configuration;
 import org.mule.runtime.extension.api.annotation.Expression;
 import org.mule.runtime.extension.api.annotation.Operations;
 import org.mule.runtime.extension.api.annotation.connectivity.ConnectionProviders;
+import org.mule.runtime.extension.api.annotation.param.Optional;
+import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.ParameterGroup;
 import org.mule.runtime.extension.api.annotation.param.display.Placement;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 
 @Operations(OpenTelemetryOperations.class)
 @ConnectionProviders(OpenTelemetryConnectionProvider.class)
 @Configuration
-public class OpenTelemetryExtensionConfiguration implements Startable {
+public class OpenTelemetryExtensionConfiguration implements Startable, Stoppable {
+
+  public static final String PROP_MULE_OTEL_TRACING_DISABLED = "mule.otel.tracing.disabled";
+  private final Logger logger = LoggerFactory.getLogger(OpenTelemetryExtensionConfiguration.class);
+
+  @Parameter
+  @Optional(defaultValue = "false")
+  @Summary("Turn off tracing for this application.")
+  private boolean turnOffTracing;
 
   /**
    * Open Telemetry Resource Configuration. System or Environment Variables will
@@ -55,6 +68,11 @@ public class OpenTelemetryExtensionConfiguration implements Startable {
   @Placement(order = 40, tab = "Tracer Settings")
   @Expression(ExpressionSupport.NOT_SUPPORTED)
   private SpanProcessorConfiguration spanProcessorConfiguration;
+
+  public boolean isTurnOffTracing() {
+    return System.getProperties().containsKey(PROP_MULE_OTEL_TRACING_DISABLED) ? Boolean
+        .parseBoolean(System.getProperty(PROP_MULE_OTEL_TRACING_DISABLED)) : turnOffTracing;
+  }
 
   public TraceLevelConfiguration getTraceLevelConfiguration() {
     return traceLevelConfiguration;
@@ -92,6 +110,16 @@ public class OpenTelemetryExtensionConfiguration implements Startable {
     // Adding it here gives an opportunity to use Configuration parameters for
     // initializing the SDK. A future use case.
     // TODO: Find another way to inject connections.
+    if (isTurnOffTracing()) {
+      logger.info("{} is set to true. Tracing will be turned off.", PROP_MULE_OTEL_TRACING_DISABLED);
+      // Is there a better way to let runtime trigger the configuration shutdown
+      // without stopping the application?
+      // Raising an exception here will make runtime invoke the stop method
+      // but it will kill the application as well, so can't do that here.
+      // For now, let's skip the initialization of tracing related components and
+      // processors.
+      return;
+    }
     muleNotificationProcessor.init(
         () -> OpenTelemetryConnection
             .getInstance(new OpenTelemetryConfigWrapper(getResource(),
@@ -101,5 +129,12 @@ public class OpenTelemetryExtensionConfiguration implements Startable {
         new MuleMessageProcessorNotificationListener(muleNotificationProcessor));
     notificationListenerRegistry.registerListener(
         new MulePipelineMessageNotificationListener(muleNotificationProcessor));
+  }
+
+  @Override
+  public void stop() throws MuleException {
+    if (isTurnOffTracing()) {
+      logger.info("{} is set to true. Configuration has been stopped.", PROP_MULE_OTEL_TRACING_DISABLED);
+    }
   }
 }

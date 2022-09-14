@@ -295,6 +295,23 @@ When using Anypoint MQ, the `publish` operation can add `vars.OTEL_TRACE_CONTEXT
 
 == Limitations
 - Automatic header/attribute injections for outbound requests is not supported
+- When using in on-premise mode, all applications deployed to the same runtime will share the same instance of OpenTelemetry configuration. It is unpredictable that which application's configuration wins. Ideally, the configuration should be same across the applications.
+
+== Turn Off Tracing
+
+Once you have configured the module in your application, there may be a need to remove or temporarily turn it off.
+
+*To permanently remove* the tracing -
+
+- Remove the module dependency from pom.xml
+- Remove the global configuration element and xml declaration references
+- Remove any changes made to other Connector configurations for context propagation.
+
+*To temporarily disable* the tracing without any code changes -
+
+- Set `turnOffTracing="true"` on global config. You may use a property placeholder for the value.
+- Alternately, you can set the `mule.otel.tracing.disabled` system property to `true`.
+- To re-enable the tracing, just reset the property to `false` (default value).
 
 == Testing
 

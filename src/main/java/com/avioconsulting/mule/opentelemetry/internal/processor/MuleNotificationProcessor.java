@@ -46,6 +46,14 @@ public class MuleNotificationProcessor {
 
   }
 
+  public boolean hasConnection() {
+    return connectionSupplier != null;
+  }
+
+  public Supplier<OpenTelemetryConnection> getConnectionSupplier() {
+    return connectionSupplier;
+  }
+
   public void init(Supplier<OpenTelemetryConnection> connectionSupplier, boolean spanAllProcessors) {
     init(connectionSupplier, new TraceLevelConfiguration(spanAllProcessors, Collections.emptyList()));
   }

@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
+import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import org.junit.Test;
 import org.mule.runtime.api.component.location.ComponentLocation;
@@ -24,8 +25,9 @@ public class ProcessorTracingInterceptorTest {
     Map<String, String> traceparentMap = Collections.singletonMap("traceparent", "some-value");
     when(connection.getTraceContext("random-id"))
         .thenReturn(traceparentMap);
-    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor();
-    interceptor.setConnectionSupplier(() -> Optional.of(connection));
+    MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
+    when(muleNotificationProcessor.getConnectionSupplier()).thenReturn(() -> connection);
+    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
     ComponentLocation location = mock(ComponentLocation.class);
     InterceptionEvent interceptionEvent = mock(InterceptionEvent.class);
     interceptor.before(location, Collections.emptyMap(), interceptionEvent);
