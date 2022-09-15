@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
+import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.interception.InterceptionEvent;
@@ -25,9 +26,17 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessorTracingInterceptor.class);
   private Supplier<Optional<OpenTelemetryConnection>> connectionSupplier = () -> OpenTelemetryConnection.get();
+  private MuleNotificationProcessor muleNotificationProcessor;
 
-  public void setConnectionSupplier(Supplier<Optional<OpenTelemetryConnection>> connectionSupplier) {
-    this.connectionSupplier = connectionSupplier;
+  /**
+   * Interceptor.
+   * 
+   * @param muleNotificationProcessor
+   * @{@link MuleNotificationProcessor} if configured fully to acquire
+   *         connection supplier.
+   */
+  public ProcessorTracingInterceptor(MuleNotificationProcessor muleNotificationProcessor) {
+    this.muleNotificationProcessor = muleNotificationProcessor;
   }
 
   @Override
@@ -35,11 +44,16 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
       ComponentLocation location,
       Map<String, ProcessorParameterValue> parameters,
       InterceptionEvent event) {
-    connectionSupplier.get().ifPresent(connection -> {
-      String transactionId = connection.getTransactionStore().transactionIdFor(event);
+    // Using an instance of MuleNotificationProcessor here.
+    // If the tracing is disabled, the module configuration will not initialize
+    // connection supplier.
+    if (muleNotificationProcessor.getConnectionSupplier() != null) {
+      OpenTelemetryConnection openTelemetryConnection = muleNotificationProcessor.getConnectionSupplier().get();
+      String transactionId = openTelemetryConnection.getTransactionStore().transactionIdFor(event);
       event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY,
-          connection.getTraceContext(transactionId));
-    });
+          openTelemetryConnection.getTraceContext(transactionId));
+    }
+
   }
 
 }
