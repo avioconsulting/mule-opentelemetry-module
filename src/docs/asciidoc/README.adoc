@@ -1,0 +1,810 @@
+= Mule 4 OpenTelemetry (OTel) Agent Extension
+// Document header
+Rick Bansal <rick.bansal@mulesoft.com>
+:revnumber:
+:revdate:
+:revremark: Initial Draft v3
+:doctype: book
+:icons: font
+:toc: left
+:toclevels: 3
+:imagesdir: ./Images
+:tabsize: 4
+:keywords: Mule, MuleSoft, Observability, OpenTelemetry, OTel, Tracing, Instrumentation, Distributed
+
+
+// The following pass through will align the images and their titles
+ifndef::env-github[]
+++++
+<style>
+  .imageblock > .title {
+    text-align: inherit;
+    margin-top: 10px;
+  }
+</style>
+++++
+endif::[]
+
+ifdef::env-github[]
+:caution-caption: :fire:
+:important-caption: :heavy_exclamation_mark:
+:note-caption: :information_source:
+:tip-caption: :bulb:
+:warning-caption: :warning:
+endif::[]
+
+
+
+// Custom attributes
+:wc3-trace-context-url: https://w3c.github.io/trace-context/
+
+// Document body
+== Introduction
+
+The Mule 4 OTel Agent is a custom MuleSoft *extension* developed for instrumenting MuleSoft applications to export
+tracing specific *telemetry* data to any OpenTelemetry compliant collector.  Using the agent now allows Mule applications
+to take on an active role in *distributed tracing* scenarios and be insightful and actionable participants in the overall
+distributed trace.
+
+[NOTE]
+This document is, *intentionally, a bit long* as it contains some background details on the motivation for building
+the extension as well as some design details on the extension itself.  However, if you prefer to *skip past the the "why"
+and "what"* material (no offense taken but I did put some extra effort into generating the diagrams) and get right to the
+*"how"*, simply go to <<The-How-Mule-OTel-Agent-id>> section of the document.
+
+== The Why on the Mule 4 OTel Agent
+
+The motivation behind developing this extension is predicated on *two primary concerns* as it relates to the enterprise and
+the software they develop - a *_business_* concern and a *_technical_* concern.
+
+=== Digital Experience Monitoring
+
+.*Business Concern*
+At a strategic level, that is, at the *business level*, the goal is to better champion the *DEM (Digital Experience Monitor)*
+strategies and solutions enterprises either currently have in place or are rapidly starting to invest in, especially with the need
+to support and enhance the hugely popular "work-from-home" experience.
+
+DEM is not necessarily a new technology solution; rather, it's a *progression and aggregation* of existing technologies such
+Application Performance Monitoring (APM), Endpoint Monitoring (EM), Real User Monitoring (RUM), Synthetic Transaction Monitoring
+(STM), Network Performance Monitoring and Diagnostics (NPMD) and a number of others.
+
+Gartner has a somewhat *expanded definition* of DEM:
+
+====
+[quote, Gartner]
+Digital experience monitoring (DEM) technologies monitor the availability, performance and quality of experience an end user or
+digital agent receives as they interact with an application and the supporting infrastructure. Users can be external consumers
+of a service (such as patrons of a retail website), internal employees accessing corporate tools (such as a benefits management
+system), or a combination of both. DEM technologies seek to observe and model the behavior of users as a continuous flow of
+interactions in the form of user journeys.
+====
+
+The Gartner definition of DEM, while comprehensive, is a bit of a mouthful.  A (much) *simpler definition* is:
+
+====
+[quote, Simple]
+DEM allows an enterprise to provide the best experience possible to all customers.
+====
+
+.*Technical Concern*
+In order to better support the business aspirations for insightful and actionable DEM, I believe these two *technical* capabilities
+are necessary prerequisites at the *IT level*:
+
+* Composability
+* Observability
+
+image::DEM-evolutionary-progression.png[800, 800, title="DEM Across Composability and Observability", align="center"]
+
+As depicted in the graphic above, DEM is an *evolutionary progression* of monitoring technology which serves high composability and
+leverages greater observability.  The next two sections will describe both concepts in more detail.
+
+=== Composability
+
+.*What exactly is composability and why does it matter?*
+
+Well, as you might imagine, there are plenty of
+theoretical, complex and technical answers to this question - just Google it to get a list of the numerous publications
+on the topic. Since this is not a technical article on the subject of composability, we'll take a much more modest view of it.
+
+So, in really simple terms, *_composability_* is the concept of building stand alone software *composed* of
+other stand alone software, in a plug-and-play manner (see figure <<Composable-enterprise-app-1>> below) and it matters because
+enterprises who adopt composability as a core IT practice can achieve much greater *agility* on delivering new and/or enhanced
+solutions for business in the face of rapid and ever changing market conditions - does COVID ring a bell?
+
+[#Composable-enterprise-app-1]
+image::Composable-enterprise-app-1.png[600, 600, title="Example of a Composite Application", align="center"]
+
+Basically, the practice of composability is a great way for an enterprise to *protect* and *grow* overall *revenue* in
+the face of both expected and unexpected change. Do you know know when or what the next crisis will be?  Exactly...
+
+=== Composable Enterprise
+
+https://www.gartner.com/smarterwithgartner/gartner-keynote-the-future-of-business-is-composable[Gartner]
+defines a *_Composable Enterprise_* as an organization that can innovate and adapt to changing
+business needs through the assembly and combination of packaged business capabilities.
+
+[NOTE]
+====
+Gartner's definition of composable business operates on four basic principles:
+
+* More speed through *discovery*.
+* Greater agility through *modularity*.
+* Better leadership through *orchestration*.
+* Resilience through *autonomy*.
+====
+
+Composability must be important because it has its own Gartner definition, right?
+
+==== So how long before we have true composable enterprises?
+
+From a purist standpoint (i.e., based on the Gartner definition),
+who knows - maybe never.  However, from a practical perspective the "messy" composable enterprise is *already here*, has been
+for a while and it's quickly getting more "pure" over time.
+
+For example,
+
+* A typical enterprise supports over *900 applications* and the number is *growing*, not shrinking.
+** Growth is happening because of:
+*** Accelerated implementation of *digital transformation strategies* with a cloud-first approach.
+*** Rapid adoption of a *microservices* architecture paradigm.
+
+* Typically, no single enterprise application handles a business transaction.
+** A typical *business transaction traverses over 35 different systems/applications* from start to finish.
+*** These systems/applications are often on a variety of *disparate* and independent *technologies* stacks - both legacy and modern.
+*** These systems are often a combination of on-prem or hosted *packaged* applications (e.g., SAP ERP, Oracle HCM, Manhattan SCM,
+etc.), *custom* coded applications and *SaaS* applications (e.g., Salesforce, NetSuite, Workday, etc.)
+
+So as you can see, the composable enterprise already exists and will, rapidly, become more composable over time, especially,
+with the support of companies like MuleSoft, products like the Anypoint Platform and methodologies like API-Led Connectivity.
+
+image::API-Led-1.png[title="API Led to Help Solve for Composability", align="center"]
+
+
+//image::MuleSoft-Solution-Composability.png[title="API Led for Composability", align="center"]
+
+
+
+=== Observability
+
+
+Wikipedia defines *observability* as:
+
+[quote]
+A measure of how well internal states of a system can be inferred from knowledge of
+its external outputs.  As it relates specifically to software, observability is the ability to collect *data about program
+execution, internal states of modules, and communication between components*.  This corpus of collected data is also referred
+to as *telemetry*.
+
+Another way of looking at observability is having the capacity to introspect, in real-time, complex multi-tiered architectures to
+better answer the following when things so sideways:
+
+* Where and why is it broken?
+* Where and why is it slow?
+
+Then, using the gathered observability insights to quickly fix what's broken and speedup what's slow.
+
+[NOTE]
+====
+However, I think a *more important* consideration for observability is an answer to following:
+
+* How can I *proactively* protect against failure and poor performance?
+====
+
+==== Observability Trinity
+
+The obtainment of true observability relies upon 3 core pillars.
+
+image::Pillars-of-Observability.png[500, 500, title="The 3 Pillars of Observability", align="center"]
+
+===== Metrics
+A *_metric_* is a value that expresses some information about a system. Metrics are
+usually represented as counts or measures, and are often aggregated or calculated over a period of time. Additionally, metrics
+are often structured as _<name, value>_ pairs that provide useful behavioral details at both the micro-level and the macro-level
+such as the following:
+
+.Example Metrics
+|===
+| *Micro-level metrics*           | *Macro-level metrics*
+| Memory utilization per service  | Average response time per service
+| CPU utilization per service     | Throughput rate per service
+| Thread count                    | Failure rate per service
+| ...                             | ...
+|===
+
+image::Macro-Micro-Metrics.png[title="Micro-level and Macro-level Metrics", align="center"]
+
+===== Logs
+A *log* is an immutable, time-stamped text or binary record, either structured (recommended) or unstructured, potentially including
+metadata. The log record is generated by application code in response to an event (e.g., an error condition) which has occurred
+during program execution.
+
+.Example of a structured log record
+[literal]
+....
+[02-22 08:02:50.412] ERROR OnErrorContinueHandler [ [MuleRuntime].uber.18543: [client-id-enforcement-439118-order-api-spec-main].439118-client-id-enforcement.CPU_LITE @5b1b413e] [event: d46fe7b0-93b5-11ec-b9b6-02d407c48f42]:
+Root Exception stack trace:
+org.mule.runtime.api.el.ExpressionExecutionException: Script 'atributes.headers ' has errors:
+...
+....
+
+.Example of a unstructured log record
+ 'hello world'
+
+===== Traces
+A *single trace* is an event which shows the activity for a transaction or request as it flows through an individual application.
+Whereas, a *distributed trace* is an aggregation of one or more single traces when the transaction spans across multiple
+application, network, security and environment boundaries.  For example, a distributed trace may be initiated when someone presses a
+button to start an action on a website - such as purchasing a product.  In this case, the distributed trace will represent calls made
+between all of the downstream services (e.g. Inventory, Logistics, Payment, etc.) that handled the chain of requests initiated by
+the initial button press.
+
+*Distributed tracing* is the methodology implemented by tracing tools to generate, follow, analyze and debug a distributed trace.
+Generation of a distributed trace is accomplished by tagging the transaction with a unique identifier and propagating that identifier
+through the chain of systems involved in the transaction.  This process is also referred to as *trace context propagation*.
+
+
+Traces are a critical part of observability, as they *provide context for other telemetry*. For example, traces can help define
+which metrics would be most valuable in a given situation, or which logs are relevant to a particular issue.
+
+image::Distributed-Trace-Example.png[1000, 1000, title="Example of a Distributed Trace", align="center"]
+
+==== Why is observability important?
+
+The notion of observability is very important to IT organizations because when a business transaction fails or performs
+poorly within their application network, the team needs the ability to quickly *triage* and *remediate* the root cause
+before there is any significant impact on revenue.
+
+Many IT organizations have and continue to rely upon commercial Application Performance Monitoring (APM) tools (e.g., AppDynamics,
+Dynatrace, New Relic, CA APM, ...) to help them in this regard.  While useful, these commercial tools have struggled in the past
+to provide complete visibility into the overall distributed trace as they deploy vendor specific agents to collect and forward
+their telemetry.
+
+I state "_struggled in the past_" because many APM vendors are now starting to embrace and support open source projects like
+https://opentelemetry.io/docs/reference/specification/overview/[OpenTelemetry] for vendor-agnostic instrumentation agent
+implementations and standards such as {wc3-trace-context-url}/[W3C Trace Context] for context propagation
+to help them fill in the "holes".  See <<vendor-support-for-otel>> below.
+
+==== So what do composability and observability have to do with each other?
+
+Hopefully, the answer is obvious but as enterprise applications become more and more composable, that is, as enterprises move
+towards embracing composability as an architectural pattern, the need for observability becomes greater; however, the capacity
+for implementing observability becomes harder unless there is comprehensive observability strategy and solution in place.
+
+=== Solving for Observability
+
+MuleSoft has traditionally been a very strong player in two aspects of the Observability Trinity - Metrics and Logs.  Anypoint
+Monitoring provides considerable support and functionality for these two observability data sources.  However, there has been a gap
+in the support for tracing (single traces and distributed traces).  This limitation within the current offering is the inspiration
+behind the development of the custom extension.
+
+Together, *Anypoint Monitoring and Mule 4 Otel Agent* offer a more comprehensive and robust observability solution and should be
+part of an enterprise's overall observability solution.
+
+image::Solving-for-observability.png[600, 600, title="Observability = Anypoint Monitoring + Otel Mule 4 Agent", align="center"]
+
+=== Observability is NOT Just For Cloud-Native Applications
+
+While there is a great emphasis on observability with regard to cloud-native applications, there are a whole host of legacy applications,
+using *traditional integration patterns* which will also benefit tremendously from greater observability.  Some of these patterns, shown
+below in the diagram, include:
+
+* Batch/ETL
+* File Transfer
+* B2B/EDI
+* P2P APIs
+* Pub/Sub
+* DB-to-DB
+* ...
+
+image::observability-not-just-for-cloud-native.png[800, 800, title="Observability for Traditional Integration Patterns", align="center"]
+
+Furthermore, newer API integrations patterns such as GraphQL often implement *complicated data aggregation* patterns requiring data
+from multiple, disparate data sources - Databases, SaaS applications, custom APIs, etc., as depicted below.  These types of patterns will
+also be served well from greater observability.
+
+image::observability-datagraph.png[600, 600, title="Observability for Complicated Data Aggregation Patterns", align="center"]
+
+
+== The What on the Mule 4 OTel Agent
+
+Now that we done a comprehensive walkthrough on the motivation for developing the Mule 4 OTel Agent custom extension, let's dig
+a bit deeper into some of the internals of extension.  We'll start off by diving into the core technology the extension relies
+upon to accomplish its tasks - _OpenTelemetry_ then discuss the WC3 Trace Context specification and finish off with details on the
+extension's architecture.
+
+=== OpenTelemetry (OTel)
+
+[quote, OpenTelemetry, 'https://opentelemetry.io']
+OpenTelemetry *is a set of APIs, SDKs, tooling and integrations* that are designed for the creation and management
+of *telemetry data* such as traces, metrics, and logs. The project provides a *vendor-agnostic* implementation that
+can be configured to send telemetry data to the backend(s) of your choice.
+
+IMPORTANT: OpenTelemetry *is not an observability back-end*.  Instead, it supports exporting data to a variety of open-source
+(e.g., Jaeger, Prometheus, etc.) and commercial back-ends (e.g., Dynatrace, New Relic, Grafana, etc.).
+
+As noted above, OpenTelemetry is a *framework* which provides a single, vendor-agnostic solution with the purpose
+of standardizing the generation, emittance, collection, processing and exporting of telemetry data in support of observability.
+OpenTelemetry was established in 2019 as an open source project and is spearheaded by the CloudNative Computing Foundation (CNCF).
+
+[NOTE]
+====
+In 2019, the https://opencensus.io/[OpenCensus] and https://opentracing.io/[OpenTracing] projects merged into OpenTelemetry.
+Currently, OpenTelemetry is at the "*incubating*" https://github.com/cncf/toc/blob/main/process/graduation_criteria.adoc[maturity
+level] (up from "sandbox" level a year back) and is one of the most popular projects across the CNCF landscape.
+====
+
+==== OpenTelemetry Reference Architecture
+
+Being a CNCF supported project, it's no surprise the architecture of OpenTelemetry is cloud friendly - which also implies that
+it is friendly to all distributed environments. While there are various aspects to the overall OpenTelemetry framework (e.g.,
+API, SDK, Signals, Packages, Propagators, Exporters, etc.), the functional architecture is relatively simple with regard to
+client-side implementations as seen in the diagram below.
+
+image::Otel-Ref-Arch-2-shadowing.png[800, 800, title="OpenTelemetry Reference Architecture", align="center"]
+
+On the client side (e.g., the Mule application), there are really only two OpenTelemetry components which are used and one is
+optional:
+
+OpenTelemetry Library::
+* OpenTelemtry API
+* OpenTelemtry SDK
+
+OpenTelemetry Collector::
+* _[Optional]_
+
+Below is a brief description of these client-side components.
+
+===== OpenTelemetry API
+The OpenTelemetry API is an *abstracted implementation* of data types and  non-operational methods for generating and
+correlating tracing, metrics, and logging data.  Functional implementations of the API are language specific.
+
+===== OpenTelemetry SDK
+The OpenTelemetry SDK is a *language specific implementation* (e.g., Java, Ruby, C++, ...) of the abstracted OpenTelemetry API.
+Here is a https://opentelemetry.io/docs/instrumentation/[list] of the currently supported languages.
+
+===== OpenTelemetry Collector
+The OpenTelemetry Collector is a *vendor-agnostic proxy* that can receive, process, and export telemetry data. It supports
+receiving telemetry data in multiple formats (e.g., OTLP, Jaeger, Prometheus, as well as many commercial/proprietary tools)
+and sending data to one or more back-ends. It also supports processing and filtering telemetry data before it gets exported.
+
+[NOTE]
+You can find more details on the API and SDK https://opentelemetry.io/docs/reference/specification/#table-of-contents[here]
+and on the Collector https://opentelemetry.io/docs/collector/[here].
+
+==== Vendor Support for OpenTelemetry
+As shown in the graphic below, a *2021 GigaOm* study concluded that top tier cloud providers are moving to embrace OpenTelemetry quickly
+and observability vendors are likewise offering integration with OpenTelemetry tools, albeit, at various levels. However, it should be of
+no surprise the Gartner "*visionaries*" are offering the *greatest level* of support.
+
+The GigaOm study also reveals full adoption
+of the OpenTelemetry standards can yield *significant benefits* around instrumentation, as customers can deploy *drop-in
+instrumentation* regardless of the platform. Furthermore, *portability* becomes achievable as well, improving both *cost savings*
+and efficiency.
+
+[#vendor-support-for-otel]
+image::GigaOm-Gartner-MQ-APM-2021.png[900, 900, title="Vendor Support for OpenTelemetry - 2021", align="center"]
+
+=== WC3 Trace Context
+The Mule 4 OTel Agent currently only supports the WC3 Trace Context format as a mechanism for context propagation.
+
+==== Trace Context
+The WC3 Trace Context https://w3c.github.io/trace-context/[specification] defines a universally agreed-upon format for the exchange of
+trace context propagation data - referred to as *_trace context_*. Trace context solves the problems typically associated with distributed
+tracing by:
+
+* Providing a unique identifier for individual traces and requests, allowing trace data of multiple providers to be linked together.
+
+* Providing an agreed-upon mechanism to forward vendor-specific trace data and avoid broken traces when multiple tracing tools participate
+in a single transaction.
+
+* Providing an industry standard that intermediaries, platforms, and hardware providers can support.
+
+==== Trace Context Headers
+Trace context is split into two individual propagation fields supporting interoperability and vendor-specific extensibility:
+
+.`traceparent`
+Describes the position of the incoming request in its trace graph in a portable, fixed-length format. Every tracing tool *MUST* properly
+set traceparent even when it only relies on vendor-specific information in `tracestate`
+
+.`tracestate`
+Extends `traceparent` with vendor-specific data represented by a set of name/value pairs. Storing information in `tracestate` is *optional*.
+
+*Tracing tools* can provide two levels of compliant behavior interacting with trace context:
+
+* At a minimum they *MUST* propagate the `traceparent` and `tracestate` headers and guarantee traces are not broken. This behavior is also
+referred to as _forwarding a trace_.
+
+* In addition they *_MAY_* also choose to participate in a trace by modifying the `traceparent` header and relevant parts of the `tracestate`
+header containing their proprietary information. This is also referred to as _participating in a trace_.
+
+==== `traceparent` HTTP Header Details
+
+The `traceparent` header represents the incoming request in a tracing system in a common format, understood by all vendors.
+
+The header has *4 constituent parts*, where each part is separated by a `-`:
+
+* `version` - header version; currently the version number is `00`
+* `trace-id` - is the *unique 16-byte ID* of a distributed trace through a system.
+* `parent-id` - is the *8-byte ID* of this request as known by the caller (sometimes known as the `span-id`, where a span is the execution
+                of a client request).  The `parent-id` is *automatically generated* by the OpenTelemetry SDK.
+* `trace-flags` - tracing control flags; current version (`00`) only supports the `sampled` flag (`01`)
+
+image::traceparent-header.png[700, 700, title="`traceparent` HTTP Header ", align="center"]
+
+==== `tracestate` HTTP Header Details
+Since the `tracestate` header is *optional*, it will not be discussed any further in this document.  See
+https://w3c.github.io/trace-context/#tracestate-header[WC3: Tracestate Header] for additional details on the header.
+
+=== MuleSoft OpenTelemetry (OTel) Agent
+
+As mentioned earlier, the primary purpose of the Mule 4 OTel Agent extension is to facilitate the participation of Mule applications in
+distributed tracing activities. To accomplish its goal, the extension relies upon three primary frameworks:
+
+. MuleSoft Java SDK
+. MuleSoft Server Notifications
+. OpenTelemetry
+
+==== MuleSoft Java SDK
+
+In Mule 4, extending the product is done by developing custom extensions via a MuleSoft furnished Java SDK. The comprehensive framework
+allows external developers to build add-on functionality in the same manner as Mule engineers build Mule supplied components and connectors.
+While we won't get into the details of the framework or how to develop a custom extension, the graphic below depicts the basic structure of
+an extension based on the https://docs.mulesoft.com/mule-sdk/1.1/module-structure[Module Model].
+
+image::mule-extension-model.png[800, 800, title="The Extension Module Model Structure", align="center"]
+
+==== MuleSoft Server Notifications
+
+Mule provides an internal https://docs.mulesoft.com/mule-runtime/4.4/mule-server-notifications[notification mechanism]
+that can be used to access changes which occur on the Mule Server, such as adding a flow component, the start or end of a message processor, a
+failing authorization request and many other https://docs.mulesoft.com/mule-runtime/4.4/mule-server-notifications#notification-interfaces[changes].
+These notifications can be subscribed to by "listeners" either programmatically or by using the `<notifications>` element in a Mule
+configuration file.
+
+.Example of subscribing to notifications programmatically
+[source%nowrap%linenums, java]
+----
+import org.mule.extension.otel.mule4.observablity.agent.internal.notification.listener.MuleMessageProcessorNotificationListener;
+import org.mule.extension.otel.mule4.observablity.agent.internal.notification.listener.MulePipelineNotificationListener;
+import org.mule.runtime.api.notification.NotificationListenerRegistry;
+import javax.inject.Inject;
+
+public class RegisterNotificationListeners
+{
+    @Inject
+    NotificationListenerRegistry notificationListenerRegistry;
+
+    RegisterNotificationListeners()
+    {
+        notificationListenerRegistry.registerListener(new MuleMessageProcessorNotificationListener());
+        notificationListenerRegistry.registerListener(new MulePipelineNotificationListener());
+    }
+}
+----
+
+.Example of subscribing to notifications using the `<notification>` element
+[source%nowrap%linenums, xml]
+----
+<object doc:name="Object"
+        name="_mulePipelinNotificationListener"
+        class="org.mule.extension.otel.mule4.observablity.agent.internal.notification.listener.MulePipelineNotificationListener" />
+
+<object doc:name="Object"
+        name="_muleMessageProcessorNotificationListener"
+        class="org.mule.extension.otel.mule4.observablity.agent.internal.notification.listener.MuleMessageProcessorNotificationListener" />
+
+<notifications>
+    <notification event="PIPELINE-MESSAGE"/>
+    <notification event="MESSAGE-PROCESSOR"/>
+    <notification-listener ref="_muleMessageProcessorNotificationListener"/>
+    <notification-listener ref="_mulePipelinNotificationListener"/>
+</notifications>
+----
+
+The agent takes advantage of the notification framework and in particular relies upon these two notification interfaces:
+
+* `PipelineMessageNotificationListener`
+** Start and End of a flow
+
+* `MessageProcessorNotificationListener`
+** Start and End of a message processor
+
+==== OpenTelemetry
+
+The Mule 4 OTel Agent leverages the https://opentelemetry.io/docs/instrumentation/java/[OpenTelemetry Java] implementation to generate, batch
+and export trace data to any OpenTelemetry compliant Collector.
+Specifically, the agent builds on top of the https://github.com/open-telemetry/opentelemetry-java[`opentelemetry-java`] package for
+https://opentelemetry.io/docs/instrumentation/java/manual/[manual instrumentation] of Mule applications.  By taking full advantage of the OTel
+Java implementation, the Mule extension becomes completely stand-alone and does not require any additional OpenTelemetry components to be a
+participant in a distributed trace.
+
+
+==== Mule 4 OpenTelemetry Agent Architecture
+
+The architecture of the Mule 4 OTel Agent is relatively straight forward.  As depicted in the diagram below, the agent is comprised of
+code which listens for notification events from the Mule runtime.  During the processing of the notification, the agent generates metadata
+about the notification and sends that data to the OpenTelemetry SDK via the OpenTelemetry API - shown as _Trace Data_ in the diagram.
+The OpenTelemetry SDK continues to gathers the extension generated trace data until all processing is complete.  At that point, the
+OpenTelemetry SDK exports the trace data using the OpenTelemetry wire Protocol (OTLP) to an OpenTelemetry Collector.
+
+image::Agent-Arch-v2.png[900, 900, title="Mule Agent Architecture", align="center"]
+
+===== Mule Trace
+
+The figure below shows the causal (parent/child) relationship between nodes in a Mule Trace that crosses two separate Mule applications.
+As can be seen, the hierarchy can become quite complex and nested.  Luckily, the OpenTelemetry SDK manages most of that complexity for us.
+
+image::MuleSoft-Trace-Causal-Hierarchy.png[title="Causal Relationship Between Nodes in a Distributed Mule Trace", align="center"]
+
+////
+.Causal relationship between nodes in a Mule Trace
+
+[literal]
+....
+Mule Trace:
+
+			             [Trace Root Span A] <-- (the uber pipeline span)
+                                 |
+			     +---------------+---------------+
+                 |                               |
+        [Pipeline Span B]               [Pipeline Span C] <-- (Spans B, C are 'children' of A)
+                 |                               |
+                 |                               |
+    [Message Processor Span D]                   |
+                                                 |
+                                 +---------------+----------------+
+                                 |                                |
+                    [Message Processor Span E]     [Message Processor Span F]
+
+....
+
+////
+
+Mule Trace:: A Mule Trace is simply a collection of OTel Spans structured hierarchically .  A trace has just one trace root
+span and one or more child spans - Pipeline Spans and/or Message Processor Spans.
+
+Trace Root Span:: A Root Span is an OTel Span which serves as the root node in a Mule trace.  It is associated
+with the initial Mule Flow. In reality it is also a pipeline span.
+
+Pipeline Span:: A Pipeline Span is an OTel Span which is associated with Mule subflows and/or flow references.
+
+Message Processor Span:: A Message Processor Span is an OTel Span which is associated with Mule message processors.
+
+===== High-Level Agent Functionality
+
+The two flowcharts below detail at high-level the functionality of the extension.
+
+====== Startup
+
+image::Mule-4-OTel-Agent-Flowchart-Startup.png[500, 500, title="Mule Agent Flowchart - Startup", align="center"]
+
+====== Notification Processing
+
+image::Mule-4-OTel-Agent-Flowchart.png[1000, 1000, title="Mule Agent Flowchart - Notification Processing", align="center"]
+
+[#The-How-Mule-OTel-Agent-id]
+== The How on the Mule 4 OTel Agent
+
+=== Installation Guideline
+
+==== Extension Download
+
+* Download the latest version, `otel-mule4-observability-agent-{revnumber}-mule-plugin.jar`, of the extension from
+https://github.com/rickbansal-mulesoft/otel-mule4-observability-agent/tree/main/target/otel-mule4-observability-agent-{revnumber}-mule-plugin.jar[here]
+
+==== Add the Extension to Your Maven Repository
+
+You can add the extension to your local Maven repo in one of two ways:
+
+* Manually from the command line - assuming you have Maven installed and are comfortable with using Maven
+* Through Anypoint Studio - *preferred* as it's less error prone
+
+IMPORTANT: Using Anypoint Studio is the recommended method for installing the extension into your local Maven repo.
+
+===== Add via Maven Command Line
+ mvn install:install-file -Dfile=<path-to-file> \
+                          -DgroupId=org.mulesoft.extensions.rickbansal.otel \
+                          -DartifactId=otel-mule4-observability-agent \
+                          -Dclassifier=mule-plugin \
+                          -Dversion=1.0.92-SNAPSHOT <1>
+
+<1> The version could be different based upon when you read this document and which version was downloaded.  Please make sure the version
+property corresponds to the version you downloaded.
+
+
+===== Add via Anypoint Studio - Preferred Method**
+
+Using Anypoint Studio to install the extension into your local Maven repository is simple, straight forward and less error
+prone.  It's the preferred method, especially, if you aren't very comfortable using Maven directly.
+
+image::add-to-maven-repo-via-studio.png[800, 800, title="Add Into Maven Repo via Studio", align="center"]
+
+<1> Click the "Install Artifact into local repository" button
+<2> Browse for the jar file in your file system
+<3> Click "Install" to complete the installation process
+
+==== Add Dependency to `pom.xml` file
+
+Add the following snippet into your Mule project `pom.xml` file in the `<dependencies>` section:
+[source%nowrap%linenums, xml]
+----
+<dependency>
+	<groupId>org.mulesoft.extensions.rb.otel</groupId>
+	<artifactId>otel-mule4-observability-agent</artifactId>
+	<version>1.0.92-SNAPSHOT</version> <1>
+	<classifier>mule-plugin</classifier>
+</dependency>
+----
+<1> The version could be different based upon when you read this document and which version was downloaded.  Please make sure the version
+element corresponds to the version you installed into your Maven repository.
+
+=== Agent Configuration
+
+Minimally, follow the steps below to add and configure the agent into your Mule application.
+
+IMPORTANT: Mule applications *must add the agent* to their configuration in order to generate and *export* trace data.
+
+image::agent-connector-config.png[800, 800, title="Mule Agent Configuration", align="center"]
+
+<1> Add an OpenTelemetry Mule 4 Observability Configuration to the Mule project.
+<2> *Enable/Disable* tracing at the application level.  If disabled, no traces will be generated or exported.
+<3> Provide a *service name* - usually the application name.
+<4> Configure *Collector Endpoint* for trace data - must be the entire URL, including the scheme (HTTP/S) and port.
+<5> Configure OTLP *Transport Protocol*  - the following transports are supported:  `GRPC`, `HTTP_JSON` and `HTTP_PROTOBUF`.
+<6> Various configuration parameters to control trace/span batch export rate.
+<7> Add any necessary vendor-specific headers (e.g., `Authorization` header with `API Token` key for authentication)
+<8> Optionally disable generating span data for all Message Processors - default behavior is generate span data for all
+Message Processors.
+<9> Or mute individual Message Processor(s) from generating span data (this maybe helpful in eliminating "noise" from the trace
+and let you more effectively focus in on Message Processors(s) of concern).
+
+=== Trace Context Propagation
+
+Currently, trace context propagation is only supported via WC3 Trace Context headers:  `traceparent` and `tracestate`.
+
+The agent will automatically *extract* the trace headers from the incoming HTTP request and *inject* the headers into the application via
+an event *variable* named: `OTEL_TRACE_CONTEXT` of type:  `Map<String, String>`, where `Map<String, String>` contains the
+following:
+
+.`OTEL_TRACE_CONTEXT` <key, value> Map
+|===
+| *Key*          | *Value*
+| `traceparent`  | `[traceparent value]`
+| `tracestate`   | `[tracestate value]`
+|===
+
+In order to *propagate the trace header* information to other web applications, the Mule HTTP Requester Configuration *must*
+have default headers configured in the following way:
+
+image::http-requester-config.png[600, 600, title="Mule HTTP Requester Configuration", align="center"]
+
+
+.HTTP Requester Configuration for Default Headers
+[cols="30%, 70%"]
+|===
+| *Key*          | *Value*
+| `traceparent`  | `#[vars.OTEL_TRACE_CONTEXT.traceparent default '' as String]`
+| `tracestate`   | `#[vars.OTEL_TRACE_CONTEXT.tracestate default ''  as String]`
+|===
+
+
+.Mule configuration xml for setting default headers in the HTTP Requester Configuration
+[source%nowrap%linenums, xml]
+----
+<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="7c863500-0642-4e9d-b759-5e317225e015" sendCorrelationId="NEVER">
+	<http:request-connection host="mule-hello-world-api.us-e1.cloudhub.io" />
+	<http:default-headers >
+		<http:default-header key='traceparent' value="#[vars.OTEL_TRACE_CONTEXT.traceparent default '' as String]" /> <1>
+		<http:default-header key='tracestate' value="#[vars.OTEL_TRACE_CONTEXT.tracestate default '' as String]" />   <2>
+	</http:default-headers>
+</http:request-config>
+----
+
+=== Demo Scenario
+
+Below is a description of the demo scenario used to generate distributed trace information from 2 Mule applications and have it
+render in a Dynatrace backend.
+
+==== Demo Architecture using Dynatrace Backend
+
+image::Demo-Distributed-App-Arch.png[1200, 1200, title="Demo Architecture", align="center"]
+<1> External application sending a request to Mule Application 1 with WC3 Trace Context Headers
+<2> Mule App 1 sending a request to Mule App 2 and propagating the trace context via WC3 Trace Context Headers
+<3> Responses coming back to calling application
+<4> Responses coming back to calling application
+<5> Both Mule applications sending log and metrics data to Anypoint Monitoring
+<6> Mule 4 OTel Agent sending trace information to Dynatrace OTel Collector
+<7> Dynatrace Collector forwarding the data to Dynatrace dashboard for rendering
+
+==== Demo Architecture Mule Implementation Diagram
+
+Below is an *implementation* of the demo architecture described above. At a high-level, *Mule_App_1* receives the initial request from
+the *external client*, performs various functions including making a request to an external application, *Mule_App_2*, and calling a secondary
+flow within Mule_App_1 before returning a response to the calling client application.
+
+[NOTE]
+The demo applications use a variety of Mule components to showcase how different message processors generate different span attributes,
+including error events and log output.
+
+image::Distributed-Mule-App-Diagram.png[title="Demo Mule Application Diagram", align="center"]
+
+
+=== Example Output - Dynatrace Backend
+
+Below are several screenshots from a Dynatrace Distributed Traces Dashboard to provide examples regarding the type of output generated
+by the Mule 4 OTel Agent and visualized by observability backend.
+
+==== Overall Distributed Trace Temporal Graph
+image::dynatrace-distributed-span.png[title="Dynatrace - Complete Distributed Trace", align="center"]
+
+As you can see in the graph above, the Agent generates spans in a manner which is *hierarchically consistent* with the progression of
+a transaction through and between Mule applications.
+
+<1> Represents the *overall* set of spans in the *distributed trace*.  Nested (child) spans are indented appropriately at each level.
+<2> Represents the overall set of *spans* associated with the *external Mule application* (Mule_App_2). Nested (child) spans are 
+indented appropriately.
+<3> Represents the overall set of *spans* associated with the *secondary flow* in Mule_App_1. Nested (child) spans are indented 
+appropriately.
+
+==== Root Span Summary Details
+Below is a screenshot of the summary details associated with a Mule Flow (Pipeline) span.  In this case, it's the trace root span
+which has an HTTP Listener as its source trigger.  For the HTTP Listener, the Agent generates attributes such as the HTTP method,
+the protocol (HTTP or HTTPs), the URI, the remote address, etc.
+
+image::dynatrace-distributed-rootspan-summary.png[title="Dynatrace - Root Span Summary", align="center"]
+
+<1> The *Metadata* is generated automatically by the OTel SDK.
+<2> The *Attributes* data is generated by the Agent and specific to the span type, either a Flow(Pipeline) or Message Processor span
+and if a Message Processor span then Message Processor type (e.g. Logger, Transform, DB, HTTP Requester, ...).
+<3> The *Resource Attributes* are specified in the configuration of the Agent.  Resource Attributes can be a very convenient and
+meaningful way of tagging the trace with information such as the application name, runtime environment (e.g., Production, QA, 
+Development,...), hosting region, etc. for easier correlation and search.
+
+==== Logger Message Processor Output
+
+As a matter of convenience, the Agent exports the output of the Logger processor.
+
+image::dynatrace-distributed-span-logger-event.png[title="Dynatrace - Logger Processor Output Event", align="center"]
+
+==== Database Processor Summary
+
+Below is a diagram of the Database Processor specific attributes.  The extension will generate connection related attributes such as 
+connection type, host, port, database name and user as well operational attributes such as the SQL query type and statement.
+
+image::dynatrace-distributed-db-summary.png[title="Dynatrace - Database Processor Summary", align="center"]
+
+==== Database Processor Error Event
+
+To facilitate triaging and remediation of faults, when an error occurs in a Mule application, the Agent exports the entire Mule 
+exception message.  For example, see the diagram below that displays a database *connection failure*. Rather than scrolling
+through external log files, a user can simply look at the trace to find faults.
+
+image::dynatrace-distributed-db-error-event.png[title="Dynatrace - Database Processor Error Event", align="center"]
+
+== Backends Tested Against
+
+include::../../../backendsTested.adoc[]
+
+
+[bibliography]
+== References
+* https://www.dynatrace.com/resources/ebooks/observability-and-beyond-for-the-enterprise-cloud/[Dynatrace e-book:
+"Observability and Beyond for the Enterprise Cloud"]
+* https://www.gartner.com/doc/reprints?id=1-27M5IT5I&ct=211008&st=sb[Gartner: "Market Guide for Digital Experience Monitoring"]
+* https://www.gartner.com/doc/reprints?id=1-25S5P19L&ct=210412&st=sb[Gartner: "Magic Quadrant for Application Performance 
+Monitoring - 2021"]
+* https://gigaom.com/report/gigaom-radar-for-application-performance-monitoring-apm/[GigaOm: "Radar for APM - 2021"]
+* https://lightstep.com/observability/[Lightstep: "Observability: A complete overview for 2021"]
+* https://docs.mulesoft.com/monitoring/[MuleSoft: "Anypoint Monitoring Overview"]
+* https://docs.mulesoft.com/mule-sdk/1.1/getting-started[MuleSoft: "Getting Started with Mule SDK for Java"]
+* https://opentelemetry.io/[opentelemetry.io]
+* https://www.splunk.com/en_us/form/beginners-guide-to-observability.html[Splunk e-book: "A Beginner's Guide to Observability"]
+* {wc3-trace-context-url}[wc3.org: "Trace Context Draft Recommendation"]
+* {wc3-trace-context-url}/#dfn-distributed-traces[wc3.org: "Distributed Traces"]
+
+
+[acknowledgement]
+== Acknowledgement
+
+I want to thank a trusted Mule development partner, *Avio Consulting*, for providing a strong starting point
+in the development of this extension as well as their ongoing support.
