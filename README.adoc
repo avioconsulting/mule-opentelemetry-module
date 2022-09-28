@@ -99,6 +99,7 @@ Extension is aware of https://help.mulesoft.com/s/article/CloudHub-Reserved-Prop
     "mule.app.domain": "mule-opentelemetry-app",
     "mule.app.fullDomain": "mule-opentelemetry-app.us-w2.cloudhub.io",
     "mule.csOrganization.id": "f2ea2cb4-c600-gh87-gg78-e952ff5591ee",
+    "mule.organization.id": "f2ea2cb4-c600-gh87-gg78-e952ff5591ee",
     "mule.env": "Dev",
     "mule.environment.id": "c06ef9b7-19c0-ss78-kk44-598058b20aad",
     "mule.environment.type": "sandbox",
@@ -106,6 +107,8 @@ Extension is aware of https://help.mulesoft.com/s/article/CloudHub-Reserved-Prop
     "mule.worker.id": "0"
 }
 ----
+
+NOTE:  CloudHub does not define any property for organization id. `mule.organization.id` refers to value of a system property `organization.id` if present, otherwise it will be same as `csOrganization.id` defined by CloudHub.
 
 === Exporters
 
