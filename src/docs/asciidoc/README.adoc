@@ -1,9 +1,9 @@
-= Mule 4 OpenTelemetry (OTel) Agent Extension
+= Mule 4 OpenTelemetry Module
 // Document header
-Rick Bansal <rick.bansal@mulesoft.com>
+AVIO Consulting
 :revnumber:
 :revdate:
-:revremark: Initial Draft v3
+:revremark:
 :doctype: book
 :icons: font
 :toc: left
@@ -41,18 +41,18 @@ endif::[]
 // Document body
 == Introduction
 
-The Mule 4 OTel Agent is a custom MuleSoft *extension* developed for instrumenting MuleSoft applications to export
-tracing specific *telemetry* data to any OpenTelemetry compliant collector.  Using the agent now allows Mule applications
+The Mule 4 OpenTelemetry Module is a custom MuleSoft *extension* developed for instrumenting MuleSoft applications to export
+tracing specific *telemetry* data to any OpenTelemetry compliant collector.  Using the module now allows Mule applications
 to take on an active role in *distributed tracing* scenarios and be insightful and actionable participants in the overall
 distributed trace.
 
 [NOTE]
 This document is, *intentionally, a bit long* as it contains some background details on the motivation for building
-the extension as well as some design details on the extension itself.  However, if you prefer to *skip past the the "why"
+the extension as well as some design details on the extension itself.  However, if you prefer to *skip past the "why"
 and "what"* material (no offense taken but I did put some extra effort into generating the diagrams) and get right to the
-*"how"*, simply go to <<The-How-Mule-OTel-Agent-id>> section of the document.
+*"how"*, simply go to <<The-How-Mule-OTel-module-id>> section of the document.
 
-== The Why on the Mule 4 OTel Agent
+== The Why on the Mule 4 OpenTelemetry Module
 
 The motivation behind developing this extension is predicated on *two primary concerns* as it relates to the enterprise and
 the software they develop - a *_business_* concern and a *_technical_* concern.
@@ -115,7 +115,7 @@ solutions for business in the face of rapid and ever changing market conditions 
 image::Composable-enterprise-app-1.png[600, 600, title="Example of a Composite Application", align="center"]
 
 Basically, the practice of composability is a great way for an enterprise to *protect* and *grow* overall *revenue* in
-the face of both expected and unexpected change. Do you know know when or what the next crisis will be?  Exactly...
+the face of both expected and unexpected change. Do you know when or what the next crisis will be?  Exactly...
 
 === Composable Enterprise
 
@@ -233,7 +233,7 @@ org.mule.runtime.api.el.ExpressionExecutionException: Script 'atributes.headers 
 ===== Traces
 A *single trace* is an event which shows the activity for a transaction or request as it flows through an individual application.
 Whereas, a *distributed trace* is an aggregation of one or more single traces when the transaction spans across multiple
-application, network, security and environment boundaries.  For example, a distributed trace may be initiated when someone presses a
+applications, network, security and environment boundaries. For example, a distributed trace may be initiated when someone presses a
 button to start an action on a website - such as purchasing a product.  In this case, the distributed trace will represent calls made
 between all of the downstream services (e.g. Inventory, Logistics, Payment, etc.) that handled the chain of requests initiated by
 the initial button press.
@@ -277,7 +277,7 @@ Monitoring provides considerable support and functionality for these two observa
 in the support for tracing (single traces and distributed traces).  This limitation within the current offering is the inspiration
 behind the development of the custom extension.
 
-Together, *Anypoint Monitoring and Mule 4 Otel Agent* offer a more comprehensive and robust observability solution and should be
+Together, *Anypoint Monitoring and Mule 4 OpenTelemetry Module* offer a more comprehensive and robust observability solution and should be
 part of an enterprise's overall observability solution.
 
 image::Solving-for-observability.png[600, 600, title="Observability = Anypoint Monitoring + Otel Mule 4 Agent", align="center"]
@@ -305,9 +305,9 @@ also be served well from greater observability.
 image::observability-datagraph.png[600, 600, title="Observability for Complicated Data Aggregation Patterns", align="center"]
 
 
-== The What on the Mule 4 OTel Agent
+== The What on the Mule 4 OpenTelemetry Module
 
-Now that we done a comprehensive walkthrough on the motivation for developing the Mule 4 OTel Agent custom extension, let's dig
+Now that we done a comprehensive walkthrough on the motivation for developing the Mule 4 OpenTelemetry Module custom extension, let's dig
 a bit deeper into some of the internals of extension.  We'll start off by diving into the core technology the extension relies
 upon to accomplish its tasks - _OpenTelemetry_ then discuss the WC3 Trace Context specification and finish off with details on the
 extension's architecture.
@@ -329,7 +329,7 @@ OpenTelemetry was established in 2019 as an open source project and is spearhead
 [NOTE]
 ====
 In 2019, the https://opencensus.io/[OpenCensus] and https://opentracing.io/[OpenTracing] projects merged into OpenTelemetry.
-Currently, OpenTelemetry is at the "*incubating*" https://github.com/cncf/toc/blob/main/process/graduation_criteria.adoc[maturity
+Currently, OpenTelemetry is at the "*incubating*" https://github.com/cncf/toc/blob/main/process/graduation_criteria.md[maturity
 level] (up from "sandbox" level a year back) and is one of the most popular projects across the CNCF landscape.
 ====
 
@@ -385,7 +385,7 @@ and efficiency.
 image::GigaOm-Gartner-MQ-APM-2021.png[900, 900, title="Vendor Support for OpenTelemetry - 2021", align="center"]
 
 === WC3 Trace Context
-The Mule 4 OTel Agent currently only supports the WC3 Trace Context format as a mechanism for context propagation.
+The Mule 4 OpenTelemetry Module supports the WC3 Trace Context format as a mechanism for context propagation.
 
 ==== Trace Context
 The WC3 Trace Context https://w3c.github.io/trace-context/[specification] defines a universally agreed-upon format for the exchange of
@@ -435,14 +435,14 @@ image::traceparent-header.png[700, 700, title="`traceparent` HTTP Header ", alig
 Since the `tracestate` header is *optional*, it will not be discussed any further in this document.  See
 https://w3c.github.io/trace-context/#tracestate-header[WC3: Tracestate Header] for additional details on the header.
 
-=== MuleSoft OpenTelemetry (OTel) Agent
+=== MuleSoft OpenTelemetry Module
 
-As mentioned earlier, the primary purpose of the Mule 4 OTel Agent extension is to facilitate the participation of Mule applications in
+As mentioned earlier, the primary purpose of the Mule 4 OpenTelemetry Module extension is to facilitate the participation of Mule applications in
 distributed tracing activities. To accomplish its goal, the extension relies upon three primary frameworks:
 
 . MuleSoft Java SDK
 . MuleSoft Server Notifications
-. OpenTelemetry
+. OpenTelemetry Framework
 
 ==== MuleSoft Java SDK
 
@@ -464,8 +464,8 @@ configuration file.
 .Example of subscribing to notifications programmatically
 [source%nowrap%linenums, java]
 ----
-import org.mule.extension.otel.mule4.observablity.agent.internal.notification.listener.MuleMessageProcessorNotificationListener;
-import org.mule.extension.otel.mule4.observablity.agent.internal.notification.listener.MulePipelineNotificationListener;
+import com.avioconsulting.mule.opentelemetry.internal.listeners.MuleMessageProcessorNotificationListener;
+import com.avioconsulting.mule.opentelemetry.internal.listeners.MulePipelineMessageNotificationListener;
 import org.mule.runtime.api.notification.NotificationListenerRegistry;
 import javax.inject.Inject;
 
@@ -477,7 +477,7 @@ public class RegisterNotificationListeners
     RegisterNotificationListeners()
     {
         notificationListenerRegistry.registerListener(new MuleMessageProcessorNotificationListener());
-        notificationListenerRegistry.registerListener(new MulePipelineNotificationListener());
+        notificationListenerRegistry.registerListener(new MulePipelineMessageNotificationListener());
     }
 }
 ----
@@ -486,18 +486,18 @@ public class RegisterNotificationListeners
 [source%nowrap%linenums, xml]
 ----
 <object doc:name="Object"
-        name="_mulePipelinNotificationListener"
-        class="org.mule.extension.otel.mule4.observablity.agent.internal.notification.listener.MulePipelineNotificationListener" />
+        name="_mulePipelineNotificationListener"
+        class="com.avioconsulting.mule.opentelemetry.internal.listeners.MulePipelineMessageNotificationListener" />
 
 <object doc:name="Object"
         name="_muleMessageProcessorNotificationListener"
-        class="org.mule.extension.otel.mule4.observablity.agent.internal.notification.listener.MuleMessageProcessorNotificationListener" />
+        class="com.avioconsulting.mule.opentelemetry.internal.listeners.MulePipelineMessageNotificationListener" />
 
 <notifications>
     <notification event="PIPELINE-MESSAGE"/>
     <notification event="MESSAGE-PROCESSOR"/>
     <notification-listener ref="_muleMessageProcessorNotificationListener"/>
-    <notification-listener ref="_mulePipelinNotificationListener"/>
+    <notification-listener ref="_mulePipelineNotificationListener"/>
 </notifications>
 ----
 
@@ -509,9 +509,9 @@ The agent takes advantage of the notification framework and in particular relies
 * `MessageProcessorNotificationListener`
 ** Start and End of a message processor
 
-==== OpenTelemetry
+==== OpenTelemetry Framework
 
-The Mule 4 OTel Agent leverages the https://opentelemetry.io/docs/instrumentation/java/[OpenTelemetry Java] implementation to generate, batch
+The Mule 4 OpenTelemetry Module leverages the https://opentelemetry.io/docs/instrumentation/java/[OpenTelemetry Java] implementation to generate, batch
 and export trace data to any OpenTelemetry compliant Collector.
 Specifically, the agent builds on top of the https://github.com/open-telemetry/opentelemetry-java[`opentelemetry-java`] package for
 https://opentelemetry.io/docs/instrumentation/java/manual/[manual instrumentation] of Mule applications.  By taking full advantage of the OTel
@@ -519,13 +519,13 @@ Java implementation, the Mule extension becomes completely stand-alone and does 
 participant in a distributed trace.
 
 
-==== Mule 4 OpenTelemetry Agent Architecture
+==== Mule 4 OpenTelemetry Module Architecture
 
-The architecture of the Mule 4 OTel Agent is relatively straight forward.  As depicted in the diagram below, the agent is comprised of
+The architecture of the Mule 4 OpenTelemetry Module is relatively straight forward.  As depicted in the diagram below, the agent is comprised of
 code which listens for notification events from the Mule runtime.  During the processing of the notification, the agent generates metadata
 about the notification and sends that data to the OpenTelemetry SDK via the OpenTelemetry API - shown as _Trace Data_ in the diagram.
-The OpenTelemetry SDK continues to gathers the extension generated trace data until all processing is complete.  At that point, the
-OpenTelemetry SDK exports the trace data using the OpenTelemetry wire Protocol (OTLP) to an OpenTelemetry Collector.
+The OpenTelemetry SDK continues to gather the extension generated trace data until all processing is complete.  At that point, the
+OpenTelemetry SDK exports the trace data using the configured Exporter, e.g. the OpenTelemetry wire Protocol (OTLP) Exporter, to an OpenTelemetry Collector.
 
 image::Agent-Arch-v2.png[900, 900, title="Mule Agent Architecture", align="center"]
 
@@ -582,123 +582,10 @@ image::Mule-4-OTel-Agent-Flowchart-Startup.png[500, 500, title="Mule Agent Flowc
 
 image::Mule-4-OTel-Agent-Flowchart.png[1000, 1000, title="Mule Agent Flowchart - Notification Processing", align="center"]
 
-[#The-How-Mule-OTel-Agent-id]
-== The How on the Mule 4 OTel Agent
+[#The-How-Mule-OTel-module-id]
+== The How on the Mule 4 OpenTelemetry Module
 
-=== Installation Guideline
-
-==== Extension Download
-
-* Download the latest version, `otel-mule4-observability-agent-{revnumber}-mule-plugin.jar`, of the extension from
-https://github.com/rickbansal-mulesoft/otel-mule4-observability-agent/tree/main/target/otel-mule4-observability-agent-{revnumber}-mule-plugin.jar[here]
-
-==== Add the Extension to Your Maven Repository
-
-You can add the extension to your local Maven repo in one of two ways:
-
-* Manually from the command line - assuming you have Maven installed and are comfortable with using Maven
-* Through Anypoint Studio - *preferred* as it's less error prone
-
-IMPORTANT: Using Anypoint Studio is the recommended method for installing the extension into your local Maven repo.
-
-===== Add via Maven Command Line
- mvn install:install-file -Dfile=<path-to-file> \
-                          -DgroupId=org.mulesoft.extensions.rickbansal.otel \
-                          -DartifactId=otel-mule4-observability-agent \
-                          -Dclassifier=mule-plugin \
-                          -Dversion=1.0.92-SNAPSHOT <1>
-
-<1> The version could be different based upon when you read this document and which version was downloaded.  Please make sure the version
-property corresponds to the version you downloaded.
-
-
-===== Add via Anypoint Studio - Preferred Method**
-
-Using Anypoint Studio to install the extension into your local Maven repository is simple, straight forward and less error
-prone.  It's the preferred method, especially, if you aren't very comfortable using Maven directly.
-
-image::add-to-maven-repo-via-studio.png[800, 800, title="Add Into Maven Repo via Studio", align="center"]
-
-<1> Click the "Install Artifact into local repository" button
-<2> Browse for the jar file in your file system
-<3> Click "Install" to complete the installation process
-
-==== Add Dependency to `pom.xml` file
-
-Add the following snippet into your Mule project `pom.xml` file in the `<dependencies>` section:
-[source%nowrap%linenums, xml]
-----
-<dependency>
-	<groupId>org.mulesoft.extensions.rb.otel</groupId>
-	<artifactId>otel-mule4-observability-agent</artifactId>
-	<version>1.0.92-SNAPSHOT</version> <1>
-	<classifier>mule-plugin</classifier>
-</dependency>
-----
-<1> The version could be different based upon when you read this document and which version was downloaded.  Please make sure the version
-element corresponds to the version you installed into your Maven repository.
-
-=== Agent Configuration
-
-Minimally, follow the steps below to add and configure the agent into your Mule application.
-
-IMPORTANT: Mule applications *must add the agent* to their configuration in order to generate and *export* trace data.
-
-image::agent-connector-config.png[800, 800, title="Mule Agent Configuration", align="center"]
-
-<1> Add an OpenTelemetry Mule 4 Observability Configuration to the Mule project.
-<2> *Enable/Disable* tracing at the application level.  If disabled, no traces will be generated or exported.
-<3> Provide a *service name* - usually the application name.
-<4> Configure *Collector Endpoint* for trace data - must be the entire URL, including the scheme (HTTP/S) and port.
-<5> Configure OTLP *Transport Protocol*  - the following transports are supported:  `GRPC`, `HTTP_JSON` and `HTTP_PROTOBUF`.
-<6> Various configuration parameters to control trace/span batch export rate.
-<7> Add any necessary vendor-specific headers (e.g., `Authorization` header with `API Token` key for authentication)
-<8> Optionally disable generating span data for all Message Processors - default behavior is generate span data for all
-Message Processors.
-<9> Or mute individual Message Processor(s) from generating span data (this maybe helpful in eliminating "noise" from the trace
-and let you more effectively focus in on Message Processors(s) of concern).
-
-=== Trace Context Propagation
-
-Currently, trace context propagation is only supported via WC3 Trace Context headers:  `traceparent` and `tracestate`.
-
-The agent will automatically *extract* the trace headers from the incoming HTTP request and *inject* the headers into the application via
-an event *variable* named: `OTEL_TRACE_CONTEXT` of type:  `Map<String, String>`, where `Map<String, String>` contains the
-following:
-
-.`OTEL_TRACE_CONTEXT` <key, value> Map
-|===
-| *Key*          | *Value*
-| `traceparent`  | `[traceparent value]`
-| `tracestate`   | `[tracestate value]`
-|===
-
-In order to *propagate the trace header* information to other web applications, the Mule HTTP Requester Configuration *must*
-have default headers configured in the following way:
-
-image::http-requester-config.png[600, 600, title="Mule HTTP Requester Configuration", align="center"]
-
-
-.HTTP Requester Configuration for Default Headers
-[cols="30%, 70%"]
-|===
-| *Key*          | *Value*
-| `traceparent`  | `#[vars.OTEL_TRACE_CONTEXT.traceparent default '' as String]`
-| `tracestate`   | `#[vars.OTEL_TRACE_CONTEXT.tracestate default ''  as String]`
-|===
-
-
-.Mule configuration xml for setting default headers in the HTTP Requester Configuration
-[source%nowrap%linenums, xml]
-----
-<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="7c863500-0642-4e9d-b759-5e317225e015" sendCorrelationId="NEVER">
-	<http:request-connection host="mule-hello-world-api.us-e1.cloudhub.io" />
-	<http:default-headers >
-		<http:default-header key='traceparent' value="#[vars.OTEL_TRACE_CONTEXT.traceparent default '' as String]" /> <1>
-		<http:default-header key='tracestate' value="#[vars.OTEL_TRACE_CONTEXT.tracestate default '' as String]" />   <2>
-	</http:default-headers>
-</http:request-config>
-----
+include::module-config.adoc[]
 
 === Demo Scenario
 
@@ -708,12 +595,13 @@ render in a Dynatrace backend.
 ==== Demo Architecture using Dynatrace Backend
 
 image::Demo-Distributed-App-Arch.png[1200, 1200, title="Demo Architecture", align="center"]
+
 <1> External application sending a request to Mule Application 1 with WC3 Trace Context Headers
 <2> Mule App 1 sending a request to Mule App 2 and propagating the trace context via WC3 Trace Context Headers
 <3> Responses coming back to calling application
 <4> Responses coming back to calling application
 <5> Both Mule applications sending log and metrics data to Anypoint Monitoring
-<6> Mule 4 OTel Agent sending trace information to Dynatrace OTel Collector
+<6> Mule 4 OpenTelemetry Module sending trace information to Dynatrace OTel Collector
 <7> Dynatrace Collector forwarding the data to Dynatrace dashboard for rendering
 
 ==== Demo Architecture Mule Implementation Diagram
@@ -732,7 +620,7 @@ image::Distributed-Mule-App-Diagram.png[title="Demo Mule Application Diagram", a
 === Example Output - Dynatrace Backend
 
 Below are several screenshots from a Dynatrace Distributed Traces Dashboard to provide examples regarding the type of output generated
-by the Mule 4 OTel Agent and visualized by observability backend.
+by the Mule 4 OpenTelemetry Module and visualized by observability backend.
 
 ==== Overall Distributed Trace Temporal Graph
 image::dynatrace-distributed-span.png[title="Dynatrace - Complete Distributed Trace", align="center"]
@@ -783,7 +671,7 @@ image::dynatrace-distributed-db-error-event.png[title="Dynatrace - Database Proc
 
 == Backends Tested Against
 
-include::../../../backendsTested.adoc[]
+include::./backendsTested.adoc[]
 
 
 [bibliography]
@@ -802,9 +690,3 @@ Monitoring - 2021"]
 * {wc3-trace-context-url}[wc3.org: "Trace Context Draft Recommendation"]
 * {wc3-trace-context-url}/#dfn-distributed-traces[wc3.org: "Distributed Traces"]
 
-
-[acknowledgement]
-== Acknowledgement
-
-I want to thank a trusted Mule development partner, *Avio Consulting*, for providing a strong starting point
-in the development of this extension as well as their ongoing support.

@@ -1,0 +1,2323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.17">
+<meta name="keywords" content="Mule, MuleSoft, Observability, OpenTelemetry, OTel, Tracing, Instrumentation, Distributed">
+<meta name="author" content="AVIO Consulting">
+<title>Mule 4 OpenTelemetry Module</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
+<style>
+/*! Asciidoctor default stylesheet | MIT License | https://asciidoctor.org */
+/* Uncomment the following line when using as a custom stylesheet */
+/* @import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700"; */
+html{font-family:sans-serif;-webkit-text-size-adjust:100%}
+a{background:none}
+a:focus{outline:thin dotted}
+a:active,a:hover{outline:0}
+h1{font-size:2em;margin:.67em 0}
+b,strong{font-weight:bold}
+abbr{font-size:.9em}
+abbr[title]{cursor:help;border-bottom:1px dotted #dddddf;text-decoration:none}
+dfn{font-style:italic}
+hr{height:0}
+mark{background:#ff0;color:#000}
+code,kbd,pre,samp{font-family:monospace;font-size:1em}
+pre{white-space:pre-wrap}
+q{quotes:"\201C" "\201D" "\2018" "\2019"}
+small{font-size:80%}
+sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}
+sup{top:-.5em}
+sub{bottom:-.25em}
+img{border:0}
+svg:not(:root){overflow:hidden}
+figure{margin:0}
+audio,video{display:inline-block}
+audio:not([controls]){display:none;height:0}
+fieldset{border:1px solid silver;margin:0 2px;padding:.35em .625em .75em}
+legend{border:0;padding:0}
+button,input,select,textarea{font-family:inherit;font-size:100%;margin:0}
+button,input{line-height:normal}
+button,select{text-transform:none}
+button,html input[type=button],input[type=reset],input[type=submit]{-webkit-appearance:button;cursor:pointer}
+button[disabled],html input[disabled]{cursor:default}
+input[type=checkbox],input[type=radio]{padding:0}
+button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}
+textarea{overflow:auto;vertical-align:top}
+table{border-collapse:collapse;border-spacing:0}
+*,::before,::after{box-sizing:border-box}
+html,body{font-size:100%}
+body{background:#fff;color:rgba(0,0,0,.8);padding:0;margin:0;font-family:"Noto Serif","DejaVu Serif",serif;line-height:1;position:relative;cursor:auto;-moz-tab-size:4;-o-tab-size:4;tab-size:4;word-wrap:anywhere;-moz-osx-font-smoothing:grayscale;-webkit-font-smoothing:antialiased}
+a:hover{cursor:pointer}
+img,object,embed{max-width:100%;height:auto}
+object,embed{height:100%}
+img{-ms-interpolation-mode:bicubic}
+.left{float:left!important}
+.right{float:right!important}
+.text-left{text-align:left!important}
+.text-right{text-align:right!important}
+.text-center{text-align:center!important}
+.text-justify{text-align:justify!important}
+.hide{display:none}
+img,object,svg{display:inline-block;vertical-align:middle}
+textarea{height:auto;min-height:50px}
+select{width:100%}
+.subheader,.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title{line-height:1.45;color:#7a2518;font-weight:400;margin-top:0;margin-bottom:.25em}
+div,dl,dt,dd,ul,ol,li,h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6,pre,form,p,blockquote,th,td{margin:0;padding:0}
+a{color:#2156a5;text-decoration:underline;line-height:inherit}
+a:hover,a:focus{color:#1d4b8f}
+a img{border:0}
+p{line-height:1.6;margin-bottom:1.25em;text-rendering:optimizeLegibility}
+p aside{font-size:.875em;line-height:1.35;font-style:italic}
+h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{font-family:"Open Sans","DejaVu Sans",sans-serif;font-weight:300;font-style:normal;color:#ba3925;text-rendering:optimizeLegibility;margin-top:1em;margin-bottom:.5em;line-height:1.0125em}
+h1 small,h2 small,h3 small,#toctitle small,.sidebarblock>.content>.title small,h4 small,h5 small,h6 small{font-size:60%;color:#e99b8f;line-height:0}
+h1{font-size:2.125em}
+h2{font-size:1.6875em}
+h3,#toctitle,.sidebarblock>.content>.title{font-size:1.375em}
+h4,h5{font-size:1.125em}
+h6{font-size:1em}
+hr{border:solid #dddddf;border-width:1px 0 0;clear:both;margin:1.25em 0 1.1875em}
+em,i{font-style:italic;line-height:inherit}
+strong,b{font-weight:bold;line-height:inherit}
+small{font-size:60%;line-height:inherit}
+code{font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;font-weight:400;color:rgba(0,0,0,.9)}
+ul,ol,dl{line-height:1.6;margin-bottom:1.25em;list-style-position:outside;font-family:inherit}
+ul,ol{margin-left:1.5em}
+ul li ul,ul li ol{margin-left:1.25em;margin-bottom:0}
+ul.square li ul,ul.circle li ul,ul.disc li ul{list-style:inherit}
+ul.square{list-style-type:square}
+ul.circle{list-style-type:circle}
+ul.disc{list-style-type:disc}
+ol li ul,ol li ol{margin-left:1.25em;margin-bottom:0}
+dl dt{margin-bottom:.3125em;font-weight:bold}
+dl dd{margin-bottom:1.25em}
+blockquote{margin:0 0 1.25em;padding:.5625em 1.25em 0 1.1875em;border-left:1px solid #ddd}
+blockquote,blockquote p{line-height:1.6;color:rgba(0,0,0,.85)}
+@media screen and (min-width:768px){h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{line-height:1.2}
+h1{font-size:2.75em}
+h2{font-size:2.3125em}
+h3,#toctitle,.sidebarblock>.content>.title{font-size:1.6875em}
+h4{font-size:1.4375em}}
+table{background:#fff;margin-bottom:1.25em;border:1px solid #dedede;word-wrap:normal}
+table thead,table tfoot{background:#f7f8f7}
+table thead tr th,table thead tr td,table tfoot tr th,table tfoot tr td{padding:.5em .625em .625em;font-size:inherit;color:rgba(0,0,0,.8);text-align:left}
+table tr th,table tr td{padding:.5625em .625em;font-size:inherit;color:rgba(0,0,0,.8)}
+table tr.even,table tr.alt{background:#f8f8f7}
+table thead tr th,table tfoot tr th,table tbody tr td,table tr td,table tfoot tr td{line-height:1.6}
+h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{line-height:1.2;word-spacing:-.05em}
+h1 strong,h2 strong,h3 strong,#toctitle strong,.sidebarblock>.content>.title strong,h4 strong,h5 strong,h6 strong{font-weight:400}
+.center{margin-left:auto;margin-right:auto}
+.stretch{width:100%}
+.clearfix::before,.clearfix::after,.float-group::before,.float-group::after{content:" ";display:table}
+.clearfix::after,.float-group::after{clear:both}
+:not(pre).nobreak{word-wrap:normal}
+:not(pre).nowrap{white-space:nowrap}
+:not(pre).pre-wrap{white-space:pre-wrap}
+:not(pre):not([class^=L])>code{font-size:.9375em;font-style:normal!important;letter-spacing:0;padding:.1em .5ex;word-spacing:-.15em;background:#f7f7f8;border-radius:4px;line-height:1.45;text-rendering:optimizeSpeed}
+pre{color:rgba(0,0,0,.9);font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;line-height:1.45;text-rendering:optimizeSpeed}
+pre code,pre pre{color:inherit;font-size:inherit;line-height:inherit}
+pre>code{display:block}
+pre.nowrap,pre.nowrap pre{white-space:pre;word-wrap:normal}
+em em{font-style:normal}
+strong strong{font-weight:400}
+.keyseq{color:rgba(51,51,51,.8)}
+kbd{font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;display:inline-block;color:rgba(0,0,0,.8);font-size:.65em;line-height:1.45;background:#f7f7f7;border:1px solid #ccc;border-radius:3px;box-shadow:0 1px 0 rgba(0,0,0,.2),inset 0 0 0 .1em #fff;margin:0 .15em;padding:.2em .5em;vertical-align:middle;position:relative;top:-.1em;white-space:nowrap}
+.keyseq kbd:first-child{margin-left:0}
+.keyseq kbd:last-child{margin-right:0}
+.menuseq,.menuref{color:#000}
+.menuseq b:not(.caret),.menuref{font-weight:inherit}
+.menuseq{word-spacing:-.02em}
+.menuseq b.caret{font-size:1.25em;line-height:.8}
+.menuseq i.caret{font-weight:bold;text-align:center;width:.45em}
+b.button::before,b.button::after{position:relative;top:-1px;font-weight:400}
+b.button::before{content:"[";padding:0 3px 0 2px}
+b.button::after{content:"]";padding:0 2px 0 3px}
+p a>code:hover{color:rgba(0,0,0,.9)}
+#header,#content,#footnotes,#footer{width:100%;margin:0 auto;max-width:62.5em;*zoom:1;position:relative;padding-left:.9375em;padding-right:.9375em}
+#header::before,#header::after,#content::before,#content::after,#footnotes::before,#footnotes::after,#footer::before,#footer::after{content:" ";display:table}
+#header::after,#content::after,#footnotes::after,#footer::after{clear:both}
+#content{margin-top:1.25em}
+#content::before{content:none}
+#header>h1:first-child{color:rgba(0,0,0,.85);margin-top:2.25rem;margin-bottom:0}
+#header>h1:first-child+#toc{margin-top:8px;border-top:1px solid #dddddf}
+#header>h1:only-child,body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #dddddf;padding-bottom:8px}
+#header .details{border-bottom:1px solid #dddddf;line-height:1.45;padding-top:.25em;padding-bottom:.25em;padding-left:.25em;color:rgba(0,0,0,.6);display:flex;flex-flow:row wrap}
+#header .details span:first-child{margin-left:-.125em}
+#header .details span.email a{color:rgba(0,0,0,.85)}
+#header .details br{display:none}
+#header .details br+span::before{content:"\00a0\2013\00a0"}
+#header .details br+span.author::before{content:"\00a0\22c5\00a0";color:rgba(0,0,0,.85)}
+#header .details br+span#revremark::before{content:"\00a0|\00a0"}
+#header #revnumber{text-transform:capitalize}
+#header #revnumber::after{content:"\00a0"}
+#content>h1:first-child:not([class]){color:rgba(0,0,0,.85);border-bottom:1px solid #dddddf;padding-bottom:8px;margin-top:0;padding-top:1rem;margin-bottom:1.25rem}
+#toc{border-bottom:1px solid #e7e7e9;padding-bottom:.5em}
+#toc>ul{margin-left:.125em}
+#toc ul.sectlevel0>li>a{font-style:italic}
+#toc ul.sectlevel0 ul.sectlevel1{margin:.5em 0}
+#toc ul{font-family:"Open Sans","DejaVu Sans",sans-serif;list-style-type:none}
+#toc li{line-height:1.3334;margin-top:.3334em}
+#toc a{text-decoration:none}
+#toc a:active{text-decoration:underline}
+#toctitle{color:#7a2518;font-size:1.2em}
+@media screen and (min-width:768px){#toctitle{font-size:1.375em}
+body.toc2{padding-left:15em;padding-right:0}
+#toc.toc2{margin-top:0!important;background:#f8f8f7;position:fixed;width:15em;left:0;top:0;border-right:1px solid #e7e7e9;border-top-width:0!important;border-bottom-width:0!important;z-index:1000;padding:1.25em 1em;height:100%;overflow:auto}
+#toc.toc2 #toctitle{margin-top:0;margin-bottom:.8rem;font-size:1.2em}
+#toc.toc2>ul{font-size:.9em;margin-bottom:0}
+#toc.toc2 ul ul{margin-left:0;padding-left:1em}
+#toc.toc2 ul.sectlevel0 ul.sectlevel1{padding-left:0;margin-top:.5em;margin-bottom:.5em}
+body.toc2.toc-right{padding-left:0;padding-right:15em}
+body.toc2.toc-right #toc.toc2{border-right-width:0;border-left:1px solid #e7e7e9;left:auto;right:0}}
+@media screen and (min-width:1280px){body.toc2{padding-left:20em;padding-right:0}
+#toc.toc2{width:20em}
+#toc.toc2 #toctitle{font-size:1.375em}
+#toc.toc2>ul{font-size:.95em}
+#toc.toc2 ul ul{padding-left:1.25em}
+body.toc2.toc-right{padding-left:0;padding-right:20em}}
+#content #toc{border:1px solid #e0e0dc;margin-bottom:1.25em;padding:1.25em;background:#f8f8f7;border-radius:4px}
+#content #toc>:first-child{margin-top:0}
+#content #toc>:last-child{margin-bottom:0}
+#footer{max-width:none;background:rgba(0,0,0,.8);padding:1.25em}
+#footer-text{color:hsla(0,0%,100%,.8);line-height:1.44}
+#content{margin-bottom:.625em}
+.sect1{padding-bottom:.625em}
+@media screen and (min-width:768px){#content{margin-bottom:1.25em}
+.sect1{padding-bottom:1.25em}}
+.sect1:last-child{padding-bottom:0}
+.sect1+.sect1{border-top:1px solid #e7e7e9}
+#content h1>a.anchor,h2>a.anchor,h3>a.anchor,#toctitle>a.anchor,.sidebarblock>.content>.title>a.anchor,h4>a.anchor,h5>a.anchor,h6>a.anchor{position:absolute;z-index:1001;width:1.5ex;margin-left:-1.5ex;display:block;text-decoration:none!important;visibility:hidden;text-align:center;font-weight:400}
+#content h1>a.anchor::before,h2>a.anchor::before,h3>a.anchor::before,#toctitle>a.anchor::before,.sidebarblock>.content>.title>a.anchor::before,h4>a.anchor::before,h5>a.anchor::before,h6>a.anchor::before{content:"\00A7";font-size:.85em;display:block;padding-top:.1em}
+#content h1:hover>a.anchor,#content h1>a.anchor:hover,h2:hover>a.anchor,h2>a.anchor:hover,h3:hover>a.anchor,#toctitle:hover>a.anchor,.sidebarblock>.content>.title:hover>a.anchor,h3>a.anchor:hover,#toctitle>a.anchor:hover,.sidebarblock>.content>.title>a.anchor:hover,h4:hover>a.anchor,h4>a.anchor:hover,h5:hover>a.anchor,h5>a.anchor:hover,h6:hover>a.anchor,h6>a.anchor:hover{visibility:visible}
+#content h1>a.link,h2>a.link,h3>a.link,#toctitle>a.link,.sidebarblock>.content>.title>a.link,h4>a.link,h5>a.link,h6>a.link{color:#ba3925;text-decoration:none}
+#content h1>a.link:hover,h2>a.link:hover,h3>a.link:hover,#toctitle>a.link:hover,.sidebarblock>.content>.title>a.link:hover,h4>a.link:hover,h5>a.link:hover,h6>a.link:hover{color:#a53221}
+details,.audioblock,.imageblock,.literalblock,.listingblock,.stemblock,.videoblock{margin-bottom:1.25em}
+details{margin-left:1.25rem}
+details>summary{cursor:pointer;display:block;position:relative;line-height:1.6;margin-bottom:.625rem;outline:none;-webkit-tap-highlight-color:transparent}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"";border:solid transparent;border-left:solid;border-width:.3em 0 .3em .5em;position:absolute;top:.5em;left:-1.25rem;transform:translateX(15%)}
+details[open]>summary::before{border:solid transparent;border-top:solid;border-width:.5em .3em 0;transform:translateY(15%)}
+details>summary::after{content:"";width:1.25rem;height:1em;position:absolute;top:.3em;left:-1.25rem}
+.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title{text-rendering:optimizeLegibility;text-align:left;font-family:"Noto Serif","DejaVu Serif",serif;font-size:1rem;font-style:italic}
+table.tableblock.fit-content>caption.title{white-space:nowrap;width:0}
+.paragraph.lead>p,#preamble>.sectionbody>[class=paragraph]:first-of-type p{font-size:1.21875em;line-height:1.6;color:rgba(0,0,0,.85)}
+.admonitionblock>table{border-collapse:separate;border:0;background:none;width:100%}
+.admonitionblock>table td.icon{text-align:center;width:80px}
+.admonitionblock>table td.icon img{max-width:none}
+.admonitionblock>table td.icon .title{font-weight:bold;font-family:"Open Sans","DejaVu Sans",sans-serif;text-transform:uppercase}
+.admonitionblock>table td.content{padding-left:1.125em;padding-right:1.25em;border-left:1px solid #dddddf;color:rgba(0,0,0,.6);word-wrap:anywhere}
+.admonitionblock>table td.content>:last-child>:last-child{margin-bottom:0}
+.exampleblock>.content{border:1px solid #e6e6e6;margin-bottom:1.25em;padding:1.25em;background:#fff;border-radius:4px}
+.exampleblock>.content>:first-child{margin-top:0}
+.exampleblock>.content>:last-child{margin-bottom:0}
+.sidebarblock{border:1px solid #dbdbd6;margin-bottom:1.25em;padding:1.25em;background:#f3f3f2;border-radius:4px}
+.sidebarblock>:first-child{margin-top:0}
+.sidebarblock>:last-child{margin-bottom:0}
+.sidebarblock>.content>.title{color:#7a2518;margin-top:0;text-align:center}
+.exampleblock>.content>:last-child>:last-child,.exampleblock>.content .olist>ol>li:last-child>:last-child,.exampleblock>.content .ulist>ul>li:last-child>:last-child,.exampleblock>.content .qlist>ol>li:last-child>:last-child,.sidebarblock>.content>:last-child>:last-child,.sidebarblock>.content .olist>ol>li:last-child>:last-child,.sidebarblock>.content .ulist>ul>li:last-child>:last-child,.sidebarblock>.content .qlist>ol>li:last-child>:last-child{margin-bottom:0}
+.literalblock pre,.listingblock>.content>pre{border-radius:4px;overflow-x:auto;padding:1em;font-size:.8125em}
+@media screen and (min-width:768px){.literalblock pre,.listingblock>.content>pre{font-size:.90625em}}
+@media screen and (min-width:1280px){.literalblock pre,.listingblock>.content>pre{font-size:1em}}
+.literalblock pre,.listingblock>.content>pre:not(.highlight),.listingblock>.content>pre[class=highlight],.listingblock>.content>pre[class^="highlight "]{background:#f7f7f8}
+.literalblock.output pre{color:#f7f7f8;background:rgba(0,0,0,.9)}
+.listingblock>.content{position:relative}
+.listingblock code[data-lang]::before{display:none;content:attr(data-lang);position:absolute;font-size:.75em;top:.425rem;right:.5rem;line-height:1;text-transform:uppercase;color:inherit;opacity:.5}
+.listingblock:hover code[data-lang]::before{display:block}
+.listingblock.terminal pre .command::before{content:attr(data-prompt);padding-right:.5em;color:inherit;opacity:.5}
+.listingblock.terminal pre .command:not([data-prompt])::before{content:"$"}
+.listingblock pre.highlightjs{padding:0}
+.listingblock pre.highlightjs>code{padding:1em;border-radius:4px}
+.listingblock pre.prettyprint{border-width:0}
+.prettyprint{background:#f7f7f8}
+pre.prettyprint .linenums{line-height:1.45;margin-left:2em}
+pre.prettyprint li{background:none;list-style-type:inherit;padding-left:0}
+pre.prettyprint li code[data-lang]::before{opacity:1}
+pre.prettyprint li:not(:first-child) code[data-lang]::before{display:none}
+table.linenotable{border-collapse:separate;border:0;margin-bottom:0;background:none}
+table.linenotable td[class]{color:inherit;vertical-align:top;padding:0;line-height:inherit;white-space:normal}
+table.linenotable td.code{padding-left:.75em}
+table.linenotable td.linenos,pre.pygments .linenos{border-right:1px solid;opacity:.35;padding-right:.5em;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
+pre.pygments span.linenos{display:inline-block;margin-right:.75em}
+.quoteblock{margin:0 1em 1.25em 1.5em;display:table}
+.quoteblock:not(.excerpt)>.title{margin-left:-1.5em;margin-bottom:.75em}
+.quoteblock blockquote,.quoteblock p{color:rgba(0,0,0,.85);font-size:1.15rem;line-height:1.75;word-spacing:.1em;letter-spacing:0;font-style:italic;text-align:justify}
+.quoteblock blockquote{margin:0;padding:0;border:0}
+.quoteblock blockquote::before{content:"\201c";float:left;font-size:2.75em;font-weight:bold;line-height:.6em;margin-left:-.6em;color:#7a2518;text-shadow:0 1px 2px rgba(0,0,0,.1)}
+.quoteblock blockquote>.paragraph:last-child p{margin-bottom:0}
+.quoteblock .attribution{margin-top:.75em;margin-right:.5ex;text-align:right}
+.verseblock{margin:0 1em 1.25em}
+.verseblock pre{font-family:"Open Sans","DejaVu Sans",sans-serif;font-size:1.15rem;color:rgba(0,0,0,.85);font-weight:300;text-rendering:optimizeLegibility}
+.verseblock pre strong{font-weight:400}
+.verseblock .attribution{margin-top:1.25rem;margin-left:.5ex}
+.quoteblock .attribution,.verseblock .attribution{font-size:.9375em;line-height:1.45;font-style:italic}
+.quoteblock .attribution br,.verseblock .attribution br{display:none}
+.quoteblock .attribution cite,.verseblock .attribution cite{display:block;letter-spacing:-.025em;color:rgba(0,0,0,.6)}
+.quoteblock.abstract blockquote::before,.quoteblock.excerpt blockquote::before,.quoteblock .quoteblock blockquote::before{display:none}
+.quoteblock.abstract blockquote,.quoteblock.abstract p,.quoteblock.excerpt blockquote,.quoteblock.excerpt p,.quoteblock .quoteblock blockquote,.quoteblock .quoteblock p{line-height:1.6;word-spacing:0}
+.quoteblock.abstract{margin:0 1em 1.25em;display:block}
+.quoteblock.abstract>.title{margin:0 0 .375em;font-size:1.15em;text-align:center}
+.quoteblock.excerpt>blockquote,.quoteblock .quoteblock{padding:0 0 .25em 1em;border-left:.25em solid #dddddf}
+.quoteblock.excerpt,.quoteblock .quoteblock{margin-left:0}
+.quoteblock.excerpt blockquote,.quoteblock.excerpt p,.quoteblock .quoteblock blockquote,.quoteblock .quoteblock p{color:inherit;font-size:1.0625rem}
+.quoteblock.excerpt .attribution,.quoteblock .quoteblock .attribution{color:inherit;font-size:.85rem;text-align:left;margin-right:0}
+p.tableblock:last-child{margin-bottom:0}
+td.tableblock>.content{margin-bottom:1.25em;word-wrap:anywhere}
+td.tableblock>.content>:last-child{margin-bottom:-1.25em}
+table.tableblock,th.tableblock,td.tableblock{border:0 solid #dedede}
+table.grid-all>*>tr>*{border-width:1px}
+table.grid-cols>*>tr>*{border-width:0 1px}
+table.grid-rows>*>tr>*{border-width:1px 0}
+table.frame-all{border-width:1px}
+table.frame-ends{border-width:1px 0}
+table.frame-sides{border-width:0 1px}
+table.frame-none>colgroup+*>:first-child>*,table.frame-sides>colgroup+*>:first-child>*{border-top-width:0}
+table.frame-none>:last-child>:last-child>*,table.frame-sides>:last-child>:last-child>*{border-bottom-width:0}
+table.frame-none>*>tr>:first-child,table.frame-ends>*>tr>:first-child{border-left-width:0}
+table.frame-none>*>tr>:last-child,table.frame-ends>*>tr>:last-child{border-right-width:0}
+table.stripes-all>*>tr,table.stripes-odd>*>tr:nth-of-type(odd),table.stripes-even>*>tr:nth-of-type(even),table.stripes-hover>*>tr:hover{background:#f8f8f7}
+th.halign-left,td.halign-left{text-align:left}
+th.halign-right,td.halign-right{text-align:right}
+th.halign-center,td.halign-center{text-align:center}
+th.valign-top,td.valign-top{vertical-align:top}
+th.valign-bottom,td.valign-bottom{vertical-align:bottom}
+th.valign-middle,td.valign-middle{vertical-align:middle}
+table thead th,table tfoot th{font-weight:bold}
+tbody tr th{background:#f7f8f7}
+tbody tr th,tbody tr th p,tfoot tr th,tfoot tr th p{color:rgba(0,0,0,.8);font-weight:bold}
+p.tableblock>code:only-child{background:none;padding:0}
+p.tableblock{font-size:1em}
+ol{margin-left:1.75em}
+ul li ol{margin-left:1.5em}
+dl dd{margin-left:1.125em}
+dl dd:last-child,dl dd:last-child>:last-child{margin-bottom:0}
+li p,ul dd,ol dd,.olist .olist,.ulist .ulist,.ulist .olist,.olist .ulist{margin-bottom:.625em}
+ul.checklist,ul.none,ol.none,ul.no-bullet,ol.no-bullet,ol.unnumbered,ul.unstyled,ol.unstyled{list-style-type:none}
+ul.no-bullet,ol.no-bullet,ol.unnumbered{margin-left:.625em}
+ul.unstyled,ol.unstyled{margin-left:0}
+li>p:empty:only-child::before{content:"";display:inline-block}
+ul.checklist>li>p:first-child{margin-left:-1em}
+ul.checklist>li>p:first-child>.fa-square-o:first-child,ul.checklist>li>p:first-child>.fa-check-square-o:first-child{width:1.25em;font-size:.8em;position:relative;bottom:.125em}
+ul.checklist>li>p:first-child>input[type=checkbox]:first-child{margin-right:.25em}
+ul.inline{display:flex;flex-flow:row wrap;list-style:none;margin:0 0 .625em -1.25em}
+ul.inline>li{margin-left:1.25em}
+.unstyled dl dt{font-weight:400;font-style:normal}
+ol.arabic{list-style-type:decimal}
+ol.decimal{list-style-type:decimal-leading-zero}
+ol.loweralpha{list-style-type:lower-alpha}
+ol.upperalpha{list-style-type:upper-alpha}
+ol.lowerroman{list-style-type:lower-roman}
+ol.upperroman{list-style-type:upper-roman}
+ol.lowergreek{list-style-type:lower-greek}
+.hdlist>table,.colist>table{border:0;background:none}
+.hdlist>table>tbody>tr,.colist>table>tbody>tr{background:none}
+td.hdlist1,td.hdlist2{vertical-align:top;padding:0 .625em}
+td.hdlist1{font-weight:bold;padding-bottom:1.25em}
+td.hdlist2{word-wrap:anywhere}
+.literalblock+.colist,.listingblock+.colist{margin-top:-.5em}
+.colist td:not([class]):first-child{padding:.4em .75em 0;line-height:1;vertical-align:top}
+.colist td:not([class]):first-child img{max-width:none}
+.colist td:not([class]):last-child{padding:.25em 0}
+.thumb,.th{line-height:0;display:inline-block;border:4px solid #fff;box-shadow:0 0 0 1px #ddd}
+.imageblock.left{margin:.25em .625em 1.25em 0}
+.imageblock.right{margin:.25em 0 1.25em .625em}
+.imageblock>.title{margin-bottom:0}
+.imageblock.thumb,.imageblock.th{border-width:6px}
+.imageblock.thumb>.title,.imageblock.th>.title{padding:0 .125em}
+.image.left,.image.right{margin-top:.25em;margin-bottom:.25em;display:inline-block;line-height:0}
+.image.left{margin-right:.625em}
+.image.right{margin-left:.625em}
+a.image{text-decoration:none;display:inline-block}
+a.image object{pointer-events:none}
+sup.footnote,sup.footnoteref{font-size:.875em;position:static;vertical-align:super}
+sup.footnote a,sup.footnoteref a{text-decoration:none}
+sup.footnote a:active,sup.footnoteref a:active{text-decoration:underline}
+#footnotes{padding-top:.75em;padding-bottom:.75em;margin-bottom:.625em}
+#footnotes hr{width:20%;min-width:6.25em;margin:-.25em 0 .75em;border-width:1px 0 0}
+#footnotes .footnote{padding:0 .375em 0 .225em;line-height:1.3334;font-size:.875em;margin-left:1.2em;margin-bottom:.2em}
+#footnotes .footnote a:first-of-type{font-weight:bold;text-decoration:none;margin-left:-1.05em}
+#footnotes .footnote:last-of-type{margin-bottom:0}
+#content #footnotes{margin-top:-.625em;margin-bottom:0;padding:.75em 0}
+div.unbreakable{page-break-inside:avoid}
+.big{font-size:larger}
+.small{font-size:smaller}
+.underline{text-decoration:underline}
+.overline{text-decoration:overline}
+.line-through{text-decoration:line-through}
+.aqua{color:#00bfbf}
+.aqua-background{background:#00fafa}
+.black{color:#000}
+.black-background{background:#000}
+.blue{color:#0000bf}
+.blue-background{background:#0000fa}
+.fuchsia{color:#bf00bf}
+.fuchsia-background{background:#fa00fa}
+.gray{color:#606060}
+.gray-background{background:#7d7d7d}
+.green{color:#006000}
+.green-background{background:#007d00}
+.lime{color:#00bf00}
+.lime-background{background:#00fa00}
+.maroon{color:#600000}
+.maroon-background{background:#7d0000}
+.navy{color:#000060}
+.navy-background{background:#00007d}
+.olive{color:#606000}
+.olive-background{background:#7d7d00}
+.purple{color:#600060}
+.purple-background{background:#7d007d}
+.red{color:#bf0000}
+.red-background{background:#fa0000}
+.silver{color:#909090}
+.silver-background{background:#bcbcbc}
+.teal{color:#006060}
+.teal-background{background:#007d7d}
+.white{color:#bfbfbf}
+.white-background{background:#fafafa}
+.yellow{color:#bfbf00}
+.yellow-background{background:#fafa00}
+span.icon>.fa{cursor:default}
+a span.icon>.fa{cursor:inherit}
+.admonitionblock td.icon [class^="fa icon-"]{font-size:2.5em;text-shadow:1px 1px 2px rgba(0,0,0,.5);cursor:default}
+.admonitionblock td.icon .icon-note::before{content:"\f05a";color:#19407c}
+.admonitionblock td.icon .icon-tip::before{content:"\f0eb";text-shadow:1px 1px 2px rgba(155,155,0,.8);color:#111}
+.admonitionblock td.icon .icon-warning::before{content:"\f071";color:#bf6900}
+.admonitionblock td.icon .icon-caution::before{content:"\f06d";color:#bf3400}
+.admonitionblock td.icon .icon-important::before{content:"\f06a";color:#bf0000}
+.conum[data-value]{display:inline-block;color:#fff!important;background:rgba(0,0,0,.8);border-radius:50%;text-align:center;font-size:.75em;width:1.67em;height:1.67em;line-height:1.67em;font-family:"Open Sans","DejaVu Sans",sans-serif;font-style:normal;font-weight:bold}
+.conum[data-value] *{color:#fff!important}
+.conum[data-value]+b{display:none}
+.conum[data-value]::after{content:attr(data-value)}
+pre .conum[data-value]{position:relative;top:-.125em}
+b.conum *{color:inherit!important}
+.conum:not([data-value]):empty{display:none}
+dt,th.tableblock,td.content,div.footnote{text-rendering:optimizeLegibility}
+h1,h2,p,td.content,span.alt,summary{letter-spacing:-.01em}
+p strong,td.content strong,div.footnote strong{letter-spacing:-.005em}
+p,blockquote,dt,td.content,span.alt,summary{font-size:1.0625rem}
+p{margin-bottom:1.25rem}
+.sidebarblock p,.sidebarblock dt,.sidebarblock td.content,p.tableblock{font-size:1em}
+.exampleblock>.content{background:#fffef7;border-color:#e0e0dc;box-shadow:0 1px 4px #e0e0dc}
+.print-only{display:none!important}
+@page{margin:1.25cm .75cm}
+@media print{*{box-shadow:none!important;text-shadow:none!important}
+html{font-size:80%}
+a{color:inherit!important;text-decoration:underline!important}
+a.bare,a[href^="#"],a[href^="mailto:"]{text-decoration:none!important}
+a[href^="http:"]:not(.bare)::after,a[href^="https:"]:not(.bare)::after{content:"(" attr(href) ")";display:inline-block;font-size:.875em;padding-left:.25em}
+abbr[title]{border-bottom:1px dotted}
+abbr[title]::after{content:" (" attr(title) ")"}
+pre,blockquote,tr,img,object,svg{page-break-inside:avoid}
+thead{display:table-header-group}
+svg{max-width:100%}
+p,blockquote,dt,td.content{font-size:1em;orphans:3;widows:3}
+h2,h3,#toctitle,.sidebarblock>.content>.title{page-break-after:avoid}
+#header,#content,#footnotes,#footer{max-width:none}
+#toc,.sidebarblock,.exampleblock>.content{background:none!important}
+#toc{border-bottom:1px solid #dddddf!important;padding-bottom:0!important}
+body.book #header{text-align:center}
+body.book #header>h1:first-child{border:0!important;margin:2.5em 0 1em}
+body.book #header .details{border:0!important;display:block;padding:0!important}
+body.book #header .details span:first-child{margin-left:0!important}
+body.book #header .details br{display:block}
+body.book #header .details br+span::before{content:none!important}
+body.book #toc{border:0!important;text-align:left!important;padding:0!important;margin:0!important}
+body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-break-before:always}
+.listingblock code[data-lang]::before{display:block}
+#footer{padding:0 .9375em}
+.hide-on-print{display:none!important}
+.print-only{display:block!important}
+.hide-for-print{display:none!important}
+.show-for-print{display:inherit!important}}
+@media amzn-kf8,print{#header>h1:first-child{margin-top:1.25rem}
+.sect1{padding:0!important}
+.sect1+.sect1{border:0}
+#footer{background:none}
+#footer-text{color:rgba(0,0,0,.6);font-size:.9em}}
+@media amzn-kf8{#header,#content,#footnotes,#footer{padding:0}}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body class="book toc2 toc-left">
+<div id="header">
+<h1>Mule 4 OpenTelemetry Module</h1>
+<div class="details">
+<span id="author" class="author">AVIO Consulting</span><br>
+<span id="revnumber">version 1.1.0-SNAPSHOT,</span>
+<span id="revdate">2022-09-28-00:26:22</span>
+<br><span id="revremark"></span>
+</div>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_introduction">Introduction</a></li>
+<li><a href="#_the_why_on_the_mule_4_opentelemetry_module">The Why on the Mule 4 OpenTelemetry Module</a>
+<ul class="sectlevel2">
+<li><a href="#_digital_experience_monitoring">Digital Experience Monitoring</a></li>
+<li><a href="#_composability">Composability</a></li>
+<li><a href="#_composable_enterprise">Composable Enterprise</a>
+<ul class="sectlevel3">
+<li><a href="#_so_how_long_before_we_have_true_composable_enterprises">So how long before we have true composable enterprises?</a></li>
+</ul>
+</li>
+<li><a href="#_observability">Observability</a>
+<ul class="sectlevel3">
+<li><a href="#_observability_trinity">Observability Trinity</a></li>
+<li><a href="#_why_is_observability_important">Why is observability important?</a></li>
+<li><a href="#_so_what_do_composability_and_observability_have_to_do_with_each_other">So what do composability and observability have to do with each other?</a></li>
+</ul>
+</li>
+<li><a href="#_solving_for_observability">Solving for Observability</a></li>
+<li><a href="#_observability_is_not_just_for_cloud_native_applications">Observability is NOT Just For Cloud-Native Applications</a></li>
+</ul>
+</li>
+<li><a href="#_the_what_on_the_mule_4_opentelemetry_module">The What on the Mule 4 OpenTelemetry Module</a>
+<ul class="sectlevel2">
+<li><a href="#_opentelemetry_otel">OpenTelemetry (OTel)</a>
+<ul class="sectlevel3">
+<li><a href="#_opentelemetry_reference_architecture">OpenTelemetry Reference Architecture</a></li>
+<li><a href="#_vendor_support_for_opentelemetry">Vendor Support for OpenTelemetry</a></li>
+</ul>
+</li>
+<li><a href="#_wc3_trace_context">WC3 Trace Context</a>
+<ul class="sectlevel3">
+<li><a href="#_trace_context">Trace Context</a></li>
+<li><a href="#_trace_context_headers">Trace Context Headers</a></li>
+<li><a href="#_traceparent_http_header_details"><code>traceparent</code> HTTP Header Details</a></li>
+<li><a href="#_tracestate_http_header_details"><code>tracestate</code> HTTP Header Details</a></li>
+</ul>
+</li>
+<li><a href="#_mulesoft_opentelemetry_module">MuleSoft OpenTelemetry Module</a>
+<ul class="sectlevel3">
+<li><a href="#_mulesoft_java_sdk">MuleSoft Java SDK</a></li>
+<li><a href="#_mulesoft_server_notifications">MuleSoft Server Notifications</a></li>
+<li><a href="#_opentelemetry_framework">OpenTelemetry Framework</a></li>
+<li><a href="#_mule_4_opentelemetry_module_architecture">Mule 4 OpenTelemetry Module Architecture</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#The-How-Mule-OTel-module-id">The How on the Mule 4 OpenTelemetry Module</a>
+<ul class="sectlevel2">
+<li><a href="#_installation">Installation</a></li>
+<li><a href="#_auto_configuration">Auto Configuration</a></li>
+<li><a href="#_extension_configuration">Extension Configuration</a></li>
+<li><a href="#_common_resource_attributes">Common Resource Attributes</a></li>
+<li><a href="#_mule_resource_attributes">Mule Resource Attributes</a></li>
+<li><a href="#_exporters">Exporters</a>
+<ul class="sectlevel3">
+<li><a href="#_otlp_exporter">OTLP Exporter</a></li>
+<li><a href="#_logging_exporter">Logging Exporter</a></li>
+<li><a href="#_generic_exporter">Generic Exporter</a></li>
+</ul>
+</li>
+<li><a href="#_span_processors">Span Processors</a></li>
+<li><a href="#_trace_spans">Trace Spans</a>
+<ul class="sectlevel3">
+<li><a href="#_trace_levels">Trace Levels</a></li>
+</ul>
+</li>
+<li><a href="#_context_propagation">Context Propagation</a>
+<ul class="sectlevel3">
+<li><a href="#_context_extraction">Context Extraction</a></li>
+<li><a href="#_context_injection">Context Injection</a></li>
+</ul>
+</li>
+<li><a href="#_turn_off_tracing">Turn Off Tracing</a></li>
+<li><a href="#_limitations">Limitations</a></li>
+<li><a href="#_demo_scenario">Demo Scenario</a>
+<ul class="sectlevel3">
+<li><a href="#_demo_architecture_using_dynatrace_backend">Demo Architecture using Dynatrace Backend</a></li>
+<li><a href="#_demo_architecture_mule_implementation_diagram">Demo Architecture Mule Implementation Diagram</a></li>
+</ul>
+</li>
+<li><a href="#_example_output_dynatrace_backend">Example Output - Dynatrace Backend</a>
+<ul class="sectlevel3">
+<li><a href="#_overall_distributed_trace_temporal_graph">Overall Distributed Trace Temporal Graph</a></li>
+<li><a href="#_root_span_summary_details">Root Span Summary Details</a></li>
+<li><a href="#_logger_message_processor_output">Logger Message Processor Output</a></li>
+<li><a href="#_database_processor_summary">Database Processor Summary</a></li>
+<li><a href="#_database_processor_error_event">Database Processor Error Event</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#_backends_tested_against">Backends Tested Against</a></li>
+<li><a href="#_references">References</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<style>
+  .imageblock > .title {
+    text-align: inherit;
+    margin-top: 10px;
+  }
+</style>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_introduction">Introduction</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The Mule 4 OpenTelemetry Module is a custom MuleSoft <strong>extension</strong> developed for instrumenting MuleSoft applications to export
+tracing specific <strong>telemetry</strong> data to any OpenTelemetry compliant collector.  Using the module now allows Mule applications
+to take on an active role in <strong>distributed tracing</strong> scenarios and be insightful and actionable participants in the overall
+distributed trace.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+This document is, <strong>intentionally, a bit long</strong> as it contains some background details on the motivation for building
+the extension as well as some design details on the extension itself.  However, if you prefer to <strong>skip past the "why"
+and "what"</strong> material (no offense taken but I did put some extra effort into generating the diagrams) and get right to the
+<strong>"how"</strong>, simply go to <a href="#The-How-Mule-OTel-module-id">The How on the Mule 4 OpenTelemetry Module</a> section of the document.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_the_why_on_the_mule_4_opentelemetry_module">The Why on the Mule 4 OpenTelemetry Module</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The motivation behind developing this extension is predicated on <strong>two primary concerns</strong> as it relates to the enterprise and
+the software they develop - a <strong><em>business</em></strong> concern and a <strong><em>technical</em></strong> concern.</p>
+</div>
+<div class="sect2">
+<h3 id="_digital_experience_monitoring">Digital Experience Monitoring</h3>
+<div class="paragraph">
+<div class="title"><strong>Business Concern</strong></div>
+<p>At a strategic level, that is, at the <strong>business level</strong>, the goal is to better champion the <strong>DEM (Digital Experience Monitor)</strong>
+strategies and solutions enterprises either currently have in place or are rapidly starting to invest in, especially with the need
+to support and enhance the hugely popular "work-from-home" experience.</p>
+</div>
+<div class="paragraph">
+<p>DEM is not necessarily a new technology solution; rather, it&#8217;s a <strong>progression and aggregation</strong> of existing technologies such
+Application Performance Monitoring (APM), Endpoint Monitoring (EM), Real User Monitoring (RUM), Synthetic Transaction Monitoring
+(STM), Network Performance Monitoring and Diagnostics (NPMD) and a number of others.</p>
+</div>
+<div class="paragraph">
+<p>Gartner has a somewhat <strong>expanded definition</strong> of DEM:</p>
+</div>
+<div class="exampleblock">
+<div class="content">
+<div class="quoteblock">
+<blockquote>
+Digital experience monitoring (DEM) technologies monitor the availability, performance and quality of experience an end user or
+digital agent receives as they interact with an application and the supporting infrastructure. Users can be external consumers
+of a service (such as patrons of a retail website), internal employees accessing corporate tools (such as a benefits management
+system), or a combination of both. DEM technologies seek to observe and model the behavior of users as a continuous flow of
+interactions in the form of user journeys.
+</blockquote>
+<div class="attribution">
+&#8212; Gartner
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<p>The Gartner definition of DEM, while comprehensive, is a bit of a mouthful.  A (much) <strong>simpler definition</strong> is:</p>
+</div>
+<div class="exampleblock">
+<div class="content">
+<div class="quoteblock">
+<blockquote>
+DEM allows an enterprise to provide the best experience possible to all customers.
+</blockquote>
+<div class="attribution">
+&#8212; Simple
+</div>
+</div>
+</div>
+</div>
+<div class="paragraph">
+<div class="title"><strong>Technical Concern</strong></div>
+<p>In order to better support the business aspirations for insightful and actionable DEM, I believe these two <strong>technical</strong> capabilities
+are necessary prerequisites at the <strong>IT level</strong>:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Composability</p>
+</li>
+<li>
+<p>Observability</p>
+</li>
+</ul>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/DEM-evolutionary-progression.png" alt="800" width="800">
+</div>
+<div class="title">Figure 1. DEM Across Composability and Observability</div>
+</div>
+<div class="paragraph">
+<p>As depicted in the graphic above, DEM is an <strong>evolutionary progression</strong> of monitoring technology which serves high composability and
+leverages greater observability.  The next two sections will describe both concepts in more detail.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_composability">Composability</h3>
+<div class="paragraph">
+<div class="title"><strong>What exactly is composability and why does it matter?</strong></div>
+<p>Well, as you might imagine, there are plenty of
+theoretical, complex and technical answers to this question - just Google it to get a list of the numerous publications
+on the topic. Since this is not a technical article on the subject of composability, we&#8217;ll take a much more modest view of it.</p>
+</div>
+<div class="paragraph">
+<p>So, in really simple terms, <strong><em>composability</em></strong> is the concept of building stand alone software <strong>composed</strong> of
+other stand alone software, in a plug-and-play manner (see figure <a href="#Composable-enterprise-app-1">Example of a Composite Application</a> below) and it matters because
+enterprises who adopt composability as a core IT practice can achieve much greater <strong>agility</strong> on delivering new and/or enhanced
+solutions for business in the face of rapid and ever changing market conditions - does COVID ring a bell?</p>
+</div>
+<div id="Composable-enterprise-app-1" class="imageblock text-center">
+<div class="content">
+<img src="./Images/Composable-enterprise-app-1.png" alt="600" width="600">
+</div>
+<div class="title">Figure 2. Example of a Composite Application</div>
+</div>
+<div class="paragraph">
+<p>Basically, the practice of composability is a great way for an enterprise to <strong>protect</strong> and <strong>grow</strong> overall <strong>revenue</strong> in
+the face of both expected and unexpected change. Do you know when or what the next crisis will be?  Exactly&#8230;&#8203;</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_composable_enterprise">Composable Enterprise</h3>
+<div class="paragraph">
+<p><a href="https://www.gartner.com/smarterwithgartner/gartner-keynote-the-future-of-business-is-composable">Gartner</a>
+defines a <strong><em>Composable Enterprise</em></strong> as an organization that can innovate and adapt to changing
+business needs through the assembly and combination of packaged business capabilities.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Gartner&#8217;s definition of composable business operates on four basic principles:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>More speed through <strong>discovery</strong>.</p>
+</li>
+<li>
+<p>Greater agility through <strong>modularity</strong>.</p>
+</li>
+<li>
+<p>Better leadership through <strong>orchestration</strong>.</p>
+</li>
+<li>
+<p>Resilience through <strong>autonomy</strong>.</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Composability must be important because it has its own Gartner definition, right?</p>
+</div>
+<div class="sect3">
+<h4 id="_so_how_long_before_we_have_true_composable_enterprises">So how long before we have true composable enterprises?</h4>
+<div class="paragraph">
+<p>From a purist standpoint (i.e., based on the Gartner definition),
+who knows - maybe never.  However, from a practical perspective the "messy" composable enterprise is <strong>already here</strong>, has been
+for a while and it&#8217;s quickly getting more "pure" over time.</p>
+</div>
+<div class="paragraph">
+<p>For example,</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>A typical enterprise supports over <strong>900 applications</strong> and the number is <strong>growing</strong>, not shrinking.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Growth is happening because of:</p>
+<div class="ulist">
+<ul>
+<li>
+<p>Accelerated implementation of <strong>digital transformation strategies</strong> with a cloud-first approach.</p>
+</li>
+<li>
+<p>Rapid adoption of a <strong>microservices</strong> architecture paradigm.</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Typically, no single enterprise application handles a business transaction.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>A typical <strong>business transaction traverses over 35 different systems/applications</strong> from start to finish.</p>
+<div class="ulist">
+<ul>
+<li>
+<p>These systems/applications are often on a variety of <strong>disparate</strong> and independent <strong>technologies</strong> stacks - both legacy and modern.</p>
+</li>
+<li>
+<p>These systems are often a combination of on-prem or hosted <strong>packaged</strong> applications (e.g., SAP ERP, Oracle HCM, Manhattan SCM,
+etc.), <strong>custom</strong> coded applications and <strong>SaaS</strong> applications (e.g., Salesforce, NetSuite, Workday, etc.)</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>So as you can see, the composable enterprise already exists and will, rapidly, become more composable over time, especially,
+with the support of companies like MuleSoft, products like the Anypoint Platform and methodologies like API-Led Connectivity.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/API-Led-1.png" alt="API Led 1">
+</div>
+<div class="title">Figure 3. API Led to Help Solve for Composability</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_observability">Observability</h3>
+<div class="paragraph">
+<p>Wikipedia defines <strong>observability</strong> as:</p>
+</div>
+<div class="quoteblock">
+<blockquote>
+A measure of how well internal states of a system can be inferred from knowledge of
+its external outputs.  As it relates specifically to software, observability is the ability to collect <strong>data about program
+execution, internal states of modules, and communication between components</strong>.  This corpus of collected data is also referred
+to as <strong>telemetry</strong>.
+</blockquote>
+</div>
+<div class="paragraph">
+<p>Another way of looking at observability is having the capacity to introspect, in real-time, complex multi-tiered architectures to
+better answer the following when things so sideways:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Where and why is it broken?</p>
+</li>
+<li>
+<p>Where and why is it slow?</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Then, using the gathered observability insights to quickly fix what&#8217;s broken and speedup what&#8217;s slow.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>However, I think a <strong>more important</strong> consideration for observability is an answer to following:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>How can I <strong>proactively</strong> protect against failure and poor performance?</p>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_observability_trinity">Observability Trinity</h4>
+<div class="paragraph">
+<p>The obtainment of true observability relies upon 3 core pillars.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/Pillars-of-Observability.png" alt="500" width="500">
+</div>
+<div class="title">Figure 4. The 3 Pillars of Observability</div>
+</div>
+<div class="sect4">
+<h5 id="_metrics">Metrics</h5>
+<div class="paragraph">
+<p>A <strong><em>metric</em></strong> is a value that expresses some information about a system. Metrics are
+usually represented as counts or measures, and are often aggregated or calculated over a period of time. Additionally, metrics
+are often structured as <em>&lt;name, value&gt;</em> pairs that provide useful behavioral details at both the micro-level and the macro-level
+such as the following:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 1. Example Metrics</caption>
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Micro-level metrics</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Macro-level metrics</strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Memory utilization per service</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Average response time per service</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">CPU utilization per service</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Throughput rate per service</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Thread count</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Failure rate per service</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&#8230;&#8203;</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">&#8230;&#8203;</p></td>
+</tr>
+</tbody>
+</table>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/Macro-Micro-Metrics.png" alt="Macro Micro Metrics">
+</div>
+<div class="title">Figure 5. Micro-level and Macro-level Metrics</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_logs">Logs</h5>
+<div class="paragraph">
+<p>A <strong>log</strong> is an immutable, time-stamped text or binary record, either structured (recommended) or unstructured, potentially including
+metadata. The log record is generated by application code in response to an event (e.g., an error condition) which has occurred
+during program execution.</p>
+</div>
+<div class="literalblock">
+<div class="title">Example of a structured log record</div>
+<div class="content">
+<pre>[02-22 08:02:50.412] ERROR OnErrorContinueHandler [ [MuleRuntime].uber.18543: [client-id-enforcement-439118-order-api-spec-main].439118-client-id-enforcement.CPU_LITE @5b1b413e] [event: d46fe7b0-93b5-11ec-b9b6-02d407c48f42]:
+Root Exception stack trace:
+org.mule.runtime.api.el.ExpressionExecutionException: Script 'atributes.headers ' has errors:
+...</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="title">Example of a unstructured log record</div>
+<div class="content">
+<pre>'hello world'</pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_traces">Traces</h5>
+<div class="paragraph">
+<p>A <strong>single trace</strong> is an event which shows the activity for a transaction or request as it flows through an individual application.
+Whereas, a <strong>distributed trace</strong> is an aggregation of one or more single traces when the transaction spans across multiple
+applications, network, security and environment boundaries. For example, a distributed trace may be initiated when someone presses a
+button to start an action on a website - such as purchasing a product.  In this case, the distributed trace will represent calls made
+between all of the downstream services (e.g. Inventory, Logistics, Payment, etc.) that handled the chain of requests initiated by
+the initial button press.</p>
+</div>
+<div class="paragraph">
+<p><strong>Distributed tracing</strong> is the methodology implemented by tracing tools to generate, follow, analyze and debug a distributed trace.
+Generation of a distributed trace is accomplished by tagging the transaction with a unique identifier and propagating that identifier
+through the chain of systems involved in the transaction.  This process is also referred to as <strong>trace context propagation</strong>.</p>
+</div>
+<div class="paragraph">
+<p>Traces are a critical part of observability, as they <strong>provide context for other telemetry</strong>. For example, traces can help define
+which metrics would be most valuable in a given situation, or which logs are relevant to a particular issue.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/Distributed-Trace-Example.png" alt="1000" width="1000">
+</div>
+<div class="title">Figure 6. Example of a Distributed Trace</div>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_why_is_observability_important">Why is observability important?</h4>
+<div class="paragraph">
+<p>The notion of observability is very important to IT organizations because when a business transaction fails or performs
+poorly within their application network, the team needs the ability to quickly <strong>triage</strong> and <strong>remediate</strong> the root cause
+before there is any significant impact on revenue.</p>
+</div>
+<div class="paragraph">
+<p>Many IT organizations have and continue to rely upon commercial Application Performance Monitoring (APM) tools (e.g., AppDynamics,
+Dynatrace, New Relic, CA APM, &#8230;&#8203;) to help them in this regard.  While useful, these commercial tools have struggled in the past
+to provide complete visibility into the overall distributed trace as they deploy vendor specific agents to collect and forward
+their telemetry.</p>
+</div>
+<div class="paragraph">
+<p>I state "<em>struggled in the past</em>" because many APM vendors are now starting to embrace and support open source projects like
+<a href="https://opentelemetry.io/docs/reference/specification/overview/">OpenTelemetry</a> for vendor-agnostic instrumentation agent
+implementations and standards such as <a href="https://w3c.github.io/trace-context//">W3C Trace Context</a> for context propagation
+to help them fill in the "holes".  See <a href="#vendor-support-for-otel">Vendor Support for OpenTelemetry - 2021</a> below.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_so_what_do_composability_and_observability_have_to_do_with_each_other">So what do composability and observability have to do with each other?</h4>
+<div class="paragraph">
+<p>Hopefully, the answer is obvious but as enterprise applications become more and more composable, that is, as enterprises move
+towards embracing composability as an architectural pattern, the need for observability becomes greater; however, the capacity
+for implementing observability becomes harder unless there is comprehensive observability strategy and solution in place.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_solving_for_observability">Solving for Observability</h3>
+<div class="paragraph">
+<p>MuleSoft has traditionally been a very strong player in two aspects of the Observability Trinity - Metrics and Logs.  Anypoint
+Monitoring provides considerable support and functionality for these two observability data sources.  However, there has been a gap
+in the support for tracing (single traces and distributed traces).  This limitation within the current offering is the inspiration
+behind the development of the custom extension.</p>
+</div>
+<div class="paragraph">
+<p>Together, <strong>Anypoint Monitoring and Mule 4 OpenTelemetry Module</strong> offer a more comprehensive and robust observability solution and should be
+part of an enterprise&#8217;s overall observability solution.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/Solving-for-observability.png" alt="600" width="600">
+</div>
+<div class="title">Figure 7. Observability = Anypoint Monitoring + Otel Mule 4 Agent</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_observability_is_not_just_for_cloud_native_applications">Observability is NOT Just For Cloud-Native Applications</h3>
+<div class="paragraph">
+<p>While there is a great emphasis on observability with regard to cloud-native applications, there are a whole host of legacy applications,
+using <strong>traditional integration patterns</strong> which will also benefit tremendously from greater observability.  Some of these patterns, shown
+below in the diagram, include:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Batch/ETL</p>
+</li>
+<li>
+<p>File Transfer</p>
+</li>
+<li>
+<p>B2B/EDI</p>
+</li>
+<li>
+<p>P2P APIs</p>
+</li>
+<li>
+<p>Pub/Sub</p>
+</li>
+<li>
+<p>DB-to-DB</p>
+</li>
+<li>
+<p>&#8230;&#8203;</p>
+</li>
+</ul>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/observability-not-just-for-cloud-native.png" alt="800" width="800">
+</div>
+<div class="title">Figure 8. Observability for Traditional Integration Patterns</div>
+</div>
+<div class="paragraph">
+<p>Furthermore, newer API integrations patterns such as GraphQL often implement <strong>complicated data aggregation</strong> patterns requiring data
+from multiple, disparate data sources - Databases, SaaS applications, custom APIs, etc., as depicted below.  These types of patterns will
+also be served well from greater observability.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/observability-datagraph.png" alt="600" width="600">
+</div>
+<div class="title">Figure 9. Observability for Complicated Data Aggregation Patterns</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_the_what_on_the_mule_4_opentelemetry_module">The What on the Mule 4 OpenTelemetry Module</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Now that we done a comprehensive walkthrough on the motivation for developing the Mule 4 OpenTelemetry Module custom extension, let&#8217;s dig
+a bit deeper into some of the internals of extension.  We&#8217;ll start off by diving into the core technology the extension relies
+upon to accomplish its tasks - <em>OpenTelemetry</em> then discuss the WC3 Trace Context specification and finish off with details on the
+extension&#8217;s architecture.</p>
+</div>
+<div class="sect2">
+<h3 id="_opentelemetry_otel">OpenTelemetry (OTel)</h3>
+<div class="quoteblock">
+<blockquote>
+OpenTelemetry <strong>is a set of APIs, SDKs, tooling and integrations</strong> that are designed for the creation and management
+of <strong>telemetry data</strong> such as traces, metrics, and logs. The project provides a <strong>vendor-agnostic</strong> implementation that
+can be configured to send telemetry data to the backend(s) of your choice.
+</blockquote>
+<div class="attribution">
+&#8212; OpenTelemetry<br>
+<cite><a href="https://opentelemetry.io" class="bare">https://opentelemetry.io</a></cite>
+</div>
+</div>
+<div class="admonitionblock important">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-important" title="Important"></i>
+</td>
+<td class="content">
+OpenTelemetry <strong>is not an observability back-end</strong>.  Instead, it supports exporting data to a variety of open-source
+(e.g., Jaeger, Prometheus, etc.) and commercial back-ends (e.g., Dynatrace, New Relic, Grafana, etc.).
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>As noted above, OpenTelemetry is a <strong>framework</strong> which provides a single, vendor-agnostic solution with the purpose
+of standardizing the generation, emittance, collection, processing and exporting of telemetry data in support of observability.
+OpenTelemetry was established in 2019 as an open source project and is spearheaded by the CloudNative Computing Foundation (CNCF).</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>In 2019, the <a href="https://opencensus.io/">OpenCensus</a> and <a href="https://opentracing.io/">OpenTracing</a> projects merged into OpenTelemetry.
+Currently, OpenTelemetry is at the "<strong>incubating</strong>" <a href="https://github.com/cncf/toc/blob/main/process/graduation_criteria.md">maturity
+level</a> (up from "sandbox" level a year back) and is one of the most popular projects across the CNCF landscape.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="sect3">
+<h4 id="_opentelemetry_reference_architecture">OpenTelemetry Reference Architecture</h4>
+<div class="paragraph">
+<p>Being a CNCF supported project, it&#8217;s no surprise the architecture of OpenTelemetry is cloud friendly - which also implies that
+it is friendly to all distributed environments. While there are various aspects to the overall OpenTelemetry framework (e.g.,
+API, SDK, Signals, Packages, Propagators, Exporters, etc.), the functional architecture is relatively simple with regard to
+client-side implementations as seen in the diagram below.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/Otel-Ref-Arch-2-shadowing.png" alt="800" width="800">
+</div>
+<div class="title">Figure 10. OpenTelemetry Reference Architecture</div>
+</div>
+<div class="paragraph">
+<p>On the client side (e.g., the Mule application), there are really only two OpenTelemetry components which are used and one is
+optional:</p>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">OpenTelemetry Library</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p>OpenTelemtry API</p>
+</li>
+<li>
+<p>OpenTelemtry SDK</p>
+</li>
+</ul>
+</div>
+</dd>
+<dt class="hdlist1">OpenTelemetry Collector</dt>
+<dd>
+<div class="ulist">
+<ul>
+<li>
+<p><em>[Optional]</em></p>
+</li>
+</ul>
+</div>
+</dd>
+</dl>
+</div>
+<div class="paragraph">
+<p>Below is a brief description of these client-side components.</p>
+</div>
+<div class="sect4">
+<h5 id="_opentelemetry_api">OpenTelemetry API</h5>
+<div class="paragraph">
+<p>The OpenTelemetry API is an <strong>abstracted implementation</strong> of data types and  non-operational methods for generating and
+correlating tracing, metrics, and logging data.  Functional implementations of the API are language specific.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_opentelemetry_sdk">OpenTelemetry SDK</h5>
+<div class="paragraph">
+<p>The OpenTelemetry SDK is a <strong>language specific implementation</strong> (e.g., Java, Ruby, C++, &#8230;&#8203;) of the abstracted OpenTelemetry API.
+Here is a <a href="https://opentelemetry.io/docs/instrumentation/">list</a> of the currently supported languages.</p>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_opentelemetry_collector">OpenTelemetry Collector</h5>
+<div class="paragraph">
+<p>The OpenTelemetry Collector is a <strong>vendor-agnostic proxy</strong> that can receive, process, and export telemetry data. It supports
+receiving telemetry data in multiple formats (e.g., OTLP, Jaeger, Prometheus, as well as many commercial/proprietary tools)
+and sending data to one or more back-ends. It also supports processing and filtering telemetry data before it gets exported.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+You can find more details on the API and SDK <a href="https://opentelemetry.io/docs/reference/specification/#table-of-contents">here</a>
+and on the Collector <a href="https://opentelemetry.io/docs/collector/">here</a>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_vendor_support_for_opentelemetry">Vendor Support for OpenTelemetry</h4>
+<div class="paragraph">
+<p>As shown in the graphic below, a <strong>2021 GigaOm</strong> study concluded that top tier cloud providers are moving to embrace OpenTelemetry quickly
+and observability vendors are likewise offering integration with OpenTelemetry tools, albeit, at various levels. However, it should be of
+no surprise the Gartner "<strong>visionaries</strong>" are offering the <strong>greatest level</strong> of support.</p>
+</div>
+<div class="paragraph">
+<p>The GigaOm study also reveals full adoption
+of the OpenTelemetry standards can yield <strong>significant benefits</strong> around instrumentation, as customers can deploy <strong>drop-in
+instrumentation</strong> regardless of the platform. Furthermore, <strong>portability</strong> becomes achievable as well, improving both <strong>cost savings</strong>
+and efficiency.</p>
+</div>
+<div id="vendor-support-for-otel" class="imageblock text-center">
+<div class="content">
+<img src="./Images/GigaOm-Gartner-MQ-APM-2021.png" alt="900" width="900">
+</div>
+<div class="title">Figure 11. Vendor Support for OpenTelemetry - 2021</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_wc3_trace_context">WC3 Trace Context</h3>
+<div class="paragraph">
+<p>The Mule 4 OpenTelemetry Module supports the WC3 Trace Context format as a mechanism for context propagation.</p>
+</div>
+<div class="sect3">
+<h4 id="_trace_context">Trace Context</h4>
+<div class="paragraph">
+<p>The WC3 Trace Context <a href="https://w3c.github.io/trace-context/">specification</a> defines a universally agreed-upon format for the exchange of
+trace context propagation data - referred to as <strong><em>trace context</em></strong>. Trace context solves the problems typically associated with distributed
+tracing by:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Providing a unique identifier for individual traces and requests, allowing trace data of multiple providers to be linked together.</p>
+</li>
+<li>
+<p>Providing an agreed-upon mechanism to forward vendor-specific trace data and avoid broken traces when multiple tracing tools participate
+in a single transaction.</p>
+</li>
+<li>
+<p>Providing an industry standard that intermediaries, platforms, and hardware providers can support.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_trace_context_headers">Trace Context Headers</h4>
+<div class="paragraph">
+<p>Trace context is split into two individual propagation fields supporting interoperability and vendor-specific extensibility:</p>
+</div>
+<div class="paragraph">
+<div class="title"><code>traceparent</code></div>
+<p>Describes the position of the incoming request in its trace graph in a portable, fixed-length format. Every tracing tool <strong>MUST</strong> properly
+set traceparent even when it only relies on vendor-specific information in <code>tracestate</code></p>
+</div>
+<div class="paragraph">
+<div class="title"><code>tracestate</code></div>
+<p>Extends <code>traceparent</code> with vendor-specific data represented by a set of name/value pairs. Storing information in <code>tracestate</code> is <strong>optional</strong>.</p>
+</div>
+<div class="paragraph">
+<p><strong>Tracing tools</strong> can provide two levels of compliant behavior interacting with trace context:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>At a minimum they <strong>MUST</strong> propagate the <code>traceparent</code> and <code>tracestate</code> headers and guarantee traces are not broken. This behavior is also
+referred to as <em>forwarding a trace</em>.</p>
+</li>
+<li>
+<p>In addition they <strong><em>MAY</em></strong> also choose to participate in a trace by modifying the <code>traceparent</code> header and relevant parts of the <code>tracestate</code>
+header containing their proprietary information. This is also referred to as <em>participating in a trace</em>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_traceparent_http_header_details"><code>traceparent</code> HTTP Header Details</h4>
+<div class="paragraph">
+<p>The <code>traceparent</code> header represents the incoming request in a tracing system in a common format, understood by all vendors.</p>
+</div>
+<div class="paragraph">
+<p>The header has <strong>4 constituent parts</strong>, where each part is separated by a <code>-</code>:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>version</code> - header version; currently the version number is <code>00</code></p>
+</li>
+<li>
+<p><code>trace-id</code> - is the <strong>unique 16-byte ID</strong> of a distributed trace through a system.</p>
+</li>
+<li>
+<p><code>parent-id</code> - is the <strong>8-byte ID</strong> of this request as known by the caller (sometimes known as the <code>span-id</code>, where a span is the execution
+of a client request).  The <code>parent-id</code> is <strong>automatically generated</strong> by the OpenTelemetry SDK.</p>
+</li>
+<li>
+<p><code>trace-flags</code> - tracing control flags; current version (<code>00</code>) only supports the <code>sampled</code> flag (<code>01</code>)</p>
+</li>
+</ul>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/traceparent-header.png" alt="700" width="700">
+</div>
+<div class="title">Figure 12. <code>traceparent</code> HTTP Header </div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_tracestate_http_header_details"><code>tracestate</code> HTTP Header Details</h4>
+<div class="paragraph">
+<p>Since the <code>tracestate</code> header is <strong>optional</strong>, it will not be discussed any further in this document.  See
+<a href="https://w3c.github.io/trace-context/#tracestate-header">WC3: Tracestate Header</a> for additional details on the header.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_mulesoft_opentelemetry_module">MuleSoft OpenTelemetry Module</h3>
+<div class="paragraph">
+<p>As mentioned earlier, the primary purpose of the Mule 4 OpenTelemetry Module extension is to facilitate the participation of Mule applications in
+distributed tracing activities. To accomplish its goal, the extension relies upon three primary frameworks:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>MuleSoft Java SDK</p>
+</li>
+<li>
+<p>MuleSoft Server Notifications</p>
+</li>
+<li>
+<p>OpenTelemetry Framework</p>
+</li>
+</ol>
+</div>
+<div class="sect3">
+<h4 id="_mulesoft_java_sdk">MuleSoft Java SDK</h4>
+<div class="paragraph">
+<p>In Mule 4, extending the product is done by developing custom extensions via a MuleSoft furnished Java SDK. The comprehensive framework
+allows external developers to build add-on functionality in the same manner as Mule engineers build Mule supplied components and connectors.
+While we won&#8217;t get into the details of the framework or how to develop a custom extension, the graphic below depicts the basic structure of
+an extension based on the <a href="https://docs.mulesoft.com/mule-sdk/1.1/module-structure">Module Model</a>.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/mule-extension-model.png" alt="800" width="800">
+</div>
+<div class="title">Figure 13. The Extension Module Model Structure</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_mulesoft_server_notifications">MuleSoft Server Notifications</h4>
+<div class="paragraph">
+<p>Mule provides an internal <a href="https://docs.mulesoft.com/mule-runtime/4.4/mule-server-notifications">notification mechanism</a>
+that can be used to access changes which occur on the Mule Server, such as adding a flow component, the start or end of a message processor, a
+failing authorization request and many other <a href="https://docs.mulesoft.com/mule-runtime/4.4/mule-server-notifications#notification-interfaces">changes</a>.
+These notifications can be subscribed to by "listeners" either programmatically or by using the <code>&lt;notifications&gt;</code> element in a Mule
+configuration file.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example of subscribing to notifications programmatically</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="java"><table class="CodeRay"><tr>
+  <td class="line-numbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+</pre></td>
+  <td class="code"><pre><span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">com.avioconsulting.mule.opentelemetry.internal.listeners.MuleMessageProcessorNotificationListener</span>;
+<span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">com.avioconsulting.mule.opentelemetry.internal.listeners.MulePipelineMessageNotificationListener</span>;
+<span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">org.mule.runtime.api.notification.NotificationListenerRegistry</span>;
+<span style="color:#080;font-weight:bold">import</span> <span style="color:#B44;font-weight:bold">javax.inject.Inject</span>;
+
+<span style="color:#088;font-weight:bold">public</span> <span style="color:#339;font-weight:bold">class</span> <span style="color:#B06;font-weight:bold">RegisterNotificationListeners</span>
+{
+    <span style="color:#007">@Inject</span>
+    NotificationListenerRegistry notificationListenerRegistry;
+
+    RegisterNotificationListeners()
+    {
+        notificationListenerRegistry.registerListener(<span style="color:#080;font-weight:bold">new</span> MuleMessageProcessorNotificationListener());
+        notificationListenerRegistry.registerListener(<span style="color:#080;font-weight:bold">new</span> MulePipelineMessageNotificationListener());
+    }
+}</pre></td>
+</tr></table></code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Example of subscribing to notifications using the <code>&lt;notification&gt;</code> element</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="xml"><table class="CodeRay"><tr>
+  <td class="line-numbers"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+</pre></td>
+  <td class="code"><pre><span style="color:#070;font-weight:bold">&lt;object</span> <span style="color:#b48">doc:name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Object</span><span style="color:#710">&quot;</span></span>
+        <span style="color:#b48">name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">_mulePipelineNotificationListener</span><span style="color:#710">&quot;</span></span>
+        <span style="color:#b48">class</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">com.avioconsulting.mule.opentelemetry.internal.listeners.MulePipelineMessageNotificationListener</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>
+
+<span style="color:#070;font-weight:bold">&lt;object</span> <span style="color:#b48">doc:name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Object</span><span style="color:#710">&quot;</span></span>
+        <span style="color:#b48">name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">_muleMessageProcessorNotificationListener</span><span style="color:#710">&quot;</span></span>
+        <span style="color:#b48">class</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">com.avioconsulting.mule.opentelemetry.internal.listeners.MulePipelineMessageNotificationListener</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>
+
+<span style="color:#070;font-weight:bold">&lt;notifications&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;notification</span> <span style="color:#b48">event</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">PIPELINE-MESSAGE</span><span style="color:#710">&quot;</span></span><span style="color:#070;font-weight:bold">/&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;notification</span> <span style="color:#b48">event</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">MESSAGE-PROCESSOR</span><span style="color:#710">&quot;</span></span><span style="color:#070;font-weight:bold">/&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;notification-listener</span> <span style="color:#b48">ref</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">_muleMessageProcessorNotificationListener</span><span style="color:#710">&quot;</span></span><span style="color:#070;font-weight:bold">/&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;notification-listener</span> <span style="color:#b48">ref</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">_mulePipelineNotificationListener</span><span style="color:#710">&quot;</span></span><span style="color:#070;font-weight:bold">/&gt;</span>
+<span style="color:#070;font-weight:bold">&lt;/notifications&gt;</span></pre></td>
+</tr></table></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The agent takes advantage of the notification framework and in particular relies upon these two notification interfaces:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>PipelineMessageNotificationListener</code></p>
+<div class="ulist">
+<ul>
+<li>
+<p>Start and End of a flow</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p><code>MessageProcessorNotificationListener</code></p>
+<div class="ulist">
+<ul>
+<li>
+<p>Start and End of a message processor</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_opentelemetry_framework">OpenTelemetry Framework</h4>
+<div class="paragraph">
+<p>The Mule 4 OpenTelemetry Module leverages the <a href="https://opentelemetry.io/docs/instrumentation/java/">OpenTelemetry Java</a> implementation to generate, batch
+and export trace data to any OpenTelemetry compliant Collector.
+Specifically, the agent builds on top of the <a href="https://github.com/open-telemetry/opentelemetry-java"><code>opentelemetry-java</code></a> package for
+<a href="https://opentelemetry.io/docs/instrumentation/java/manual/">manual instrumentation</a> of Mule applications.  By taking full advantage of the OTel
+Java implementation, the Mule extension becomes completely stand-alone and does not require any additional OpenTelemetry components to be a
+participant in a distributed trace.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_mule_4_opentelemetry_module_architecture">Mule 4 OpenTelemetry Module Architecture</h4>
+<div class="paragraph">
+<p>The architecture of the Mule 4 OpenTelemetry Module is relatively straight forward.  As depicted in the diagram below, the agent is comprised of
+code which listens for notification events from the Mule runtime.  During the processing of the notification, the agent generates metadata
+about the notification and sends that data to the OpenTelemetry SDK via the OpenTelemetry API - shown as <em>Trace Data</em> in the diagram.
+The OpenTelemetry SDK continues to gather the extension generated trace data until all processing is complete.  At that point, the
+OpenTelemetry SDK exports the trace data using the configured Exporter, e.g. the OpenTelemetry wire Protocol (OTLP) Exporter, to an OpenTelemetry Collector.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/Agent-Arch-v2.png" alt="900" width="900">
+</div>
+<div class="title">Figure 14. Mule Agent Architecture</div>
+</div>
+<div class="sect4">
+<h5 id="_mule_trace">Mule Trace</h5>
+<div class="paragraph">
+<p>The figure below shows the causal (parent/child) relationship between nodes in a Mule Trace that crosses two separate Mule applications.
+As can be seen, the hierarchy can become quite complex and nested.  Luckily, the OpenTelemetry SDK manages most of that complexity for us.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/MuleSoft-Trace-Causal-Hierarchy.png" alt="MuleSoft Trace Causal Hierarchy">
+</div>
+<div class="title">Figure 15. Causal Relationship Between Nodes in a Distributed Mule Trace</div>
+</div>
+<div class="dlist">
+<dl>
+<dt class="hdlist1">Mule Trace</dt>
+<dd>
+<p>A Mule Trace is simply a collection of OTel Spans structured hierarchically .  A trace has just one trace root
+span and one or more child spans - Pipeline Spans and/or Message Processor Spans.</p>
+</dd>
+<dt class="hdlist1">Trace Root Span</dt>
+<dd>
+<p>A Root Span is an OTel Span which serves as the root node in a Mule trace.  It is associated
+with the initial Mule Flow. In reality it is also a pipeline span.</p>
+</dd>
+<dt class="hdlist1">Pipeline Span</dt>
+<dd>
+<p>A Pipeline Span is an OTel Span which is associated with Mule subflows and/or flow references.</p>
+</dd>
+<dt class="hdlist1">Message Processor Span</dt>
+<dd>
+<p>A Message Processor Span is an OTel Span which is associated with Mule message processors.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_high_level_agent_functionality">High-Level Agent Functionality</h5>
+<div class="paragraph">
+<p>The two flowcharts below detail at high-level the functionality of the extension.</p>
+</div>
+<div class="sect5">
+<h6 id="_startup">Startup</h6>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/Mule-4-OTel-Agent-Flowchart-Startup.png" alt="500" width="500">
+</div>
+<div class="title">Figure 16. Mule Agent Flowchart - Startup</div>
+</div>
+</div>
+<div class="sect5">
+<h6 id="_notification_processing">Notification Processing</h6>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/Mule-4-OTel-Agent-Flowchart.png" alt="1000" width="1000">
+</div>
+<div class="title">Figure 17. Mule Agent Flowchart - Notification Processing</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="The-How-Mule-OTel-module-id">The How on the Mule 4 OpenTelemetry Module</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_installation">Installation</h3>
+<div class="paragraph">
+<p>To use this extension, add following dependency to your mule application project.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml">    <span style="color:#070;font-weight:bold">&lt;dependency&gt;</span>
+      <span style="color:#070;font-weight:bold">&lt;groupId&gt;</span>com.avioconsulting<span style="color:#070;font-weight:bold">&lt;/groupId&gt;</span>
+      <span style="color:#070;font-weight:bold">&lt;artifactId&gt;</span>mule-opentelemetry-module<span style="color:#070;font-weight:bold">&lt;/artifactId&gt;</span>
+      <span style="color:#070;font-weight:bold">&lt;version&gt;</span>${mule-opentelemetry-module-version}<span style="color:#070;font-weight:bold">&lt;/version&gt;</span> <i class="conum" data-value="1"></i><b>(1)</b>
+      <span style="color:#070;font-weight:bold">&lt;classifier&gt;</span>mule-plugin<span style="color:#070;font-weight:bold">&lt;/classifier&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;/dependency&gt;</span></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The latest version of the module as published on <a href="https://search.maven.org/search?q=g:com.avioconsulting%20a:mule-opentelemetry-module">Maven Central</a>.</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_auto_configuration">Auto Configuration</h3>
+<div class="paragraph">
+<p>Extension uses OpenTelemetry&#8217;s autoconfigured SDK. In this mode, SDK will configure itself based on the environment variables.
+Supported environment variable details can be seen on <a href="https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure">open-telemetry/opentelemetry-java</a>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_extension_configuration">Extension Configuration</h3>
+<div class="paragraph">
+<p>Extension allows to configure some resource and exporter attributes at individual application level. This configuration is minimal required to successfully send traces to OpenTelemetry collector.</p>
+</div>
+<div class="paragraph">
+<p>Following example shows an OpenTelemetry Config with OTLP Exporter configured -</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span style="color:#070;font-weight:bold">&lt;opentelemetry:config</span> <span style="color:#b48">name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">OpenTelemetry_Config</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">doc:name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">OpenTelemetry Config</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">doc:id</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">91477cb5-36f7-48ad-90b7-c339af87b408</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">serviceName</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">api-app-1</span><span style="color:#710">&quot;</span></span><span style="color:#070;font-weight:bold">&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;opentelemetry:exporter</span> <span style="color:#070;font-weight:bold">&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;opentelemetry:otlp-exporter</span> <span style="color:#b48">collectorEndpoint</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">http://localhost:55681/v1</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">protocol</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">HTTP_PROTOBUF</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">requestCompression</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">GZIP</span><span style="color:#710">&quot;</span></span><span style="color:#070;font-weight:bold">&gt;</span>
+            <span style="color:#070;font-weight:bold">&lt;opentelemetry:headers</span> <span style="color:#070;font-weight:bold">&gt;</span>
+                <span style="color:#070;font-weight:bold">&lt;opentelemetry:header</span> <span style="color:#b48">key</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">testHeader</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">value</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">testHeaderValue</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>
+            <span style="color:#070;font-weight:bold">&lt;/opentelemetry:headers&gt;</span>
+            <span style="color:#070;font-weight:bold">&lt;opentelemetry:config-properties</span> <span style="color:#070;font-weight:bold">&gt;</span>
+                <span style="color:#070;font-weight:bold">&lt;opentelemetry:config-property</span> <span style="color:#b48">key</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">otel.logs.exporter</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">value</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">otlp</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>
+            <span style="color:#070;font-weight:bold">&lt;/opentelemetry:config-properties&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;/opentelemetry:otlp-exporter&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;/opentelemetry:exporter&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;opentelemetry:resource-attributes</span> <span style="color:#070;font-weight:bold">&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;opentelemetry:attribute</span> <span style="color:#b48">key</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">mule.env</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">value</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Dev</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;/opentelemetry:resource-attributes&gt;</span>
+<span style="color:#070;font-weight:bold">&lt;/opentelemetry:config&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When additional properties from SDK Auto-configuration are needed for exporter, <code>config-properties</code> can be used to add those. Environment and System properties will still override those entries.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_common_resource_attributes">Common Resource Attributes</h3>
+<div class="paragraph">
+<p>Extension uses the OpenTelemetry SDK&#8217;s <a href="https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#resource-provider-spi">Resource Provider SPI</a> to gather data of common resources such as Host, OS, Processes of the Mule runtime Server and host. SDK supported all common resources providers are configured by this module.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Set of tags captured with common resource providers</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="json">  {
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>host.arch</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">x86_64</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>host.name</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">ac0098.local</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>os.description</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Mac OS X 10.16</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>os.type</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">darwin</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>process.command_line</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">/Applications/AnypointStudio.app/Contents/Eclipse/plugins/org.mule.tooling.jdk.v8.macosx.x86_64_1.1.1/Contents/Home/jre:bin:java -Dmule.home=/Applications/AnypointStudio.app/Contents/....d=1 -Dwrapper.lang.domain=wrapper -Dwrapper.lang.folder=../lang</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>process.executable.path</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">/Applications/AnypointStudio.app/Contents/Eclipse/plugins/org.mule.tooling.jdk.v8.macosx.x86_64_1.1.1/Contents/Home/jre:bin:java</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>process.pid</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">9778</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>process.runtime.description</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">AdoptOpenJDK OpenJDK 64-Bit Server VM 25.282-b08</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>process.runtime.name</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">OpenJDK Runtime Environment</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>process.runtime.version</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">1.8.0_282-b08</span><span style="color:#710">&quot;</span></span>
+  }</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>See <a href="https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#disabling-automatic-resourceproviders">Disabling Common Resource Providers</a> if any resource provider must be disabled.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_mule_resource_attributes">Mule Resource Attributes</h3>
+<div class="paragraph">
+<p>Extension is aware of <a href="https://help.mulesoft.com/s/article/CloudHub-Reserved-Properties">CloudHub Reserved Properties</a> and automatically adds some of that data into trace data.</p>
+</div>
+<div class="listingblock">
+<div class="title">Example Set of tags captured with Mule Resource Provider</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="json">{
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>mule.app.awsRegion</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">us-west-2</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>mule.app.domain</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">mule-opentelemetry-app</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>mule.app.fullDomain</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">mule-opentelemetry-app.us-w2.cloudhub.io</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>mule.csOrganization.id</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">f2ea2cb4-c600-gh87-gg78-e952ff5591ee</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>mule.env</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Dev</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>mule.environment.id</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">c06ef9b7-19c0-ss78-kk44-598058b20aad</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>mule.environment.type</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">sandbox</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>mule.home</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">/opt/mule/mule-4.4.0</span><span style="color:#710">&quot;</span></span>,
+    <span style="color:#606"><span style="color:#404">&quot;</span><span>mule.worker.id</span><span style="color:#404">&quot;</span></span>: <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">0</span><span style="color:#710">&quot;</span></span>
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_exporters">Exporters</h3>
+<div class="paragraph">
+<p>Extension supports following exporter configurations -</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>OTLP Exporter</p>
+</li>
+<li>
+<p>Logging Exporter</p>
+</li>
+<li>
+<p>Generic Exporter</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="_otlp_exporter">OTLP Exporter</h4>
+<div class="paragraph">
+<p>Extension contains all dependencies needed to send traces to an OpenTelemetry Collector endpoint i.e. when <code>otel.traces.exporter</code> is set to <code>otlp</code>. Note that <code>otlp</code> is the default exporter if the variable is not set.</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./Images/module-otel-exporter-config.png" alt="module otel exporter config">
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_logging_exporter">Logging Exporter</h4>
+<div class="paragraph">
+<p>Extension contains all dependencies needed to send traces to a <code>java.util.Logger</code> instance i.e. when <code>otel.traces.exporter</code> is set to <code>logging</code>.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_generic_exporter">Generic Exporter</h4>
+<div class="paragraph">
+<p>This generic exporter allows to configure any other exporters supported by <a href="https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#exporters">sdk-extensions/autoconfigure#exporters</a>.</p>
+</div>
+<div class="paragraph">
+<p>Following example shows possible configuration for to send traces to Zipkin.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span style="color:#070;font-weight:bold">&lt;opentelemetry:config</span> <span style="color:#b48">name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">OpenTelemetry_Generic</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">doc:name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">OpenTelemetry Config</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">serviceName</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">app1</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;opentelemetry:exporter</span> <span style="color:#070;font-weight:bold">&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;opentelemetry:generic-exporter</span> <span style="color:#070;font-weight:bold">&gt;</span>
+            <span style="color:#070;font-weight:bold">&lt;opentelemetry:config-properties</span> <span style="color:#070;font-weight:bold">&gt;</span>
+                <span style="color:#070;font-weight:bold">&lt;opentelemetry:config-property</span> <span style="color:#b48">key</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">otel.traces.exporter</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">value</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">zipkin</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>
+                <span style="color:#070;font-weight:bold">&lt;opentelemetry:config-property</span> <span style="color:#b48">key</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">otel.exporter.zipkin.endpoint</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">value</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">http://localhost:9411/api/v2/spans</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>
+            <span style="color:#070;font-weight:bold">&lt;/opentelemetry:config-properties&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;/opentelemetry:generic-exporter&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;/opentelemetry:exporter&gt;</span>
+<span style="color:#070;font-weight:bold">&lt;/opentelemetry:config&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The required Zipkin exporter dependencies must be configured as an <a href="https://docs.mulesoft.com/mule-runtime/4.4/mmp-concept#configure-plugin-dependencies">Additional Plugin Dependencies</a> for Mule Maven Plugin.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span style="color:#070;font-weight:bold">&lt;plugin&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;groupId&gt;</span>org.mule.tools.maven<span style="color:#070;font-weight:bold">&lt;/groupId&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;artifactId&gt;</span>mule-maven-plugin<span style="color:#070;font-weight:bold">&lt;/artifactId&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;version&gt;</span>${mule.maven.plugin.version}<span style="color:#070;font-weight:bold">&lt;/version&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;extensions&gt;</span>true<span style="color:#070;font-weight:bold">&lt;/extensions&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;configuration&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;additionalPluginDependencies&gt;</span>
+            <span style="color:#070;font-weight:bold">&lt;plugin&gt;</span>
+                <span style="color:#070;font-weight:bold">&lt;groupId&gt;</span>com.avioconsulting<span style="color:#070;font-weight:bold">&lt;/groupId&gt;</span>
+                <span style="color:#070;font-weight:bold">&lt;artifactId&gt;</span>mule-opentelemetry-module<span style="color:#070;font-weight:bold">&lt;/artifactId&gt;</span>
+                <span style="color:#070;font-weight:bold">&lt;additionalDependencies&gt;</span>
+                    <span style="color:#070;font-weight:bold">&lt;dependency&gt;</span>
+                        <span style="color:#070;font-weight:bold">&lt;groupId&gt;</span>io.opentelemetry<span style="color:#070;font-weight:bold">&lt;/groupId&gt;</span>
+                        <span style="color:#070;font-weight:bold">&lt;artifactId&gt;</span>opentelemetry-exporter-zipkin<span style="color:#070;font-weight:bold">&lt;/artifactId&gt;</span>
+                        <span style="color:#070;font-weight:bold">&lt;version&gt;</span>1.10.1<span style="color:#070;font-weight:bold">&lt;/version&gt;</span>
+                    <span style="color:#070;font-weight:bold">&lt;/dependency&gt;</span>
+                <span style="color:#070;font-weight:bold">&lt;/additionalDependencies&gt;</span>
+            <span style="color:#070;font-weight:bold">&lt;/plugin&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;/additionalPluginDependencies&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;/configuration&gt;</span>
+<span style="color:#070;font-weight:bold">&lt;/plugin&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_span_processors">Span Processors</h3>
+<div class="paragraph">
+<p>For non-logging exporters, Tracing SDK uses <a href="https://opentelemetry.io/docs/reference/specification/trace/sdk/#batching-processor">Batch Span Processor</a>. Global Configuration allows to customize Batch span processor settings -</p>
+</div>
+<div class="listingblock">
+<div class="title">OpenTelemetry config with Batch span processor default values</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span style="color:#070;font-weight:bold">&lt;opentelemetry:config</span> <span style="color:#b48">name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">OpenTelemetry_Config</span><span style="color:#710">&quot;</span></span>
+    <span style="color:#b48">serviceName</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">otel-comparison-test</span><span style="color:#710">&quot;</span></span>
+    <span style="color:#b48">maxQueueSize</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">2048</span><span style="color:#710">&quot;</span></span>
+    <span style="color:#b48">maxBatchExportSize</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">512</span><span style="color:#710">&quot;</span></span>
+    <span style="color:#b48">batchExportDelayInterval</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">5000</span><span style="color:#710">&quot;</span></span>
+    <span style="color:#b48">exportTimeout</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">30000</span><span style="color:#710">&quot;</span></span><span style="color:#070;font-weight:bold">&gt;</span>
+.... other config ....
+<span style="color:#070;font-weight:bold">&lt;/opentelemetry:config&gt;</span></code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_trace_spans">Trace Spans</h3>
+<div class="paragraph">
+<p>By default, this module will create trace spans for following mule components -</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Flows</p>
+</li>
+<li>
+<p>HTTP Listener and Request</p>
+</li>
+<li>
+<p>Database Connector</p>
+</li>
+<li>
+<p>Anypoint MQ Connector</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>More verbose span generation can be configured. See setting Trace Levels below.</p>
+</div>
+<div class="sect3">
+<h4 id="_trace_levels">Trace Levels</h4>
+<div class="paragraph">
+<p>Module can create spans for every mule processors by setting <code>spanAllProcessors = "true"</code>. This can be overridden by setting a system property <code>mule.otel.span.processors.enable</code> to <code>true|false</code>.</p>
+</div>
+<div class="paragraph">
+<p>When the span generation for all processors is enabled, <code>opentelemetry:ignore-mule-components</code> allows to set a list of processors to exclude from span generation.</p>
+</div>
+<div class="listingblock">
+<div class="title">OpenTelemetry Config with trace level configuration</div>
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span style="color:#070;font-weight:bold">&lt;opentelemetry:config</span> <span style="color:#b48">name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">OpenTelemetry_Generic</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">doc:name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">OpenTelemetry Config</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">serviceName</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">app1</span><span style="color:#710">&quot;</span></span>  <span style="color:#b48">spanAllProcessors</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">true</span><span style="color:#710">&quot;</span></span><span style="color:#070;font-weight:bold">&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;opentelemetry:exporter</span> <span style="color:#070;font-weight:bold">&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;opentelemetry:generic-exporter</span> <span style="color:#070;font-weight:bold">&gt;</span>
+            <span style="color:#070;font-weight:bold">&lt;opentelemetry:config-properties</span> <span style="color:#070;font-weight:bold">&gt;</span>
+                <span style="color:#070;font-weight:bold">&lt;opentelemetry:config-property</span> <span style="color:#b48">key</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">otel.traces.exporter</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">value</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">zipkin</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>
+                <span style="color:#070;font-weight:bold">&lt;opentelemetry:config-property</span> <span style="color:#b48">key</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">otel.exporter.zipkin.endpoint</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">value</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">http://localhost:9411/api/v2/spans</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>
+            <span style="color:#070;font-weight:bold">&lt;/opentelemetry:config-properties&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;/opentelemetry:generic-exporter&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;/opentelemetry:exporter&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;opentelemetry:ignore-mule-components</span> <span style="color:#070;font-weight:bold">&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;opentelemetry:mule-component</span> <span style="color:#b48">namespace</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">MULE</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">LOGGER</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;opentelemetry:mule-component</span> <span style="color:#b48">namespace</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">os</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">*</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;/opentelemetry:ignore-mule-components&gt;</span>
+<span style="color:#070;font-weight:bold">&lt;/opentelemetry:config&gt;</span></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>To disable span generation for all processors in a specific namespace, set the <code>name</code> attribute to <code>*</code>
+-</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>&lt;opentelemetry:mule-component namespace="os" name="*" /&gt;</pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_context_propagation">Context Propagation</h3>
+<div class="paragraph">
+<p>This module supports context propagation in
+<a href="https://www.w3.org/TR/trace-context/#trace-context-http-headers-format">W3C Trace Context</a> and <a href="https://www.w3.org/TR/baggage/#baggage-http-header-format">W3C Baggage Context</a> formats.</p>
+</div>
+<div class="sect3">
+<h4 id="_context_extraction">Context Extraction</h4>
+<div class="paragraph">
+<p>Extension supports extracting Open Telemetry Trace context extraction for certain source components. For these components if the Context information is received in appropriate place, the module will establish the parent-child relation for the traces.</p>
+</div>
+<div class="paragraph">
+<p>Source Components supporting context extraction:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>HTTP Listener</strong>: Context information, if exists, is extracted from request headers</p>
+</li>
+<li>
+<p><strong>Anypoint MQ Subscription</strong>: Context information, if exists, is extracted from Anypoint MQ Message properties</p>
+</li>
+</ul>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+OpenTelemetry Trace Context is extracted/injected using configured Propagators. The entries in the context may vary depending on the propagators used and validations it applies. All examples here are with <strong>W3C Trace Context</strong>.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_context_injection">Context Injection</h4>
+<div class="sect4">
+<h5 id="_auto_injection_to_flow_variables">Auto Injection to Flow Variables</h5>
+<div class="paragraph">
+<p>Extension uses a processor interceptor. OpenTelemetry&#8217;s tracing context will be automatically added to a flow variable before the first processor is invoked.
+It is always injected under a key <strong>OTEL_TRACE_CONTEXT</strong>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+In case interception needs to be disabled, set the system property <strong>"mule.otel.interceptor.processor.enable"</strong> to <strong>"false"</strong>.
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Following examples show a <strong>W3C Trace Context</strong> extracted from incoming http request:</p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./Images/auto-context-flow-injection.png" alt="auto context flow injection">
+</div>
+</div>
+<div class="paragraph">
+<p>Another variation when <strong>tracestate</strong> is received with <strong>traceparent</strong></p>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./Images/auto-context-flow-injection-2.png" alt="auto context flow injection 2">
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_manual_injection">Manual Injection</h5>
+<div class="paragraph">
+<p>If needed, <code>&lt;opentelemetry:get-trace-context /&gt;</code> operation can be used to manually inject trace context into flow.</p>
+</div>
+<div class="paragraph">
+<p><strong>NOTE:</strong> <code>target</code> must be used to set operation output to a flow variable.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml"><span style="color:#070;font-weight:bold">&lt;opentelemetry:get-trace-context</span> <span style="color:#b48">doc:name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Get Trace Context</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">config-ref</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">OpenTelemetry_Config</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">target</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">traceContext</span><span style="color:#710">&quot;</span></span><span style="color:#070;font-weight:bold">/&gt;</span></code></pre>
+</div>
+</div>
+<div class="imageblock">
+<div class="content">
+<img src="./Images/manual-context-flow-injection.png" alt="manual context flow injection">
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_http_request_context_injection">HTTP Request Context Injection</h5>
+<div class="paragraph">
+<p>The Module does <strong>NOT</strong> support automatic context propagation. In order to <strong>propagate the trace header</strong> information to other web applications, the Mule HTTP Requester Configuration <strong>must</strong>
+have default headers configured in the following way:</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/http-requester-config.png" alt="600" width="600">
+</div>
+<div class="title">Figure 18. Mule HTTP Requester Configuration</div>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 2. HTTP Requester Configuration for Default Headers</caption>
+<colgroup>
+<col style="width: 30%;">
+<col style="width: 70%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Key</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Value</strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>traceparent</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>#[vars.OTEL_TRACE_CONTEXT.traceparent default '' as String]</code></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>tracestate</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>#[vars.OTEL_TRACE_CONTEXT.tracestate default ''  as String]</code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="listingblock">
+<div class="title">Mule configuration xml for setting default headers in the HTTP Requester Configuration</div>
+<div class="content">
+<pre class="CodeRay highlight nowrap"><code data-lang="xml"><table class="CodeRay"><tr>
+  <td class="line-numbers"><pre>1
+2
+3
+4
+5
+6
+7
+</pre></td>
+  <td class="code"><pre><span style="color:#070;font-weight:bold">&lt;http:request-config</span> <span style="color:#b48">name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">HTTP_Request_configuration</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">doc:name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">HTTP Request configuration</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">doc:id</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">7c863500-0642-4e9d-b759-5e317225e015</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">sendCorrelationId</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">NEVER</span><span style="color:#710">&quot;</span></span><span style="color:#070;font-weight:bold">&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;http:request-connection</span> <span style="color:#b48">host</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">mule-hello-world-api.us-e1.cloudhub.io</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;http:default-headers</span> <span style="color:#070;font-weight:bold">&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;http:default-header</span> <span style="color:#b48">key</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">traceparent</span><span style="color:#710">'</span></span> <span style="color:#b48">value</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">#[vars.OTEL_TRACE_CONTEXT.traceparent default '' as String]</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span> <i class="conum" data-value="1"></i><b>(1)</b>
+        <span style="color:#070;font-weight:bold">&lt;http:default-header</span> <span style="color:#b48">key</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">tracestate</span><span style="color:#710">'</span></span> <span style="color:#b48">value</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">#[vars.OTEL_TRACE_CONTEXT.tracestate default '' as String]</span><span style="color:#710">&quot;</span></span> <span style="color:#070;font-weight:bold">/&gt;</span>   <i class="conum" data-value="2"></i><b>(2)</b>
+    <span style="color:#070;font-weight:bold">&lt;/http:default-headers&gt;</span>
+<span style="color:#070;font-weight:bold">&lt;/http:request-config&gt;</span></pre></td>
+</tr></table></code></pre>
+</div>
+</div>
+</div>
+<div class="sect4">
+<h5 id="_anypoint_mq_context_injection">Anypoint MQ Context Injection</h5>
+<div class="paragraph">
+<p>When using Anypoint MQ, the <code>publish</code> operation can add <code>vars.OTEL_TRACE_CONTEXT</code> to user properties. If this module is being used by the Anypoint MQ Subscription application, the Context will be extracted from the user properties and linked to the parent incoming trace.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="CodeRay highlight"><code data-lang="xml">    <span style="color:#070;font-weight:bold">&lt;anypoint-mq:publish</span> <span style="color:#b48">doc:name</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Publish</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">doc:id</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">8e707130-9ead-4dac-a31e-f7bcb5ce7740</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">config-ref</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Anypoint_MQ_Config</span><span style="color:#710">&quot;</span></span> <span style="color:#b48">destination</span>=<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">otel-test-queue-1</span><span style="color:#710">&quot;</span></span><span style="color:#070;font-weight:bold">&gt;</span>
+        <span style="color:#070;font-weight:bold">&lt;anypoint-mq:properties</span> <span style="color:#070;font-weight:bold">&gt;</span><span style="font-weight:bold;color:#666">&lt;![CDATA[</span>#[vars.OTEL_TRACE_CONTEXT]<span style="font-weight:bold;color:#666">]]&gt;</span><span style="color:#070;font-weight:bold">&lt;/anypoint-mq:properties&gt;</span>
+    <span style="color:#070;font-weight:bold">&lt;/anypoint-mq:publish&gt;</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_turn_off_tracing">Turn Off Tracing</h3>
+<div class="paragraph">
+<p>Once you have configured the module in your application, there may be a need to remove or temporarily turn it off.</p>
+</div>
+<div class="paragraph">
+<p><strong>To permanently remove</strong> the tracing -</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Remove the module dependency from pom.xml</p>
+</li>
+<li>
+<p>Remove the global configuration element and xml declaration references</p>
+</li>
+<li>
+<p>Remove any changes made to other Connector configurations for context propagation.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><strong>To temporarily disable</strong> the tracing without any code changes -</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Set <code>turnOffTracing="true"</code> on global config. You may use a property placeholder for the value.</p>
+</li>
+<li>
+<p>Alternately, you can set the <code>mule.otel.tracing.disabled</code> system property to <code>true</code>.</p>
+</li>
+<li>
+<p>To re-enable the tracing, just reset the property to <code>false</code> (default value).</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_limitations">Limitations</h3>
+<div class="ulist">
+<ul>
+<li>
+<p>Automatic header/attribute injections for outbound requests is not supported</p>
+</li>
+<li>
+<p>When using in on-premise mode, all applications deployed to the same runtime will share the same instance of OpenTelemetry configuration. It is unpredictable that which application&#8217;s configuration wins. Ideally, the configuration should be same across the applications.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_demo_scenario">Demo Scenario</h3>
+<div class="paragraph">
+<p>Below is a description of the demo scenario used to generate distributed trace information from 2 Mule applications and have it
+render in a Dynatrace backend.</p>
+</div>
+<div class="sect3">
+<h4 id="_demo_architecture_using_dynatrace_backend">Demo Architecture using Dynatrace Backend</h4>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/Demo-Distributed-App-Arch.png" alt="1200" width="1200">
+</div>
+<div class="title">Figure 19. Demo Architecture</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>External application sending a request to Mule Application 1 with WC3 Trace Context Headers</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Mule App 1 sending a request to Mule App 2 and propagating the trace context via WC3 Trace Context Headers</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Responses coming back to calling application</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="4"></i><b>4</b></td>
+<td>Responses coming back to calling application</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="5"></i><b>5</b></td>
+<td>Both Mule applications sending log and metrics data to Anypoint Monitoring</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="6"></i><b>6</b></td>
+<td>Mule 4 OpenTelemetry Module sending trace information to Dynatrace OTel Collector</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="7"></i><b>7</b></td>
+<td>Dynatrace Collector forwarding the data to Dynatrace dashboard for rendering</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_demo_architecture_mule_implementation_diagram">Demo Architecture Mule Implementation Diagram</h4>
+<div class="paragraph">
+<p>Below is an <strong>implementation</strong> of the demo architecture described above. At a high-level, <strong>Mule_App_1</strong> receives the initial request from
+the <strong>external client</strong>, performs various functions including making a request to an external application, <strong>Mule_App_2</strong>, and calling a secondary
+flow within Mule_App_1 before returning a response to the calling client application.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+The demo applications use a variety of Mule components to showcase how different message processors generate different span attributes,
+including error events and log output.
+</td>
+</tr>
+</table>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/Distributed-Mule-App-Diagram.png" alt="Distributed Mule App Diagram">
+</div>
+<div class="title">Figure 20. Demo Mule Application Diagram</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_example_output_dynatrace_backend">Example Output - Dynatrace Backend</h3>
+<div class="paragraph">
+<p>Below are several screenshots from a Dynatrace Distributed Traces Dashboard to provide examples regarding the type of output generated
+by the Mule 4 OpenTelemetry Module and visualized by observability backend.</p>
+</div>
+<div class="sect3">
+<h4 id="_overall_distributed_trace_temporal_graph">Overall Distributed Trace Temporal Graph</h4>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/dynatrace-distributed-span.png" alt="dynatrace distributed span">
+</div>
+<div class="title">Figure 21. Dynatrace - Complete Distributed Trace</div>
+</div>
+<div class="paragraph">
+<p>As you can see in the graph above, the Agent generates spans in a manner which is <strong>hierarchically consistent</strong> with the progression of
+a transaction through and between Mule applications.</p>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Represents the <strong>overall</strong> set of spans in the <strong>distributed trace</strong>.  Nested (child) spans are indented appropriately at each level.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Represents the overall set of <strong>spans</strong> associated with the <strong>external Mule application</strong> (Mule_App_2). Nested (child) spans are
+indented appropriately.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Represents the overall set of <strong>spans</strong> associated with the <strong>secondary flow</strong> in Mule_App_1. Nested (child) spans are indented
+appropriately.</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_root_span_summary_details">Root Span Summary Details</h4>
+<div class="paragraph">
+<p>Below is a screenshot of the summary details associated with a Mule Flow (Pipeline) span.  In this case, it&#8217;s the trace root span
+which has an HTTP Listener as its source trigger.  For the HTTP Listener, the Agent generates attributes such as the HTTP method,
+the protocol (HTTP or HTTPs), the URI, the remote address, etc.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/dynatrace-distributed-rootspan-summary.png" alt="dynatrace distributed rootspan summary">
+</div>
+<div class="title">Figure 22. Dynatrace - Root Span Summary</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <strong>Metadata</strong> is generated automatically by the OTel SDK.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>The <strong>Attributes</strong> data is generated by the Agent and specific to the span type, either a Flow(Pipeline) or Message Processor span
+and if a Message Processor span then Message Processor type (e.g. Logger, Transform, DB, HTTP Requester, &#8230;&#8203;).</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>The <strong>Resource Attributes</strong> are specified in the configuration of the Agent.  Resource Attributes can be a very convenient and
+meaningful way of tagging the trace with information such as the application name, runtime environment (e.g., Production, QA,
+Development,&#8230;&#8203;), hosting region, etc. for easier correlation and search.</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_logger_message_processor_output">Logger Message Processor Output</h4>
+<div class="paragraph">
+<p>As a matter of convenience, the Agent exports the output of the Logger processor.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/dynatrace-distributed-span-logger-event.png" alt="dynatrace distributed span logger event">
+</div>
+<div class="title">Figure 23. Dynatrace - Logger Processor Output Event</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_database_processor_summary">Database Processor Summary</h4>
+<div class="paragraph">
+<p>Below is a diagram of the Database Processor specific attributes.  The extension will generate connection related attributes such as
+connection type, host, port, database name and user as well operational attributes such as the SQL query type and statement.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/dynatrace-distributed-db-summary.png" alt="dynatrace distributed db summary">
+</div>
+<div class="title">Figure 24. Dynatrace - Database Processor Summary</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_database_processor_error_event">Database Processor Error Event</h4>
+<div class="paragraph">
+<p>To facilitate triaging and remediation of faults, when an error occurs in a Mule application, the Agent exports the entire Mule
+exception message.  For example, see the diagram below that displays a database <strong>connection failure</strong>. Rather than scrolling
+through external log files, a user can simply look at the trace to find faults.</p>
+</div>
+<div class="imageblock text-center">
+<div class="content">
+<img src="./Images/dynatrace-distributed-db-error-event.png" alt="dynatrace distributed db error event">
+</div>
+<div class="title">Figure 25. Dynatrace - Database Processor Error Event</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_backends_tested_against">Backends Tested Against</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Below is a list of the various backends the extension has been tested with so far:</p>
+</div>
+<table class="tableblock frame-all grid-all stretch">
+<caption class="title">Table 3. Tested Backends</caption>
+<colgroup>
+<col style="width: 45%;">
+<col style="width: 25%;">
+<col style="width: 30%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Backend</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Export Protocol</strong></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><strong>Note</strong></p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Dynatrace</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">OTLP/HTTP_PROTOBUF</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Grafana Labs Tempo</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">OTLP/HTTP_PROTOBUF</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ELK Stack v7.14.2 (Elasticsearch, Kibana, APM Server)</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">OTLP/gRPC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">HTTP_PROTOBUF currently not supported by Elastic</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_references">References</h2>
+<div class="sectionbody">
+<div class="ulist bibliography">
+<ul class="bibliography">
+<li>
+<p><a href="https://www.dynatrace.com/resources/ebooks/observability-and-beyond-for-the-enterprise-cloud/">Dynatrace e-book:
+"Observability and Beyond for the Enterprise Cloud"</a></p>
+</li>
+<li>
+<p><a href="https://www.gartner.com/doc/reprints?id=1-27M5IT5I&amp;ct=211008&amp;st=sb">Gartner: "Market Guide for Digital Experience Monitoring"</a></p>
+</li>
+<li>
+<p><a href="https://www.gartner.com/doc/reprints?id=1-25S5P19L&amp;ct=210412&amp;st=sb">Gartner: "Magic Quadrant for Application Performance
+Monitoring - 2021"</a></p>
+</li>
+<li>
+<p><a href="https://gigaom.com/report/gigaom-radar-for-application-performance-monitoring-apm/">GigaOm: "Radar for APM - 2021"</a></p>
+</li>
+<li>
+<p><a href="https://lightstep.com/observability/">Lightstep: "Observability: A complete overview for 2021"</a></p>
+</li>
+<li>
+<p><a href="https://docs.mulesoft.com/monitoring/">MuleSoft: "Anypoint Monitoring Overview"</a></p>
+</li>
+<li>
+<p><a href="https://docs.mulesoft.com/mule-sdk/1.1/getting-started">MuleSoft: "Getting Started with Mule SDK for Java"</a></p>
+</li>
+<li>
+<p><a href="https://opentelemetry.io/">opentelemetry.io</a></p>
+</li>
+<li>
+<p><a href="https://www.splunk.com/en_us/form/beginners-guide-to-observability.html">Splunk e-book: "A Beginner&#8217;s Guide to Observability"</a></p>
+</li>
+<li>
+<p><a href="https://w3c.github.io/trace-context/">wc3.org: "Trace Context Draft Recommendation"</a></p>
+</li>
+<li>
+<p><a href="https://w3c.github.io/trace-context//#dfn-distributed-traces">wc3.org: "Distributed Traces"</a></p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Version 1.1.0-SNAPSHOT<br>
+Last updated 2022-09-27 20:08:12 -0400
+</div>
+</div>
+</body>
+</html>

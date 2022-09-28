@@ -1,0 +1,10 @@
+Below is a list of the various backends the extension has been tested with so far:
+
+.Tested Backends
+[cols="45%, 25%, 30%"]
+|===
+| *Backend*                                             | *Export Protocol*    | *Note*
+| Dynatrace                                             | OTLP/HTTP_PROTOBUF   |
+| Grafana Labs Tempo                                    | OTLP/HTTP_PROTOBUF   |
+| ELK Stack v7.14.2 (Elasticsearch, Kibana, APM Server) | OTLP/gRPC            | HTTP_PROTOBUF currently not supported by Elastic
+|===
