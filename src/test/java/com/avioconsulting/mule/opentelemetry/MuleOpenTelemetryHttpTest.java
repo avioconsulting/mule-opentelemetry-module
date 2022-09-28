@@ -144,7 +144,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .hasSize(1)
         .element(0)
         .extracting("attributes", as(InstanceOfAssertFactories.map(String.class, Object.class)))
-        .hasSize(12)
+        .hasSize(13)
         .containsEntry("mule.app.flow.name", "mule-opentelemetry-app-requester-remote")
         .containsKey("mule.serverId")
         .containsEntry("http.scheme", "http")
@@ -153,6 +153,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .containsEntry("mule.app.flow.source.name", "listener")
         .containsEntry("mule.app.flow.source.namespace", "http")
         .containsEntry("mule.app.flow.source.configRef", "HTTP_Listener_config")
+        .containsKey("mule.correlationId")
         .containsKey("http.user_agent")
         .hasEntrySatisfying("http.host",
             value -> assertThat(value.toString()).startsWith("localhost:"))

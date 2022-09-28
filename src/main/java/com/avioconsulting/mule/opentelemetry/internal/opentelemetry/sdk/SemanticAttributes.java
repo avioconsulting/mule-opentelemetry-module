@@ -2,11 +2,20 @@ package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk;
 
 import io.opentelemetry.api.common.AttributeKey;
 
+/**
+ * This class defines Semantic attributes that are captured by opentelemetry
+ * module for Mule traces and spans.
+ */
 public class SemanticAttributes {
   private SemanticAttributes() {
   }
 
   public static final AttributeKey<String> MULE_HOME = AttributeKey.stringKey("mule.home");
+
+  /**
+   * Mule Correlation Id for the current event.
+   */
+  public static final AttributeKey<String> MULE_CORRELATION_ID = AttributeKey.stringKey("mule.correlationId");
   public static final AttributeKey<String> MULE_SERVER_ID = AttributeKey.stringKey("mule.serverId");
   public static final AttributeKey<String> MULE_CSORGANIZATION_ID = AttributeKey.stringKey("mule.csOrganization.id");
   public static final AttributeKey<String> MULE_ENVIRONMENT_NAME = AttributeKey.stringKey("mule.environment.name");
