@@ -136,13 +136,14 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
         .extracting("spanName", "location", "spanKind")
         .containsExactly("/test", componentLocation.getLocation(), SpanKind.CLIENT);
     assertThat(endTraceComponent.getTags())
-        .hasSize(6)
+        .hasSize(7)
         .containsEntry("http.method", "GET")
         .containsEntry("mule.app.processor.configRef", "test-config")
         .containsEntry("http.route", "/test")
         .containsEntry("mule.app.processor.docName", "HTTP Request")
         .containsEntry("mule.app.processor.name", "request")
-        .containsEntry("mule.app.processor.namespace", "http");
+        .containsEntry("mule.app.processor.namespace", "http")
+        .containsEntry("mule.correlationId", "testCorrelationId");
   }
 
   @Test
