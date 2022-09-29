@@ -53,6 +53,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     Map<String, String> tags = new HashMap<>();
     tags.put(MULE_APP_FLOW_NAME.getKey(), notification.getResourceIdentifier());
     tags.put(MULE_SERVER_ID.getKey(), notification.getServerId());
+    tags.put(MULE_CORRELATION_ID.getKey(), notification.getEvent().getCorrelationId());
 
     builder.withTags(tags)
         .withTransactionId(getTransactionId(notification))

@@ -16,6 +16,11 @@ public final class SemanticAttributes {
   public static final AttributeKey<String> MULE_HOME = AttributeKey.stringKey("mule.home");
 
   /**
+   * Mule Correlation Id for the current event.
+   */
+  public static final AttributeKey<String> MULE_CORRELATION_ID = AttributeKey.stringKey("mule.correlationId");
+
+  /**
    * Mule Server Id that is processing current request.
    */
   public static final AttributeKey<String> MULE_SERVER_ID = AttributeKey.stringKey("mule.serverId");
