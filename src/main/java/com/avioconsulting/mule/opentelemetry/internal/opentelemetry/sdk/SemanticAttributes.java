@@ -29,9 +29,6 @@ public final class SemanticAttributes {
   /**
    * Most of the Mule users are familiar with organization id instead of
    * CSORGANIZATION ID.
-   * CloudHub does not define any property for organization id.
-   * This should refer to a system property `organization.id` if present,
-   * otherwise `csOrganization.id`.
    */
   public static final AttributeKey<String> MULE_ORGANIZATION_ID = AttributeKey.stringKey("mule.organization.id");
 

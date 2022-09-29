@@ -35,11 +35,7 @@ public class MuleResource {
     AttributesBuilder builder = Attributes.builder();
     addAttribute("mule.home", builder, MULE_HOME);
     addAttribute("csorganization.id", builder, MULE_CSORGANIZATION_ID);
-    if (System.getProperties().containsKey("organization.id")) {
-      addAttribute("organization.id", builder, MULE_ORGANIZATION_ID);
-    } else {
-      addAttribute("csorganization.id", builder, MULE_ORGANIZATION_ID);
-    }
+    addAttribute("csorganization.id", builder, MULE_ORGANIZATION_ID);
     addAttribute("environment.id", builder, MULE_ENVIRONMENT_ID);
     addAttribute("environment.type", builder, MULE_ENVIRONMENT_TYPE);
     addAttribute("worker.id", builder, MULE_WORKER_ID);
