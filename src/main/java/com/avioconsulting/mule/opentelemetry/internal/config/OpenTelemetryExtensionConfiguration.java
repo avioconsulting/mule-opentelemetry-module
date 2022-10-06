@@ -22,6 +22,7 @@ import org.mule.runtime.extension.api.annotation.connectivity.ConnectionProvider
 import org.mule.runtime.extension.api.annotation.param.Optional;
 import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.ParameterGroup;
+import org.mule.runtime.extension.api.annotation.param.RefName;
 import org.mule.runtime.extension.api.annotation.param.display.Placement;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 import org.slf4j.Logger;
@@ -36,6 +37,9 @@ public class OpenTelemetryExtensionConfiguration implements Startable, Stoppable
 
   public static final String PROP_MULE_OTEL_TRACING_DISABLED = "mule.otel.tracing.disabled";
   private final Logger logger = LoggerFactory.getLogger(OpenTelemetryExtensionConfiguration.class);
+
+  @RefName
+  private String configName;
 
   @Parameter
   @Optional(defaultValue = "false")
@@ -90,6 +94,10 @@ public class OpenTelemetryExtensionConfiguration implements Startable, Stoppable
     return resource;
   }
 
+  public String getConfigName() {
+    return configName;
+  }
+
   @Inject
   NotificationListenerRegistry notificationListenerRegistry;
 
@@ -111,7 +119,8 @@ public class OpenTelemetryExtensionConfiguration implements Startable, Stoppable
     // initializing the SDK. A future use case.
     // TODO: Find another way to inject connections.
     if (isTurnOffTracing()) {
-      logger.info("{} is set to true. Tracing will be turned off.", PROP_MULE_OTEL_TRACING_DISABLED);
+      logger.info("{} is set to true. Tracing will be turned off for config '{}'.",
+          PROP_MULE_OTEL_TRACING_DISABLED, getConfigName());
       // Is there a better way to let runtime trigger the configuration shutdown
       // without stopping the application?
       // Raising an exception here will make runtime invoke the stop method
@@ -120,6 +129,7 @@ public class OpenTelemetryExtensionConfiguration implements Startable, Stoppable
       // processors.
       return;
     }
+    logger.info("Initiating otel config - '{}'", getConfigName());
     muleNotificationProcessor.init(
         () -> OpenTelemetryConnection
             .getInstance(new OpenTelemetryConfigWrapper(getResource(),
@@ -134,7 +144,8 @@ public class OpenTelemetryExtensionConfiguration implements Startable, Stoppable
   @Override
   public void stop() throws MuleException {
     if (isTurnOffTracing()) {
-      logger.info("{} is set to true. Configuration has been stopped.", PROP_MULE_OTEL_TRACING_DISABLED);
+      logger.info("{} is set to true. Configuration '{}' has been stopped.", PROP_MULE_OTEL_TRACING_DISABLED,
+          getConfigName());
     }
   }
 }
