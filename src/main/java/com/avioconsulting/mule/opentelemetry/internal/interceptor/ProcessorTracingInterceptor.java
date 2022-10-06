@@ -46,7 +46,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
     // If the tracing is disabled, the module configuration will not initialize
     // connection supplier.
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("###### May Intercept with logic '{}'", location);
+      LOGGER.debug("May Intercept with logic '{}'", location);
     }
     if (muleNotificationProcessor.getConnectionSupplier() != null
         && !event.getVariables().containsKey(TransactionStore.TRACE_CONTEXT_MAP_KEY)) {
@@ -55,7 +55,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
       event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY,
           openTelemetryConnection.getTraceContext(transactionId));
       if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug("###### Intercepted with logic '{}'", location);
+        LOGGER.debug("Intercepted with logic '{}'", location);
       }
     }
   }

@@ -72,7 +72,7 @@ public class FirstProcessorInterceptorFactory implements ProcessorInterceptorFac
           && interceptPath.equalsIgnoreCase(location.getLocation());
     }
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("??? Will Intercept '{}'?: {}", location, intercept);
+      LOGGER.debug("Will Intercept '{}'?: {}", location, intercept);
     }
     return intercept;
   }
