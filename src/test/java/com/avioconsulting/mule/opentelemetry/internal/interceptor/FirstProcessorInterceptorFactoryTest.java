@@ -7,12 +7,16 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.component.location.LocationPart;
+
+import java.util.Arrays;
+import java.util.Optional;
 
 import static com.avioconsulting.mule.opentelemetry.internal.interceptor.FirstProcessorInterceptorFactory.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FirstProcessorInterceptorFactoryTest {
@@ -34,7 +38,13 @@ public class FirstProcessorInterceptorFactoryTest {
   @Test
   public void notInterceptionNonZeroProcessors() {
     ComponentLocation location = Mockito.mock(ComponentLocation.class);
+    when(location.getRootContainerName()).thenReturn("MyFlow");
     when(location.getLocation()).thenReturn("MyFlow/processors/anything-but-0");
+    LocationPart part1 = mock(LocationPart.class);
+    TypedComponentIdentifier identifier = mock(TypedComponentIdentifier.class);
+    when(identifier.getType()).thenReturn(TypedComponentIdentifier.ComponentType.FLOW);
+    when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
+    when(location.getParts()).thenReturn(Arrays.asList(part1));
     assertThat(new FirstProcessorInterceptorFactory(muleNotificationProcessor).intercept(location))
         .isFalse();
   }
@@ -42,9 +52,21 @@ public class FirstProcessorInterceptorFactoryTest {
   @Test
   public void interceptionDefaultEnabled() {
     ComponentLocation location = Mockito.mock(ComponentLocation.class);
+    when(location.getRootContainerName()).thenReturn("MyFlow");
     when(location.getLocation()).thenReturn("MyFlow/processors/0");
+    LocationPart part1 = mock(LocationPart.class);
+    TypedComponentIdentifier identifier = mock(TypedComponentIdentifier.class);
+    when(identifier.getType()).thenReturn(TypedComponentIdentifier.ComponentType.FLOW);
+    when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
+    when(location.getParts()).thenReturn(Arrays.asList(part1));
     assertThat(new FirstProcessorInterceptorFactory(muleNotificationProcessor).intercept(location))
         .isTrue();
+  }
+
+  private static LocationPart getLocationPart(String path) {
+    LocationPart part = mock(LocationPart.class);
+    doReturn(part).when(part).getPartPath();
+    return part;
   }
 
   @Test
@@ -59,7 +81,13 @@ public class FirstProcessorInterceptorFactoryTest {
   @Test
   public void interceptionDisabledBySystemProperty() {
     ComponentLocation location = Mockito.mock(ComponentLocation.class);
+    when(location.getRootContainerName()).thenReturn("MyFlow");
     when(location.getLocation()).thenReturn("MyFlow/processors/0");
+    LocationPart part1 = mock(LocationPart.class);
+    TypedComponentIdentifier identifier = mock(TypedComponentIdentifier.class);
+    when(identifier.getType()).thenReturn(TypedComponentIdentifier.ComponentType.FLOW);
+    when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
+    when(location.getParts()).thenReturn(Arrays.asList(part1));
     assertThat(new FirstProcessorInterceptorFactory(muleNotificationProcessor).intercept(location))
         .as("Interception before system property")
         .isTrue();
@@ -70,4 +98,5 @@ public class FirstProcessorInterceptorFactoryTest {
         .isFalse();
     System.clearProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME);
   }
+
 }

@@ -12,6 +12,9 @@
         <Logger name="com.avioconsulting.mule.opentelemetry" level="DEBUG">
             <AppenderRef ref="Console"/>
         </Logger>
+        <Logger name="com.avioconsulting.mule.opentelemetry.internal.interceptor" level="INFO">
+            <AppenderRef ref="Console"/>
+        </Logger>
         <Logger name="org.mule.runtime.core.internal.context.notification" level="DEBUG">
             <AppenderRef ref="Console"/>
         </Logger>

@@ -21,11 +21,9 @@ import java.util.function.Supplier;
  * See {@link TransactionStore#getTransactionContext(String)} for possible
  * entries in the map.
  */
-@Component
 public class ProcessorTracingInterceptor implements ProcessorInterceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessorTracingInterceptor.class);
-  private Supplier<Optional<OpenTelemetryConnection>> connectionSupplier = () -> OpenTelemetryConnection.get();
   private MuleNotificationProcessor muleNotificationProcessor;
 
   /**
@@ -47,13 +45,19 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
     // Using an instance of MuleNotificationProcessor here.
     // If the tracing is disabled, the module configuration will not initialize
     // connection supplier.
-    if (muleNotificationProcessor.getConnectionSupplier() != null) {
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("###### May Intercept with logic '{}'", location);
+    }
+    if (muleNotificationProcessor.getConnectionSupplier() != null
+        && !event.getVariables().containsKey(TransactionStore.TRACE_CONTEXT_MAP_KEY)) {
       OpenTelemetryConnection openTelemetryConnection = muleNotificationProcessor.getConnectionSupplier().get();
       String transactionId = openTelemetryConnection.getTransactionStore().transactionIdFor(event);
       event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY,
           openTelemetryConnection.getTraceContext(transactionId));
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("###### Intercepted with logic '{}'", location);
+      }
     }
-
   }
 
 }
