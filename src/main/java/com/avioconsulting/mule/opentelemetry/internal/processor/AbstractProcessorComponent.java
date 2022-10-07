@@ -3,11 +3,14 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 
 import java.util.*;
+import java.util.function.Function;
 
+import com.avioconsulting.mule.opentelemetry.internal.cache.InMemoryCache;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.message.Error;
@@ -29,6 +32,11 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractProcessorComponent.class);
 
   protected ConfigurationComponentLocator configurationComponentLocator;
+
+  /**
+   * Memory cache for Component's static tags.
+   */
+  protected final InMemoryCache<String, Map<String, String>> componentTagsCache = new InMemoryCache<>();
 
   @Override
   public ProcessorComponent withConfigurationComponentLocator(
@@ -100,17 +108,27 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   }
 
   protected Map<String, String> getProcessorCommonTags(EnrichedServerNotification notification) {
-    ComponentWrapper componentWrapper = new ComponentWrapper(notification.getInfo().getComponent(),
-        configurationComponentLocator);
-    Map<String, String> tags = new HashMap<>();
-    tags.put(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
-        notification.getComponent().getIdentifier().getNamespace());
-    tags.put(MULE_APP_PROCESSOR_NAME.getKey(), notification.getComponent().getIdentifier().getName());
-    if (componentWrapper.getDocName() != null)
-      tags.put(MULE_APP_PROCESSOR_DOC_NAME.getKey(), componentWrapper.getDocName());
-    if (componentWrapper.getConfigRef() != null)
-      tags.put(MULE_APP_PROCESSOR_CONFIG_REF.getKey(), componentWrapper.getConfigRef());
-    return tags;
+
+    Function<Component, Map<String, String>> extractTags = (component) -> {
+      ComponentWrapper componentWrapper = new ComponentWrapper(notification.getInfo().getComponent(),
+          configurationComponentLocator);
+      Map<String, String> tags = new HashMap<>();
+      tags.put(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
+          notification.getComponent().getIdentifier().getNamespace());
+      tags.put(MULE_APP_PROCESSOR_NAME.getKey(), notification.getComponent().getIdentifier().getName());
+      if (componentWrapper.getDocName() != null)
+        tags.put(MULE_APP_PROCESSOR_DOC_NAME.getKey(), componentWrapper.getDocName());
+      if (componentWrapper.getConfigRef() != null)
+        tags.put(MULE_APP_PROCESSOR_CONFIG_REF.getKey(), componentWrapper.getConfigRef());
+      return tags;
+    };
+    // Using cache key prefix to avoid conflict with any component tags for same
+    // component.
+    // We could also use a different instance of an InMemoryCache but prefix is good
+    // enough for this.
+    return componentTagsCache.cached(
+        "common|".concat(notification.getInfo().getComponent().getLocation().getLocation()),
+        (key) -> extractTags.apply(notification.getInfo().getComponent()));
   }
 
   protected ComponentIdentifier getSourceIdentifier(EnrichedServerNotification notification) {
@@ -129,15 +147,67 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
     return sourceIdentifier;
   }
 
-  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    return Collections.emptyMap();
+  /**
+   * <pre>
+   * Collects the tags from component configuration using {@link #componentAttributesToTags(Component)} and current request attributes using {@link #requestAttributesToTags(TypedValue)}.
+   *
+   * The default implementation of this method uses a caching for component attributes as they are design time static values.
+   * Provided {@link Component#getLocation()} 's {@link ComponentLocation#getLocation()} is used a cache key.
+   *
+   * The current {@link #requestAttributesToTags(TypedValue)} are then merged with the component tags.
+   *
+   * </pre>
+   * 
+   * @param component
+   *            {@link Component} to extract tags for
+   * @param attributes
+   *            {@link TypedValue} of request attributes
+   * @return Map
+   * @param <A>
+   *            Attribute class
+   */
+  protected <A> Map<String, String> getTagsFor(Component component, TypedValue<A> attributes) {
+    Map<String, String> tags = new HashMap<>(componentTagsCache.cached(component.getLocation().getLocation(),
+        (key) -> componentAttributesToTags(component)));
+    Map<String, String> attributesToTags = requestAttributesToTags(attributes);
+    if (attributesToTags != null) {
+      tags.putAll(attributesToTags);
+    }
+    return tags;
+  }
+
+  /**
+   * Convert request attributes to tags. As it is extracted from request
+   * attributes, These are dynamic tags specific to current request and must not
+   * be cached.
+   * 
+   * @param attributes
+   *            {@link TypedValue} of A.
+   * @return Map
+   * @param <A>
+   */
+  protected <A> Map<String, String> requestAttributesToTags(TypedValue<A> attributes) {
+    return new HashMap<>();
+  }
+
+  /**
+   * Extract the static attributes from component definition. Implementations must
+   * be pure i.e. for same instance of a {@link Component}, it must always return
+   * the same response.
+   * 
+   * @param component
+   *            {@link Component} to extract tags from
+   * @return {@link Map }
+   */
+  protected Map<String, String> componentAttributesToTags(Component component) {
+    return new HashMap<>();
   }
 
   @Override
   public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
     Map<String, String> tags = new HashMap<>(getProcessorCommonTags(notification));
     tags.put(MULE_CORRELATION_ID.getKey(), notification.getEvent().getCorrelationId());
-    tags.putAll(getAttributes(notification.getInfo().getComponent(),
+    tags.putAll(getTagsFor(notification.getInfo().getComponent(),
         notification.getEvent().getMessage().getAttributes()));
     return TraceComponent.newBuilder(notification.getComponent().getLocation().getLocation())
         .withLocation(notification.getComponent().getLocation().getLocation())

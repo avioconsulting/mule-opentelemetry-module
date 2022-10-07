@@ -40,7 +40,10 @@ public class MuleNotificationProcessor {
   @Inject
   ConfigurationComponentLocator configurationComponentLocator;
 
+  private final FlowProcessorComponent flowProcessorComponent = new FlowProcessorComponent();
+
   private ProcessorComponentService processorComponentService;
+  private final GenericProcessorComponent genericProcessorComponent = new GenericProcessorComponent();
 
   public MuleNotificationProcessor() {
 
@@ -110,7 +113,8 @@ public class MuleNotificationProcessor {
         .getProcessorComponentFor(identifier, configurationComponentLocator);
 
     if (!processorComponent.isPresent() && spanAllProcessors) {
-      processorComponent = Optional.of(new GenericProcessorComponent());
+      processorComponent = Optional
+          .of(genericProcessorComponent.withConfigurationComponentLocator(configurationComponentLocator));
     }
     return processorComponent;
   }
@@ -150,7 +154,7 @@ public class MuleNotificationProcessor {
     try {
       logger.trace("Handling '{}' flow start event", notification.getResourceIdentifier());
       init();
-      ProcessorComponent flowProcessorComponent = new FlowProcessorComponent()
+      flowProcessorComponent
           .withConfigurationComponentLocator(configurationComponentLocator);
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceStartTraceComponent(notification, openTelemetryConnection).get();
@@ -176,7 +180,7 @@ public class MuleNotificationProcessor {
     try {
       logger.trace("Handling '{}' flow end event", notification.getResourceIdentifier());
       init();
-      ProcessorComponent flowProcessorComponent = new FlowProcessorComponent()
+      flowProcessorComponent
           .withConfigurationComponentLocator(configurationComponentLocator);
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceEndTraceComponent(notification, openTelemetryConnection).get();

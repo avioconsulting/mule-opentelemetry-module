@@ -113,25 +113,21 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
 
     TraceComponent traceComponent = super.getStartTraceComponent(notification);
 
-    Map<String, String> requesterTags = getAttributes(notification.getInfo().getComponent(),
-        notification.getEvent().getMessage().getAttributes());
-    requesterTags.putAll(traceComponent.getTags());
-
     return TraceComponent.newBuilder(notification.getResourceIdentifier())
-        .withTags(requesterTags)
+        .withTags(traceComponent.getTags())
         .withLocation(notification.getComponent().getLocation().getLocation())
-        .withSpanName(requesterTags.get(HTTP_ROUTE.getKey()))
+        .withSpanName(traceComponent.getTags().get(HTTP_ROUTE.getKey()))
         .withTransactionId(traceComponent.getTransactionId())
         .withSpanKind(getSpanKind())
         .build();
   }
 
   @Override
-  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    ComponentWrapper componentWrapper = new ComponentWrapper(component, configurationComponentLocator);
+  protected <A> Map<String, String> getTagsFor(Component component, TypedValue<A> attributes) {
     Map<String, String> tags = new HashMap<>();
     if (isRequester(component.getIdentifier())) {
-      tags.putAll(getRequesterTags(componentWrapper));
+      tags.putAll(componentTagsCache.cached(component.getLocation().getLocation(),
+          s -> componentAttributesToTags(component)));
     } else {
       HttpRequestAttributes attr = (HttpRequestAttributes) attributes.getValue();
       tags.putAll(attributesToTags(attr));
@@ -139,8 +135,13 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     return tags;
   }
 
-  private Map<String, String> getRequesterTags(ComponentWrapper componentWrapper) {
-    Map<String, String> tags = new HashMap<>();
+  protected <A> Map<String, String> requestAttributesToTags(TypedValue<A> attributes) {
+    return new HashMap<>();
+  }
+
+  protected Map<String, String> componentAttributesToTags(Component component) {
+    Map<String, String> tags = super.componentAttributesToTags(component);
+    ComponentWrapper componentWrapper = new ComponentWrapper(component, configurationComponentLocator);
     String path = componentWrapper.getParameters().get("path");
     Map<String, String> connectionParameters = componentWrapper.getConfigConnectionParameters();
     if (!connectionParameters.isEmpty()) {

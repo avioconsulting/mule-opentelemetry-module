@@ -62,6 +62,29 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     return builder.build();
   }
 
+  /**
+   * Cacheable, static tags extracted from Flow's source component.
+   *
+   * @param notification
+   *            {@link EnrichedServerNotification} being processed now.
+   * @param sourceIdentifier
+   *            {@link ComponentIdentifier} of the flow source component.
+   * @return {@link Map}
+   */
+  private Map<String, String> getFlowSourceStaticTags(EnrichedServerNotification notification,
+      ComponentIdentifier sourceIdentifier) {
+    Map<String, String> tags = new HashMap<>();
+    if (sourceIdentifier == null)
+      return tags;
+    tags.put(MULE_APP_FLOW_SOURCE_NAME.getKey(), sourceIdentifier.getName());
+    tags.put(MULE_APP_FLOW_SOURCE_NAMESPACE.getKey(), sourceIdentifier.getNamespace());
+    Component sourceComponent = configurationComponentLocator.find(Location.builderFromStringRepresentation(
+        notification.getEvent().getContext().getOriginatingLocation().getLocation()).build()).get();
+    ComponentWrapper sourceWrapper = new ComponentWrapper(sourceComponent, configurationComponentLocator);
+    tags.put(MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey(), sourceWrapper.getConfigRef());
+    return tags;
+  }
+
   @Override
   public Optional<TraceComponent> getSourceStartTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
@@ -71,12 +94,8 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     if (sourceIdentifier == null) {
       return Optional.of(builder.build());
     }
-    startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_NAME.getKey(), sourceIdentifier.getName());
-    startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_NAMESPACE.getKey(), sourceIdentifier.getNamespace());
-    Component sourceComponent = configurationComponentLocator.find(Location.builderFromStringRepresentation(
-        notification.getEvent().getContext().getOriginatingLocation().getLocation()).build()).get();
-    ComponentWrapper sourceWrapper = new ComponentWrapper(sourceComponent, configurationComponentLocator);
-    startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey(), sourceWrapper.getConfigRef());
+    startTraceComponent.getTags().putAll(componentTagsCache.cached(notification.getResourceIdentifier(),
+        (key) -> getFlowSourceStaticTags(notification, sourceIdentifier)));
     // Find if there is a processor component to handle flow source component.
     // If exists, allow it to process notification and build any additional tags to
     // include in a trace.

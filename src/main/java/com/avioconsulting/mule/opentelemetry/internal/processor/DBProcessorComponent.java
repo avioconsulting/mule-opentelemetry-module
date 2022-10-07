@@ -3,7 +3,6 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
-import org.mule.runtime.api.metadata.TypedValue;
 
 import java.util.*;
 
@@ -40,13 +39,10 @@ public class DBProcessorComponent extends AbstractProcessorComponent {
     return SpanKind.CLIENT;
   }
 
-  @Override
-  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
+  protected Map<String, String> componentAttributesToTags(Component component) {
+    Map<String, String> tags = super.componentAttributesToTags(component);
     ComponentWrapper componentWrapper = new ComponentWrapper(component, configurationComponentLocator);
     Map<String, String> connectionParams = componentWrapper.getConfigConnectionParameters();
-
-    Map<String, String> tags = new HashMap<>();
-
     String connectionComponentName = connectionParams.get(ComponentWrapper.COMPONENT_NAME_KEY);
     String connectionName = connectionComponentName.split("-")[0];
     if ("generic".equalsIgnoreCase(connectionName)) {

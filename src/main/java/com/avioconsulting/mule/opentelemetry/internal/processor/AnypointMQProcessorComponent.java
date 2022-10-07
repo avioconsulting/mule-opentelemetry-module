@@ -67,16 +67,21 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    ComponentWrapper componentWrapper = new ComponentWrapper(component, configurationComponentLocator);
-    Map<String, String> connectionParams = componentWrapper.getConfigConnectionParameters();
-
-    Map<String, String> tags = new HashMap<>();
-    tags.put(MESSAGING_CONSUMER_ID.getKey(), connectionParams.get("clientId"));
+  protected <A> Map<String, String> requestAttributesToTags(TypedValue<A> attributes) {
+    Map<String, String> attributesToTags = super.requestAttributesToTags(attributes);
     if (attributes != null && attributes.getValue() instanceof AnypointMQMessageAttributes) {
       AnypointMQMessageAttributes attrs = (AnypointMQMessageAttributes) attributes.getValue();
-      tags.put(MESSAGING_MESSAGE_ID.getKey(), attrs.getMessageId());
+      attributesToTags.put(MESSAGING_MESSAGE_ID.getKey(), attrs.getMessageId());
     }
+    return attributesToTags;
+  }
+
+  @Override
+  protected Map<String, String> componentAttributesToTags(Component component) {
+    Map<String, String> tags = super.componentAttributesToTags(component);
+    ComponentWrapper componentWrapper = new ComponentWrapper(component, configurationComponentLocator);
+    Map<String, String> connectionParams = componentWrapper.getConfigConnectionParameters();
+    tags.put(MESSAGING_CONSUMER_ID.getKey(), connectionParams.get("clientId"));
     tags.put(MESSAGING_DESTINATION_KIND.getKey(), MessagingDestinationKindValues.QUEUE);
     tags.put(MESSAGING_SYSTEM.getKey(), "anypointmq");
     addTagIfPresent(componentWrapper.getParameters(), "destination", tags, MESSAGING_DESTINATION.getKey());
@@ -91,7 +96,7 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
     TypedValue<AnypointMQMessageAttributes> attributesTypedValue = notification.getEvent().getMessage()
         .getAttributes();
     AnypointMQMessageAttributes attributes = attributesTypedValue.getValue();
-    Map<String, String> tags = getAttributes(getSourceComponent(notification).orElse(notification.getComponent()),
+    Map<String, String> tags = getTagsFor(getSourceComponent(notification).orElse(notification.getComponent()),
         attributesTypedValue);
     tags.put(MESSAGING_OPERATION.getKey(), PROCESS);
     TraceComponent traceComponent = TraceComponent.newBuilder(notification.getResourceIdentifier())
