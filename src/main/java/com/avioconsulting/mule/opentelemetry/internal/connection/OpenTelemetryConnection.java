@@ -16,24 +16,35 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.*;
 
 public class OpenTelemetryConnection implements TraceContextHandler {
 
   private final Logger logger = LoggerFactory.getLogger(OpenTelemetryConnection.class);
 
-  public static final String INSTRUMENTATION_VERSION = "0.0.1";
-  public static final String INSTRUMENTATION_NAME = "com.avioconsulting.mule.tracing";
+  /**
+   * Instrumentation version must be picked from the module's artifact version.
+   * This is a fallback for any dev testing.
+   */
+  private static final String INSTRUMENTATION_VERSION = "0.0.1-DEV";
+  /**
+   * Instrumentation Name must be picked from the module's artifact id.
+   * This is a fallback for any dev testing.
+   */
+  private static final String INSTRUMENTATION_NAME = "mule-opentelemetry-module-DEV";
   private final TransactionStore transactionStore;
   private static OpenTelemetryConnection openTelemetryConnection;
   private final OpenTelemetry openTelemetry;
   private final Tracer tracer;
 
-  private OpenTelemetryConnection(String instrumentationName, String instrumentationVersion,
-      OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
+  private OpenTelemetryConnection(OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
+
+    Properties properties = getModuleProperties();
+    String instrumentationVersion = properties.getProperty("module.version", INSTRUMENTATION_VERSION);
+    String instrumentationName = properties.getProperty("module.artifactId", INSTRUMENTATION_NAME);
+
     logger.info("Initialising OpenTelemetry Mule 4 Agent for instrumentation {}:{}", instrumentationName,
         instrumentationVersion);
     // See here for autoconfigure options
@@ -56,7 +67,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     }
     builder.setServiceClassLoader(AutoConfiguredOpenTelemetrySdkBuilder.class.getClassLoader());
     openTelemetry = builder.build().getOpenTelemetrySdk();
-    tracer = openTelemetry.getTracer(INSTRUMENTATION_NAME, INSTRUMENTATION_VERSION);
+    tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
     transactionStore = InMemoryTransactionStore.getInstance();
   }
 
@@ -67,10 +78,28 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   public static synchronized OpenTelemetryConnection getInstance(
       OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
     if (openTelemetryConnection == null) {
-      openTelemetryConnection = new OpenTelemetryConnection(INSTRUMENTATION_NAME, INSTRUMENTATION_VERSION,
-          openTelemetryConfigWrapper);
+      openTelemetryConnection = new OpenTelemetryConnection(openTelemetryConfigWrapper);
     }
     return openTelemetryConnection;
+  }
+
+  /**
+   * Load the module properties from filtered resource to get module related
+   * information.
+   * 
+   * @return Properties
+   */
+  private static Properties getModuleProperties() {
+    Properties moduleProperties = new Properties();
+    try {
+      InputStream resourceAsStream = OpenTelemetryConnection.class.getClassLoader()
+          .getResourceAsStream("mule-opentelemetry-module.properties");
+      if (resourceAsStream != null)
+        moduleProperties.load(resourceAsStream);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    return moduleProperties;
   }
 
   public SpanBuilder spanBuilder(String spanName) {

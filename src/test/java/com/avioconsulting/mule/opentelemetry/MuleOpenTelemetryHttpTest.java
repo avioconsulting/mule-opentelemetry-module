@@ -45,6 +45,25 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
   }
 
   @Test
+  public void testInstrumentationMetadataDetails() throws Exception {
+    sendRequest(CORRELATION_ID, "test", 200);
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .hasSize(1));
+    assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .element(0)
+        .extracting("instrumentationVersion", InstanceOfAssertFactories.STRING)
+        .isNotNull()
+        .isNotEmpty()
+        .as("Version loaded from properties")
+        .isNotEqualTo("0.0.1-DEV");
+    assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .element(0)
+        .extracting("instrumentationName", InstanceOfAssertFactories.STRING)
+        .isNotNull()
+        .isEqualTo("mule-opentelemetry-module");
+  }
+
+  @Test
   public void testHttpTracing_WithErrorResponseStatusCode() throws Exception {
     sendRequest(CORRELATION_ID, "/test/error-status", 500);
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)

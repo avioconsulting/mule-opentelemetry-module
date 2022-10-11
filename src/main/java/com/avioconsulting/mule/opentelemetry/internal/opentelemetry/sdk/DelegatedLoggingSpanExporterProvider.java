@@ -50,6 +50,8 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
         span.setSpanKind(spanData.getKind().toString());
         span.setTraceId(spanData.getTraceId());
         span.setSpanStatus(spanData.getStatus().getStatusCode().name());
+        span.setInstrumentationName(spanData.getInstrumentationLibraryInfo().getName());
+        span.setInstrumentationVersion(spanData.getInstrumentationLibraryInfo().getVersion());
         Map<String, Object> attributes = new HashMap<>();
         spanData.getAttributes().forEach((key, value) -> attributes.put(key.getKey(), value));
         span.setAttributes(attributes);
@@ -75,12 +77,30 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
   }
 
   public static class Span {
+    private String instrumentationName;
+    private String instrumentationVersion;
     private String spanName;
     private String traceId;
     private String spanId;
     private String spanKind;
     private String spanStatus;
     private Map<String, Object> attributes;
+
+    public String getInstrumentationName() {
+      return instrumentationName;
+    }
+
+    public void setInstrumentationName(String instrumentationName) {
+      this.instrumentationName = instrumentationName;
+    }
+
+    public String getInstrumentationVersion() {
+      return instrumentationVersion;
+    }
+
+    public void setInstrumentationVersion(String instrumentationVersion) {
+      this.instrumentationVersion = instrumentationVersion;
+    }
 
     public String getSpanStatus() {
       return spanStatus;
@@ -132,7 +152,10 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
 
     @Override
     public String toString() {
-      return "Span{" +
+      return "Tracing{" +
+          "instrumentationName='" + instrumentationName + '\'' +
+          ", instrumentationVersion='" + instrumentationVersion + '\'' +
+          "}, Span{" +
           "spanName='" + spanName + '\'' +
           ", traceId='" + traceId + '\'' +
           ", spanId='" + spanId + '\'' +
