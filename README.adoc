@@ -225,6 +225,34 @@ To disable span generation for all processors in a specific namespace, set the `
 <opentelemetry:mule-component namespace="os" name="*" />
 ----
 
+=== Custom Tags
+In addition to all the trace attributes captured by the module, it is possible to add custom tags to the current trace using an operation `opentelemetry:add-custom-tags`.
+
+WARNING: All custom tag keys are transformed to `custom.{keyName}`. This also prevents accidentally overriding other standard keys-value pairs in trace tags. Depending on the APM (elastic, etc.) you use, they may be displayed differently. For example, elastic will display them as `label.custom_{keyName}`.
+
+These could be any business data that you may want to capture as a part of your telemetry data. For example, an order number for an order processing transaction.
+
+[source,xml]
+.Adding custom tag from variable
+----
+    <opentelemetry:add-custom-tags doc:name="Add Custom Tags"
+                config-ref="OpenTelemetry_Config">
+        <opentelemetry:tags >
+            <opentelemetry:tag key="orderNumber" value="#[vars.orderNumber]"/>
+        </opentelemetry:tags>
+    </opentelemetry:add-custom-tags>
+----
+
+You can also use dataweave to set the tags.
+
+[source,xml]
+.Adding custom tags as DataWeave map
+----
+    <opentelemetry:add-custom-tags doc:name="Add Custom Tags"
+                config-ref="OpenTelemetry_Config"
+                tags="#[output java --- {orderNumber: payload.orderNumber}]" />
+----
+
 == Context Propagation
 
 https://www.w3.org/TR/trace-context/#trace-context-http-headers-format[W3C Trace Context] and https://www.w3.org/TR/baggage/#baggage-http-header-format[W3C Baggage Context] are supported for incoming requests.
