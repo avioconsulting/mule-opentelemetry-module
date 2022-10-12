@@ -4,6 +4,7 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.context.Context;
 import java.time.Instant;
+import java.util.Map;
 import java.util.function.Consumer;
 import org.mule.runtime.api.event.Event;
 
@@ -46,11 +47,26 @@ public interface TransactionStore {
   void startTransaction(String transactionId, String rootFlowName, SpanBuilder rootFlowSpan);
 
   /**
+   * Add custom tags to an existing transaction.
+   *
+   * @param transactionId
+   *            A unique transaction id within the context of an application. Eg.
+   *            Correlation id.
+   * @param tagPrefix
+   * @param tags
+   *            {@link Map} of {@link String} Keys and {@link String} Values
+   *            containing the tags.
+   */
+  void addTransactionTags(String transactionId, String tagPrefix, Map<String, String> tags);
+
+  /**
    * Get the {@link Context} of the initiating flow span. This may be required to
    * propagate
    * context for a given transaction.
    *
    * @param transactionId
+   *            A unique transaction id within the context of an application. Eg.
+   *            Correlation id.
    * @return {@link Context}
    */
   Context getTransactionContext(String transactionId);
@@ -59,6 +75,8 @@ public interface TransactionStore {
    * Get the Trace Id associated the transaction
    *
    * @param transactionId
+   *            A unique transaction id within the context of an application. Eg.
+   *            Correlation id.
    * @return traceId
    */
   public String getTraceIdForTransaction(String transactionId);
