@@ -37,13 +37,25 @@ public class MuleNotificationProcessor {
   private TraceLevelConfiguration traceLevelConfiguration;
   private OpenTelemetryConnection openTelemetryConnection;
 
-  @Inject
   ConfigurationComponentLocator configurationComponentLocator;
 
   private ProcessorComponentService processorComponentService;
+  private final ProcessorComponent flowProcessorComponent;
 
-  public MuleNotificationProcessor() {
+  /**
+   * This {@link GenericProcessorComponent} will be used for processors that do
+   * not have a specific processor like {@link HttpProcessorComponent}.
+   */
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Avoid to creation object per notification instance
+  private final Optional<ProcessorComponent> genericProcessorComponent;
 
+  @Inject
+  public MuleNotificationProcessor(ConfigurationComponentLocator configurationComponentLocator) {
+    this.configurationComponentLocator = configurationComponentLocator;
+    flowProcessorComponent = new FlowProcessorComponent()
+        .withConfigurationComponentLocator(configurationComponentLocator);
+    genericProcessorComponent = Optional
+        .of(new GenericProcessorComponent().withConfigurationComponentLocator(configurationComponentLocator));
   }
 
   public boolean hasConnection() {
@@ -98,6 +110,21 @@ public class MuleNotificationProcessor {
     }
   }
 
+  /**
+   * <pre>
+   * Finds a {@link ProcessorComponent} for {@link org.mule.runtime.api.component.Component} that caused {@link MessageProcessorNotification} event.
+   *
+   * If `spanAllProcessors` is set to <code>true</code> but the target component is marked to ignore spans, no processor will be returned.
+   *
+   * If a specific processor isn't found and `spanAllProcessors` is <code>true</code> then {@link GenericProcessorComponent} will be returned to process target component.
+   *
+   * </pre>
+   * 
+   * @param notification
+   *            {@link MessageProcessorNotification} instance containing the
+   *            target {@link org.mule.runtime.api.component.Component}.
+   * @return Optional<ProcessorComponent> that can process this notification
+   */
   Optional<ProcessorComponent> getProcessorComponent(MessageProcessorNotification notification) {
     ComponentIdentifier identifier = notification.getComponent().getIdentifier();
     boolean ignored = traceLevelConfiguration.getIgnoreMuleComponents().stream()
@@ -110,7 +137,7 @@ public class MuleNotificationProcessor {
         .getProcessorComponentFor(identifier, configurationComponentLocator);
 
     if (!processorComponent.isPresent() && spanAllProcessors) {
-      processorComponent = Optional.of(new GenericProcessorComponent());
+      processorComponent = genericProcessorComponent;
     }
     return processorComponent;
   }
@@ -150,8 +177,6 @@ public class MuleNotificationProcessor {
     try {
       logger.trace("Handling '{}' flow start event", notification.getResourceIdentifier());
       init();
-      ProcessorComponent flowProcessorComponent = new FlowProcessorComponent()
-          .withConfigurationComponentLocator(configurationComponentLocator);
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceStartTraceComponent(notification, openTelemetryConnection).get();
       SpanBuilder spanBuilder = openTelemetryConnection
@@ -176,8 +201,6 @@ public class MuleNotificationProcessor {
     try {
       logger.trace("Handling '{}' flow end event", notification.getResourceIdentifier());
       init();
-      ProcessorComponent flowProcessorComponent = new FlowProcessorComponent()
-          .withConfigurationComponentLocator(configurationComponentLocator);
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceEndTraceComponent(notification, openTelemetryConnection).get();
       openTelemetryConnection.getTransactionStore().endTransaction(

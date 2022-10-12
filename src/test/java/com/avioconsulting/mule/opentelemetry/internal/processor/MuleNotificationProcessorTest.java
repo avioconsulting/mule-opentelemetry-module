@@ -6,6 +6,7 @@ import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryCo
 import org.junit.Test;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
@@ -17,6 +18,8 @@ import java.util.List;
 import static org.mockito.Mockito.*;
 
 public class MuleNotificationProcessorTest extends AbstractProcessorComponentTest {
+
+  private ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
 
   @Test
   public void handleProcessorStartEvent_withDisabledProcessorSpans() {
@@ -32,7 +35,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
         component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
 
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor();
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
     notificationProcessor.init(() -> connection, false);
     notificationProcessor.handleProcessorStartEvent(notification);
 
@@ -53,7 +56,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
         component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
 
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor();
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
 
     List<MuleComponent> skippedProcessors = new ArrayList<>();
     skippedProcessors.add(new MuleComponent("mule", "logger"));
@@ -78,7 +81,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
         component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
 
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor();
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
 
     List<MuleComponent> skippedProcessors = new ArrayList<>();
     skippedProcessors.add(new MuleComponent("mule", "*"));
@@ -104,7 +107,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
         component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
 
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor();
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
     notificationProcessor.init(() -> connection, false);
     notificationProcessor.handleProcessorEndEvent(notification);
 
