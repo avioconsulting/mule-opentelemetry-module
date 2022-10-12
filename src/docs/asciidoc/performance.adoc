@@ -1,0 +1,48 @@
+== Performance Report
+
+The use of `mule-opentelemetry-module` can add some overhead to the application performance. The following sections describe the activities performed to understand this overhead.
+
+=== Application Architecture
+
+To execute the performance test, we use an Order Process API that is configured to use this module and send telemetry data to elastic cloud.
+
+In this scenario, the Order Process API integrates with 3 other system APIS - Order System API, Shipments System API, and Notifications System API.
+
+image::Images/Order APILed with OpenTelemetry.png[900, 900, title="Order API-led Architecture", align="center"]
+
+To understand the application at flow level, below image shows how the flows are set up for using various types of connectors, processors, and other modules available in Mule.
+
+image::Images/perf-test-app-flows.png[title="Order Process API Flow Structure", align="center"]
+
+image::Images/mule-flow-diagram-order-process-api.png[title="Mule Flows - Graph Diagram", align="center"]
+
+=== Deployment Strategy
+
+The application is deployed to the CloudHub with following setup -
+
+* CloudHub as a deployment target
+* Single 1 vCore Worker
+* Mule Runtime Version 4.4.0 09-06-2022
+
+
+=== Test Setup
+
+To simulate real world scenarios, the system APIs are configured using the mocks to delay responses by predefined times. Following were the test parameters -
+
+* Deployed two instances of the test Application - One with the OpenTelemetry module and one without OpenTelemetry module
+* Module configured to generate spans for all processors
+* Workload of 100 concurrent requests for 15 minutes
+* Intentional delayed response from System APIs as below
+** Order System API 200 milliseconds
+** Shipment System API 500 milliseconds
+** Notification System API 100 milliseconds
+
+
+=== Observations
+
+After multiple iterations of the test with above setup and comparing the performance of both applications (with and without OpenTelemetry module), it is observed that _using OpenTelemetry module_ had the following impacts on the application performance -
+
+* Up to 5% overhead on request processing under the load
+* Up to 10% CPU overhead
+
+

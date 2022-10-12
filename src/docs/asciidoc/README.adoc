@@ -673,6 +673,7 @@ image::dynatrace-distributed-db-error-event.png[title="Dynatrace - Database Proc
 
 include::./backendsTested.adoc[]
 
+include::./performance.adoc[]
 
 [bibliography]
 == References
