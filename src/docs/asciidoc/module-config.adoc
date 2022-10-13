@@ -162,6 +162,36 @@ For non-logging exporters, Tracing SDK uses https://opentelemetry.io/docs/refere
 .... other config ....
 </opentelemetry:config>
 ----
+=== Span Sampler
+
+By default, _every span is recorded_. In a high transaction environment, this can become noisy or needing high storage requirements for backend APM. In such cases, it is possible to reduce the span recorded and sent to the APM. This can help reduce the network traffic as well as data sent to the backend. Although, it comes at a cost of not collecting all traces, which maybe acceptable in certain use cases.
+
+The Sampler configures weather spans will be recorded when they are started by the module. Unrecorded spans are skipped from exporting to backend APM.
+
+Module config doesn't have any elements to set the sampler configuration, but it can be applied using OpenTelemetry's system properties.
+|===
+|System property |Environment variable |Description
+
+|otel.traces.sampler
+|OTEL_TRACES_SAMPLER
+|The sampler to use for tracing. Defaults to `parentbased_always_on`
+
+|otel.traces.sampler.arg
+|OTEL_TRACES_SAMPLER_ARG
+|An argument to the configured tracer if supported, for example a ratio.
+|===
+
+See https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#sampler[Sampler documentation] for more details.
+
+For example, to set the TraceId Ratio based sampler, you can add following two properties -
+
+[source]
+----
+otel.traces.sampler=parentbased_traceidratio
+otel.traces.sampler.arg=0.001   // <1>
+----
+
+<1> Sets the trace id ratio to 1 in 1000. Resulting configuration will record 1 in 1000 traces.
 
 === Trace Spans
 By default, this module will create trace spans for following mule components -
