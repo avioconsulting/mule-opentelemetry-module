@@ -1,9 +1,12 @@
 package com.avioconsulting.mule.opentelemetry.internal.store;
 
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.context.Context;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -51,6 +54,16 @@ public class InMemoryTransactionStore implements TransactionStore {
           new Transaction(transactionId, span.getSpanContext().getTraceId(), rootFlowName,
               new FlowSpan(rootFlowName, span)));
     }
+  }
+
+  @Override
+  public void addTransactionTags(String transactionId, String tagPrefix, Map<String, String> tags) {
+    AttributesBuilder builder = Attributes.builder();
+    String format = "%s.%s";
+    tags.forEach((k, v) -> builder.put(String.format(format, tagPrefix, k), v));
+    getTransaction(transactionId)
+        .map(Transaction::getRootFlowSpan)
+        .map(FlowSpan::getSpan).ifPresent(span -> span.setAllAttributes(builder.build()));
   }
 
   private Optional<Transaction> getTransaction(String transactionId) {

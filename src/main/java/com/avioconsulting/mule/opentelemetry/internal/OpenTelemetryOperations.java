@@ -17,4 +17,27 @@ public class OpenTelemetryOperations {
     String transactionId = correlationInfo.getCorrelationId();
     return openTelemetryConnection.getTraceContext(transactionId);
   }
+
+  /**
+   * Add custom tags to an ongoing trace transaction. The tags will be added as
+   * attributes to the root span of this transaction.
+   * If the transaction's root span previously contained a mapping for the key,
+   * the old value is replaced by the new value.
+   *
+   * @param openTelemetryConnection
+   *            {@link OpenTelemetryConnection} provided by the SDK
+   * @param tags
+   *            {@link Map} of {@link String} Keys and {@link String} Values
+   *            containing the tags. Behavior of null values in the map is
+   *            undefined and not recommended.
+   * @param correlationInfo
+   *            {@link CorrelationInfo} from the runtime
+   */
+  @DisplayName("Add Custom Tags")
+  public void addCustomTags(@Connection OpenTelemetryConnection openTelemetryConnection,
+      Map<String, String> tags,
+      CorrelationInfo correlationInfo) {
+    openTelemetryConnection.getTransactionStore().addTransactionTags(correlationInfo.getCorrelationId(), "custom",
+        tags);
+  }
 }
