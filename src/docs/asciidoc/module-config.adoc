@@ -1,0 +1,374 @@
+=== Installation
+
+To use this extension, add following dependency to your mule application project.
+
+[source,xml]
+----
+    <dependency>
+      <groupId>com.avioconsulting</groupId>
+      <artifactId>mule-opentelemetry-module</artifactId>
+      <version>${mule-opentelemetry-module-version}</version> //<1>
+      <classifier>mule-plugin</classifier>
+    </dependency>
+----
+
+<1> The latest version of the module as published on https://search.maven.org/search?q=g:com.avioconsulting%20a:mule-opentelemetry-module[Maven Central].
+
+=== Auto Configuration
+Extension uses OpenTelemetry's autoconfigured SDK. In this mode, SDK will configure itself based on the environment variables.
+Supported environment variable details can be seen on https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure[open-telemetry/opentelemetry-java].
+
+=== Extension Configuration
+Extension allows to configure some resource and exporter attributes at individual application level. This configuration is minimal required to successfully send traces to OpenTelemetry collector.
+
+Following example shows an OpenTelemetry Config with OTLP Exporter configured -
+
+[source,xml]
+----
+<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1">
+    <opentelemetry:exporter >
+        <opentelemetry:otlp-exporter collectorEndpoint="http://localhost:55681/v1" protocol="HTTP_PROTOBUF" requestCompression="GZIP">
+            <opentelemetry:headers >
+                <opentelemetry:header key="testHeader" value="testHeaderValue" />
+            </opentelemetry:headers>
+            <opentelemetry:config-properties >
+                <opentelemetry:config-property key="otel.logs.exporter" value="otlp" />
+            </opentelemetry:config-properties>
+        </opentelemetry:otlp-exporter>
+    </opentelemetry:exporter>
+    <opentelemetry:resource-attributes >
+        <opentelemetry:attribute key="mule.env" value="Dev" />
+    </opentelemetry:resource-attributes>
+</opentelemetry:config>
+----
+
+When additional properties from SDK Auto-configuration are needed for exporter, `config-properties` can be used to add those. Environment and System properties will still override those entries.
+
+=== Common Resource Attributes
+Extension uses the OpenTelemetry SDK's https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#resource-provider-spi[Resource Provider SPI] to gather data of common resources such as Host, OS, Processes of the Mule runtime Server and host. SDK supported all common resources providers are configured by this module.
+
+.Example Set of tags captured with common resource providers
+[source,json]
+----
+  {
+    "host.arch": "x86_64",
+    "host.name": "ac0098.local",
+    "os.description": "Mac OS X 10.16",
+    "os.type": "darwin",
+    "process.command_line": "/Applications/AnypointStudio.app/Contents/Eclipse/plugins/org.mule.tooling.jdk.v8.macosx.x86_64_1.1.1/Contents/Home/jre:bin:java -Dmule.home=/Applications/AnypointStudio.app/Contents/....d=1 -Dwrapper.lang.domain=wrapper -Dwrapper.lang.folder=../lang",
+    "process.executable.path": "/Applications/AnypointStudio.app/Contents/Eclipse/plugins/org.mule.tooling.jdk.v8.macosx.x86_64_1.1.1/Contents/Home/jre:bin:java",
+    "process.pid": "9778",
+    "process.runtime.description": "AdoptOpenJDK OpenJDK 64-Bit Server VM 25.282-b08",
+    "process.runtime.name": "OpenJDK Runtime Environment",
+    "process.runtime.version": "1.8.0_282-b08"
+  }
+----
+
+See https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#disabling-automatic-resourceproviders[Disabling Common Resource Providers] if any resource provider must be disabled.
+
+=== Mule Resource Attributes
+Extension is aware of https://help.mulesoft.com/s/article/CloudHub-Reserved-Properties[CloudHub Reserved Properties] and automatically adds some of that data into trace data.
+
+.Example Set of tags captured with Mule Resource Provider
+[source,json]
+----
+{
+    "mule.app.awsRegion": "us-west-2",
+    "mule.app.domain": "mule-opentelemetry-app",
+    "mule.app.fullDomain": "mule-opentelemetry-app.us-w2.cloudhub.io",
+    "mule.csOrganization.id": "f2ea2cb4-c600-gh87-gg78-e952ff5591ee",
+    "mule.organization.id": "f2ea2cb4-c600-gh87-gg78-e952ff5591ee",
+    "mule.env": "Dev",
+    "mule.environment.id": "c06ef9b7-19c0-ss78-kk44-598058b20aad",
+    "mule.environment.type": "sandbox",
+    "mule.home": "/opt/mule/mule-4.4.0",
+    "mule.worker.id": "0"
+}
+----
+NOTE: CloudHub does not define any property for organization id. `mule.organization.id` refers to value of a system property  `csOrganization.id` defined by CloudHub.
+
+=== Exporters
+
+Extension supports following exporter configurations -
+
+- OTLP Exporter
+- Logging Exporter
+- Generic Exporter
+
+==== OTLP Exporter
+Extension contains all dependencies needed to send traces to an OpenTelemetry Collector endpoint i.e. when `otel.traces.exporter` is set to `otlp`. Note that `otlp` is the default exporter if the variable is not set.
+
+image::module-otel-exporter-config.png[]
+
+==== Logging Exporter
+Extension contains all dependencies needed to send traces to a `java.util.Logger` instance i.e. when `otel.traces.exporter` is set to `logging`.
+
+==== Generic Exporter
+This generic exporter allows to configure any other exporters supported by https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#exporters[sdk-extensions/autoconfigure#exporters].
+
+Following example shows possible configuration for to send traces to Zipkin.
+
+[source,xml]
+----
+<opentelemetry:config name="OpenTelemetry_Generic" doc:name="OpenTelemetry Config" serviceName="app1" >
+    <opentelemetry:exporter >
+        <opentelemetry:generic-exporter >
+            <opentelemetry:config-properties >
+                <opentelemetry:config-property key="otel.traces.exporter" value="zipkin" />
+                <opentelemetry:config-property key="otel.exporter.zipkin.endpoint" value="http://localhost:9411/api/v2/spans" />
+            </opentelemetry:config-properties>
+        </opentelemetry:generic-exporter>
+    </opentelemetry:exporter>
+</opentelemetry:config>
+----
+
+The required Zipkin exporter dependencies must be configured as an https://docs.mulesoft.com/mule-runtime/4.4/mmp-concept#configure-plugin-dependencies[Additional Plugin Dependencies] for Mule Maven Plugin.
+
+[source, xml]
+----
+<plugin>
+    <groupId>org.mule.tools.maven</groupId>
+    <artifactId>mule-maven-plugin</artifactId>
+    <version>${mule.maven.plugin.version}</version>
+    <extensions>true</extensions>
+    <configuration>
+        <additionalPluginDependencies>
+            <plugin>
+                <groupId>com.avioconsulting</groupId>
+                <artifactId>mule-opentelemetry-module</artifactId>
+                <additionalDependencies>
+                    <dependency>
+                        <groupId>io.opentelemetry</groupId>
+                        <artifactId>opentelemetry-exporter-zipkin</artifactId>
+                        <version>1.10.1</version>
+                    </dependency>
+                </additionalDependencies>
+            </plugin>
+        </additionalPluginDependencies>
+    </configuration>
+</plugin>
+----
+
+=== Span Processors
+For non-logging exporters, Tracing SDK uses https://opentelemetry.io/docs/reference/specification/trace/sdk/#batching-processor[Batch Span Processor]. Global Configuration allows to customize Batch span processor settings -
+
+[source,xml]
+.OpenTelemetry config with Batch span processor default values
+----
+<opentelemetry:config name="OpenTelemetry_Config"
+    serviceName="otel-comparison-test"
+    maxQueueSize="2048"
+    maxBatchExportSize="512"
+    batchExportDelayInterval="5000"
+    exportTimeout="30000">
+.... other config ....
+</opentelemetry:config>
+----
+=== Span Sampler
+
+By default, _every span is recorded_. In a high transaction environment, this can become noisy or needing high storage requirements for backend APM. In such cases, it is possible to reduce the span recorded and sent to the APM. This can help reduce the network traffic as well as data sent to the backend. Although, it comes at a cost of not collecting all traces, which maybe acceptable in certain use cases.
+
+The Sampler configures weather spans will be recorded when they are started by the module. Unrecorded spans are skipped from exporting to backend APM.
+
+Module config doesn't have any elements to set the sampler configuration, but it can be applied using OpenTelemetry's system properties.
+|===
+|System property |Environment variable |Description
+
+|otel.traces.sampler
+|OTEL_TRACES_SAMPLER
+|The sampler to use for tracing. Defaults to `parentbased_always_on`
+
+|otel.traces.sampler.arg
+|OTEL_TRACES_SAMPLER_ARG
+|An argument to the configured tracer if supported, for example a ratio.
+|===
+
+See https://github.com/open-telemetry/opentelemetry-java/blob/main/sdk-extensions/autoconfigure/README.md#sampler[Sampler documentation] for more details.
+
+For example, to set the TraceId Ratio based sampler, you can add following two properties -
+
+[source]
+----
+otel.traces.sampler=parentbased_traceidratio
+otel.traces.sampler.arg=0.001   // <1>
+----
+
+<1> Sets the trace id ratio to 1 in 1000. Resulting configuration will record 1 in 1000 traces.
+
+=== Trace Spans
+By default, this module will create trace spans for following mule components -
+
+- Flows
+- HTTP Listener and Request
+- Database Connector
+- Anypoint MQ Connector
+
+More verbose span generation can be configured. See setting Trace Levels below.
+
+==== Trace Levels
+
+Module can create spans for every mule processors by setting `spanAllProcessors = "true"`. This can be overridden by setting a system property `mule.otel.span.processors.enable` to `true|false`.
+
+When the span generation for all processors is enabled, `opentelemetry:ignore-mule-components` allows to set a list of processors to exclude from span generation.
+
+[source,xml]
+.OpenTelemetry Config with trace level configuration
+----
+<opentelemetry:config name="OpenTelemetry_Generic" doc:name="OpenTelemetry Config" serviceName="app1"  spanAllProcessors="true">
+    <opentelemetry:exporter >
+        <opentelemetry:generic-exporter >
+            <opentelemetry:config-properties >
+                <opentelemetry:config-property key="otel.traces.exporter" value="zipkin" />
+                <opentelemetry:config-property key="otel.exporter.zipkin.endpoint" value="http://localhost:9411/api/v2/spans" />
+            </opentelemetry:config-properties>
+        </opentelemetry:generic-exporter>
+    </opentelemetry:exporter>
+    <opentelemetry:ignore-mule-components >
+        <opentelemetry:mule-component namespace="MULE" name="LOGGER" />
+        <opentelemetry:mule-component namespace="os" name="*" />
+    </opentelemetry:ignore-mule-components>
+</opentelemetry:config>
+----
+
+To disable span generation for all processors in a specific namespace, set the `name` attribute to `*`
+-
+----
+<opentelemetry:mule-component namespace="os" name="*" />
+----
+
+=== Custom Tags
+In addition to all the trace attributes captured by the module, it is possible to add custom tags to the current trace using an operation `opentelemetry:add-custom-tags`.
+
+WARNING: All custom tag keys are transformed to `custom.{keyName}`. This also prevents accidentally overriding other standard keys-value pairs in trace tags. Depending on the APM (elastic, etc.) you use, they may be displayed differently. For example, elastic will display them as `label.custom_{keyName}`.
+
+These could be any business data that you may want to capture as a part of your telemetry data. For example, an order number for an order processing transaction.
+
+[source,xml]
+.Adding custom tag from variable
+----
+    <opentelemetry:add-custom-tags doc:name="Add Custom Tags"
+                config-ref="OpenTelemetry_Config">
+        <opentelemetry:tags >
+            <opentelemetry:tag key="orderNumber" value="#[vars.orderNumber]"/>
+        </opentelemetry:tags>
+    </opentelemetry:add-custom-tags>
+----
+
+You can also use dataweave to set the tags.
+
+[source,xml]
+.Adding custom tags as DataWeave map
+----
+    <opentelemetry:add-custom-tags doc:name="Add Custom Tags"
+                config-ref="OpenTelemetry_Config"
+                tags="#[output java --- {orderNumber: payload.orderNumber}]" />
+----
+
+=== Context Propagation
+
+This module supports context propagation in
+https://www.w3.org/TR/trace-context/#trace-context-http-headers-format[W3C Trace Context] and https://www.w3.org/TR/baggage/#baggage-http-header-format[W3C Baggage Context] formats.
+
+==== Context Extraction
+Extension supports extracting Open Telemetry Trace context extraction for certain source components. For these components if the Context information is received in appropriate place, the module will establish the parent-child relation for the traces.
+
+Source Components supporting context extraction:
+
+- *HTTP Listener*: Context information, if exists, is extracted from request headers
+- *Anypoint MQ Subscription*: Context information, if exists, is extracted from Anypoint MQ Message properties
+
+NOTE: OpenTelemetry Trace Context is extracted/injected using configured Propagators. The entries in the context may vary depending on the propagators used and validations it applies. All examples here are with *W3C Trace Context*.
+
+==== Context Injection
+
+===== Auto Injection to Flow Variables
+Extension uses a processor interceptor. OpenTelemetry's tracing context will be automatically added to a flow variable before the first processor is invoked.
+It is always injected under a key **OTEL_TRACE_CONTEXT**.
+
+NOTE: In case interception needs to be disabled, set the system property **"mule.otel.interceptor.processor.enable"** to **"false"**.
+
+Following examples show a **W3C Trace Context** extracted from incoming http request:
+
+image::auto-context-flow-injection.png[]
+
+Another variation when **tracestate** is received with **traceparent**
+
+image::auto-context-flow-injection-2.png[]
+
+===== Manual Injection
+If needed, `<opentelemetry:get-trace-context />` operation can be used to manually inject trace context into flow.
+
+**NOTE:** `target` must be used to set operation output to a flow variable.
+
+[source,xml]
+----
+<opentelemetry:get-trace-context doc:name="Get Trace Context" config-ref="OpenTelemetry_Config" target="traceContext"/>
+----
+
+image::manual-context-flow-injection.png[]
+
+===== HTTP Request Context Injection
+The Module does **NOT** support automatic context propagation. In order to *propagate the trace header* information to other web applications, the Mule HTTP Requester Configuration *must*
+have default headers configured in the following way:
+
+image::http-requester-config.png[600, 600, title="Mule HTTP Requester Configuration", align="center"]
+
+
+.HTTP Requester Configuration for Default Headers
+[cols="30%, 70%"]
+|===
+| *Key*          | *Value*
+| `traceparent`  | `#[vars.OTEL_TRACE_CONTEXT.traceparent default '' as String]`
+| `tracestate`   | `#[vars.OTEL_TRACE_CONTEXT.tracestate default ''  as String]`
+|===
+
+
+.Mule configuration xml for setting default headers in the HTTP Requester Configuration
+[source%nowrap%linenums, xml]
+----
+<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="7c863500-0642-4e9d-b759-5e317225e015" sendCorrelationId="NEVER">
+	<http:request-connection host="mule-hello-world-api.us-e1.cloudhub.io" />
+	<http:default-headers >
+		<http:default-header key='traceparent' value="#[vars.OTEL_TRACE_CONTEXT.traceparent default '' as String]" /> <1>
+		<http:default-header key='tracestate' value="#[vars.OTEL_TRACE_CONTEXT.tracestate default '' as String]" />   <2>
+	</http:default-headers>
+</http:request-config>
+----
+
+
+===== Anypoint MQ Context Injection
+
+When using Anypoint MQ, the `publish` operation can add `vars.OTEL_TRACE_CONTEXT` to user properties. If this module is being used by the Anypoint MQ Subscription application, the Context will be extracted from the user properties and linked to the parent incoming trace.
+
+
+[source,xml]
+----
+    <anypoint-mq:publish doc:name="Publish" doc:id="8e707130-9ead-4dac-a31e-f7bcb5ce7740" config-ref="Anypoint_MQ_Config" destination="otel-test-queue-1">
+        <anypoint-mq:properties ><![CDATA[#[vars.OTEL_TRACE_CONTEXT]]]></anypoint-mq:properties>
+    </anypoint-mq:publish>
+----
+
+=== Turn Off Tracing
+
+Once you have configured the module in your application, there may be a need to remove or temporarily turn it off.
+
+*To permanently remove* the tracing -
+
+- Remove the module dependency from pom.xml
+- Remove the global configuration element and xml declaration references
+- Remove any changes made to other Connector configurations for context propagation.
+
+*To temporarily disable* the tracing without any code changes -
+
+- Set `turnOffTracing="true"` on global config. You may use a property placeholder for the value.
+- Alternately, you can set the `mule.otel.tracing.disabled` system property to `true`.
+- To re-enable the tracing, just reset the property to `false` (default value).
+
+=== Generated Documentation
+
+* link:./opentelemetry-documentation.html[Connector documentation]
+* link:./apidocs/index.html[Java API Documentation]
+
+=== Limitations
+- Automatic header/attribute injections for outbound requests is not supported
+- When using in on-premise mode, all applications deployed to the same runtime will share the same instance of OpenTelemetry configuration. It is unpredictable that which application's configuration wins. Ideally, the configuration should be same across the applications.
