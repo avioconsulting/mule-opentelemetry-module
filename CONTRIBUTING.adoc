@@ -1,0 +1,64 @@
+= Contributing to the Extension
+ifndef::env-github[:icons: font]
+ifdef::env-github[]
+:caution-caption: :fire:
+:important-caption: :exclamation:
+:note-caption: :paperclip:
+:tip-caption: :bulb:
+:warning-caption: :warning:
+endif::[]
+:toc: macro
+
+toc::[]
+
+== Issue Tracking
+
+Please use https://github.com/avioconsulting/mule-opentelemetry-module/issues[Github Issues] for reporting any issues, questions or enhancement requests for this module.
+
+== Build and Test
+
+1. First of all, fork this repo and clone it to your local.
+2. Create a new branch for your work. Following https://www.conventionalcommits.org/en/v1.0.0/[Conventional Commits] for naming convention is recommended.
+3. Make sure project builds and tests succeed before you make any changes - `./mvnw verify`
+4. Make you code changes and add appropriate unit tests to validate the change.
+5. Make appropriate updates to documentation, most likely it will be applicable to link:src/docs/asciidoc/module-config.adoc[].
+6. You must format code for successful maven compilation. Execute `./mvnw spotless:apply verify` to format and run tests.
+7. Once you are satisfied with the change, push it to the remote repository and open a PR to https://github.com/avioconsulting/mule-opentelemetry-module[avioconsulting/mule-opentelemetry-module].
+
+== Testing
+
+=== Local Collector with Zipkin
+
+`src/test/docker` contains two files:
+
+- docker-compose.yml: This config file configures two services -
+- OpenTelemetry Collector: https://opentelemetry.io/docs/collector/getting-started/#docker[Collector] service to receive traces.
+- OpenZipkin: https://zipkin.io/[Zipkin] as a tracing backend.
+- otel-local-config.yml: Collector configuration file. Collector service uses this and forwards traces to zipkin.
+
+=== Local configuration
+Following environment variables must be set to send traces to OpenTelemetry collector -
+
+[source,properties]
+----
+otel.traces.exporter=otlp
+otel.exporter.otlp.endpoint=http://localhost:55681/v1
+otel.exporter.otlp.traces.endpoint=http://localhost:55681/v1/traces
+otel.exporter.otlp.protocol=http/protobuf
+otel.metrics.exporter=none
+otel.resource.attributes=deployment.environment=dev,service.name=test-api
+----
+
+=== Running Example Mule Apps
+
+Import applications from `./examples` directory into Anypoint Studio. Both applications have an OpenTelemetry Configuration to send traces to local docker collector.
+
+Application 1 exposes `http://localhost:8081/app1/{userId}` endpoint for invocation. App 1 calls App 2 over http to simulate distributed tracing.
+
+Anypoint studio caches' the modules used. If you need to modify the extension and test it in imported applications, you need to bump up the version and update example projects with new version.
+
+You may use following command to keep incrementing patch version and install locally -
+[source,bash]
+----
+mvn build-helper:parse-version versions:set -DnewVersion='${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.nextIncrementalVersion}' versions:commit && mvn spotless:apply install
+----
