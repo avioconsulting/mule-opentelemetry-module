@@ -8,13 +8,13 @@ To execute the performance test, we use an Order Process API that is configured 
 
 In this scenario, the Order Process API integrates with 3 other system APIS - Order System API, Shipments System API, and Notifications System API.
 
-image::Images/Order APILed with OpenTelemetry.png[900, 900, title="Order API-led Architecture", align="center"]
+image::Order APILed with OpenTelemetry.png[900, 900, title="Order API-led Architecture", align="center"]
 
 To understand the application at flow level, below image shows how the flows are set up for using various types of connectors, processors, and other modules available in Mule.
 
-image::Images/perf-test-app-flows.png[title="Order Process API Flow Structure", align="center"]
+image::perf-test-app-flows.png[title="Order Process API Flow Structure", align="center"]
 
-image::Images/mule-flow-diagram-order-process-api.png[title="Mule Flows - Graph Diagram", align="center"]
+image::mule-flow-diagram-order-process-api.png[title="Mule Flows - Graph Diagram", align="center"]
 
 === Deployment Strategy
 

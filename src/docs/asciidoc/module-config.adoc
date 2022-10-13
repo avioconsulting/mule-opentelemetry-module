@@ -334,6 +334,11 @@ Once you have configured the module in your application, there may be a need to 
 - Alternately, you can set the `mule.otel.tracing.disabled` system property to `true`.
 - To re-enable the tracing, just reset the property to `false` (default value).
 
+=== Generated Documentation
+
+* link:./opentelemetry-documentation.html[Connector documentation]
+* link:./apidocs/index.html[Java API Documentation]
+
 === Limitations
 - Automatic header/attribute injections for outbound requests is not supported
 - When using in on-premise mode, all applications deployed to the same runtime will share the same instance of OpenTelemetry configuration. It is unpredictable that which application's configuration wins. Ideally, the configuration should be same across the applications.

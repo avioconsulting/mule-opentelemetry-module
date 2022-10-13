@@ -32,8 +32,8 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
    * Interceptor.
    * 
    * @param muleNotificationProcessor
-   * @{@link MuleNotificationProcessor} if configured fully to acquire
-   *         connection supplier.
+   *            {@link MuleNotificationProcessor} if configured fully to acquire
+   *            connection supplier.
    */
   public ProcessorTracingInterceptor(MuleNotificationProcessor muleNotificationProcessor) {
     this.muleNotificationProcessor = muleNotificationProcessor;

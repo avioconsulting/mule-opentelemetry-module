@@ -122,7 +122,7 @@
                             <goal>process-asciidoc</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>target/generated-docs/</outputDirectory>
+                            <outputDirectory>${project.build.directory}/docs</outputDirectory>
                             <attributes>
                                 <revnumber>${project.version}</revnumber>
                                 <revdate>${maven.build.timestamp}</revdate>
@@ -195,7 +195,13 @@
                     </execution>
                 </executions>
             </plugin>
-
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <destDir>${project.build.directory}/docs/apidocs</destDir>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -403,6 +409,9 @@
                                 </configuration>
                             </execution>
                         </executions>
+                        <configuration>
+                            <destDir>${project.build.directory}/docs/apidocs</destDir>
+                        </configuration>
                     </plugin>
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
