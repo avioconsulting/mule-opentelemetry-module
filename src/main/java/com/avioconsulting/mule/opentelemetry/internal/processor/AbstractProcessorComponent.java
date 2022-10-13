@@ -136,6 +136,7 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   @Override
   public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
     Map<String, String> tags = new HashMap<>(getProcessorCommonTags(notification));
+    tags.put(MULE_CORRELATION_ID.getKey(), notification.getEvent().getCorrelationId());
     tags.putAll(getAttributes(notification.getInfo().getComponent(),
         notification.getEvent().getMessage().getAttributes()));
     return TraceComponent.newBuilder(notification.getComponent().getLocation().getLocation())

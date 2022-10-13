@@ -34,13 +34,13 @@ public class MuleResourceProviderTest {
     assertThat(resource.getAttributes().asMap())
         .containsEntry(MULE_HOME, "/home/mule")
         .containsEntry(MULE_CSORGANIZATION_ID, "MULE_CSORGANIZATION_ID")
+        .containsEntry(MULE_ORGANIZATION_ID, "MULE_CSORGANIZATION_ID")
         .containsEntry(MULE_ENVIRONMENT_ID, "MULE_ENVIRONMENT_ID")
         .containsEntry(MULE_ENVIRONMENT_TYPE, "MULE_ENVIRONMENT_TYPE")
         .containsEntry(MULE_WORKER_ID, "MULE_WORKER_ID")
         .containsEntry(MULE_APP_DOMAIN, "MULE_APP_DOMAIN")
         .containsEntry(MULE_APP_FULL_DOMAIN, "MULE_APP_FULL_DOMAIN")
-        .containsEntry(MULE_ENVIRONMENT_AWS_REGION, "MULE_APP_AWS_REGION")
-        .containsEntry(MULE_ENVIRONMENT_NAME, "MULE_ENV");
+        .containsEntry(MULE_ENVIRONMENT_AWS_REGION, "MULE_APP_AWS_REGION");
     props.forEach((key, value) -> System.clearProperty(key.toString()));
   }
 }
