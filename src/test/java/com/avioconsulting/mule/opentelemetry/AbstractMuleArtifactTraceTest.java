@@ -5,6 +5,7 @@ import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.Delegate
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.awaitility.Awaitility;
@@ -19,6 +20,7 @@ import org.mule.tck.probe.PollingProber;
 import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -79,7 +81,7 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
    * `io.opentelemetry.exporter.logging.LoggingSpanExporter`.
    * Registers a {@link TestLoggerHandler} as a log handler for log entry
    * extraction during tests.
-   * 
+   *
    * @return {@link TestLoggerHandler}
    */
   protected TestLoggerHandler getTestLoggerHandler() {
@@ -110,16 +112,24 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
   }
 
   protected void sendRequest(String correlationId, String path, int expectedStatus)
-      throws IOException {
+      throws IOException, URISyntaxException {
     sendRequest(correlationId, path, expectedStatus, Collections.emptyMap());
   }
 
   protected void sendRequest(String correlationId, String path, int expectedStatus, Map<String, String> headers)
-      throws IOException {
-    HttpGet getRequest = new HttpGet(String.format("http://localhost:%s/" + path, serverPort.getValue()));
+      throws IOException, URISyntaxException {
+    sendRequest(correlationId, path, expectedStatus, headers, Collections.emptyMap());
+  }
+
+  protected void sendRequest(String correlationId, String path, int expectedStatus, Map<String, String> headers,
+      Map<String, String> queryParams)
+      throws IOException, URISyntaxException {
+    HttpGet getRequest = new HttpGet();
+    URIBuilder uriBuilder = new URIBuilder(String.format("http://localhost:%s/" + path, serverPort.getValue()));
+    queryParams.forEach(uriBuilder::addParameter);
+    getRequest.setURI(uriBuilder.build());
     getRequest.addHeader("X-CORRELATION-ID", correlationId);
     headers.forEach(getRequest::addHeader);
-    // getRequest.addHeader();
     try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
       try (CloseableHttpResponse response = httpClient.execute(getRequest)) {
         assertThat(response.getStatusLine().getStatusCode()).isEqualTo(expectedStatus);
