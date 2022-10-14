@@ -371,4 +371,5 @@ Once you have configured the module in your application, there may be a need to 
 
 === Limitations
 - Automatic header/attribute injections for outbound requests is not supported
-- When using in on-premise mode, all applications deployed to the same runtime will share the same instance of OpenTelemetry configuration. It is unpredictable that which application's configuration wins. Ideally, the configuration should be same across the applications.
+- When using in *on-premise mode*, all applications deployed to the same runtime will share the same instance of OpenTelemetry configuration. It is unpredictable that which application's configuration wins. Ideally, the configuration should be same across the applications.
+- When using *mule domain projects* for global configurations, the generated spans do not include any global configuration or connection tags.
