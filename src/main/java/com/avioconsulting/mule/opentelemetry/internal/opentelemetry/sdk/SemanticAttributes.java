@@ -117,4 +117,8 @@ public final class SemanticAttributes {
    */
   public static final AttributeKey<String> MULE_APP_FULL_DOMAIN = AttributeKey.stringKey("mule.app.fullDomain");
 
+  /**
+   * Key to define datasource name for db connections
+   */
+  public static final AttributeKey<String> DB_DATASOURCE = AttributeKey.stringKey("db.datasource");
 }
