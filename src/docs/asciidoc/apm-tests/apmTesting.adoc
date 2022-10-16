@@ -22,6 +22,8 @@ include::./elastic.adoc[Elastic]
 
 include::./dynatrace.adoc[Dynatrace]
 
+include::./splunk.adoc[Splunk]
+
 === APM Test Matrix
 
 Below is a list of the various backends the extension has been tested with so far:
@@ -33,4 +35,5 @@ Below is a list of the various backends the extension has been tested with so fa
 | Dynatrace                                             | OTLP/HTTP_PROTOBUF   |
 | Grafana Labs Tempo                                    | OTLP/HTTP_PROTOBUF   |
 | ELK Stack v7.14.2 (Elasticsearch, Kibana, APM Server) | OTLP/gRPC            | HTTP_PROTOBUF currently not supported by Elastic
+| Splunk Observability Cloud - APM  | OTLP/gRPC            | Using Splunk Distribution of OpenTelemetry Collector
 |===
