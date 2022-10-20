@@ -102,13 +102,34 @@ Extension contains all dependencies needed to send traces to an OpenTelemetry Co
 image::module-otel-exporter-config.png[]
 
 ==== Logging Exporter
-Extension contains all dependencies needed to send traces to a `java.util.Logger` instance i.e. when `otel.traces.exporter` is set to `logging`.
+When troubleshooting generated spans data, sending traces to logs may be useful. Extension supports a simple logging exporter that can send traces to application log file.
+
+.Logging Exporter Configuration
+[source,xml]
+----
+<opentelemetry:config name="OpenTelemetry_Logging" doc:name="OpenTelemetry Config" serviceName="app1" >
+    <opentelemetry:exporter >
+        <opentelemetry:exporter>
+            <opentelemetry:logging-exporter />
+        </opentelemetry:exporter>
+    </opentelemetry:exporter>
+</opentelemetry:config>
+----
+
+Example span entry from log file -
+
+.Trace Log
+[source,log]
+----
+[INFO ] [2022-10-13 15:54:37,141] [[MuleRuntime].uber.08: [orders-exp-api].submit-order-flow.CPU_INTENSIVE @1be1852e] [event: dd4e8f20-4b30-11ed-87e6-c889f3a9023b] [io.opentelemetry.exporter.logging.LoggingSpanExporter]: '/api/*' : 0cda0930cbf01126b91402861dbffc74 38d96ac87afdbbe1 SERVER [tracer: mule-opentelemetry-module:1.1.0] AttributesMap{data={http.status_code=201, http.route=/api/*, http.user_agent=PostmanRuntime/7.29.2, mule.app.flow.source.configRef=HTTP_Listener_config, http.scheme=http, http.method=POST, mule.app.flow.name=order-exp-main, http.flavor=1.1, mule.serverId=abcd..orders-exp-api, http.target=/api/orders, mule.correlationId=dd4e8f20-4b30-11ed-87e6-c889f3a9023b, mule.app.flow.source.namespace=http, http.host=localhost:8081, mule.app.flow.source.name=listener}, capacity=128, totalAddedValues=14}
+----
 
 ==== Generic Exporter
 This generic exporter allows to configure any other exporters supported by https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#exporters[sdk-extensions/autoconfigure#exporters].
 
 Following example shows possible configuration for to send traces to Zipkin.
 
+.Generic Exporter Configuration
 [source,xml]
 ----
 <opentelemetry:config name="OpenTelemetry_Generic" doc:name="OpenTelemetry Config" serviceName="app1" >
