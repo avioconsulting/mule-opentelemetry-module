@@ -95,6 +95,7 @@ Extension supports following exporter configurations -
 - Logging Exporter
 - Generic Exporter
 
+[#OTLP-Exporter]
 ==== OTLP Exporter
 Extension contains all dependencies needed to send traces to an OpenTelemetry Collector endpoint i.e. when `otel.traces.exporter` is set to `otlp`. Note that `otlp` is the default exporter if the variable is not set.
 
