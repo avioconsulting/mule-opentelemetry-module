@@ -291,6 +291,41 @@ You can also use dataweave to set the tags.
                 tags="#[output java --- {orderNumber: payload.orderNumber}]" />
 ----
 
+=== Global Config Span tags
+Some APMs may require additional tags on spans for the correct display of traces. For example, Splunk APM can use `peer.service` on http request spans when creating inferred services in service maps.
+
+The module may not be capturing those tags out of the box but there is a way to add additional tags to the spans of components that use global configuration elements. Some examples would be `http:listener` using `http:listener-config`, `db:insert` using `db:config`.
+
+The module will recognize system properties defined with property names following the pattern `{global_config_element_name}.otel.{tag_name}` and add `{tag_name}:{property_value}` as a tag to spans generated for all components using `{global_config_element_name}` named global element.
+
+CAUTION: Any tags set using this system properties, will override module generated value for same tags.
+
+In case of Splunk, `peer.service` attribute should have the name of the remote http system being invoked. Consider following mule requester example -
+
+[source,xml]
+----
+
+    <!-- Global HTTP Request Configuration element -->
+	<http:request-config name="Remote_Request_configuration" doc:name="HTTP Request configuration"> // <1>
+		<http:request-connection host="${http.host}" port="${http.port}" />
+	</http:request-config>
+
+    <!-- Flow including http:request that references above global config -->
+	<flow name="mule-opentelemetry-app-requester-remote" >
+		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test-remote-request"/>
+		<http:request method="GET" doc:name="Request" config-ref="Remote_Request_configuration" path="/test/remote/target"/> // <2>
+		<logger level="INFO" doc:name="Logger"/>
+	</flow>
+----
+
+To add a tag `peer.service=my_remote_api` to `http:request` 's span, you can set following system property on mule runtime -
+[source,properties]
+----
+Remote_Request_configuration.otel.peer.service=my_remote_api
+----
+
+
+
 === Context Propagation
 
 This module supports context propagation in

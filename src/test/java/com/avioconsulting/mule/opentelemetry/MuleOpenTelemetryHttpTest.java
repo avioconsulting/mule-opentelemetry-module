@@ -163,7 +163,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .hasSize(1)
         .element(0)
         .extracting("attributes", as(InstanceOfAssertFactories.map(String.class, Object.class)))
-        .hasSize(13)
+        .hasSizeGreaterThanOrEqualTo(13)
         .containsEntry("mule.app.flow.name", "mule-opentelemetry-app-requester-remote")
         .containsKey("mule.serverId")
         .containsEntry("http.scheme", "http")
@@ -198,6 +198,49 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .containsEntry("mule.app.processor.configRef", "SELF_HTTP_Request_configuration")
         .containsEntry("http.method", "GET")
         .containsEntry("http.route", "/test/remote/target");
+  }
+
+  @Override
+  protected void doSetUpBeforeMuleContextCreation() throws Exception {
+    super.doSetUpBeforeMuleContextCreation();
+    System.setProperty("SELF_HTTP_Request_configuration.otel.peer.service", "service_prop_name");
+    System.setProperty("SELF_HTTP_Request_configuration.otel.mule.serverId", "test-server-id");
+    System.setProperty("HTTP_Listener_config.otel.key.from.sysprop", "value_from_sysprop");
+
+  }
+
+  @Test
+  public void testConfigPropertiesFromSystem() throws Exception {
+    // Requires "SELF_HTTP_Request_configuration.otel.peer.service" property set to
+    // "service_prop_name" before crating mule context.
+    // doSetUpBeforeMuleContextCreation() method does it
+    sendRequest(CORRELATION_ID, "test-remote-request", 200);
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .isNotEmpty()
+        .hasSize(3));
+    DelegatedLoggingSpanExporterProvider.Span head = DelegatedLoggingSpanExporter.spanQueue.peek();
+    assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .filteredOnAssertions(span -> assertThat(span)
+            .as("Span for http request")
+            .extracting("spanKind", "traceId")
+            .containsOnly("CLIENT", head.getTraceId()))
+        .isNotEmpty()
+        .hasSize(1)
+        .element(0)
+        .extracting("attributes", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+        .as("System set property for http request").containsEntry("peer.service", "service_prop_name")
+        .as("System set property overriding mule serverId tag")
+        .containsEntry("mule.serverid", "test-server-id");
+    assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        .filteredOnAssertions(span -> assertThat(span)
+            .as("Span for http:listener flow")
+            .extracting("spanName", "spanKind", "traceId")
+            .containsOnly("/test-remote-request", "SERVER", head.getTraceId()))
+        .isNotEmpty()
+        .hasSize(1)
+        .element(0)
+        .extracting("attributes", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+        .as("System set property for http listener").containsEntry("key.from.sysprop", "value_from_sysprop");
   }
 
   @Test

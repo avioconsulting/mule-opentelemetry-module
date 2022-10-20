@@ -23,6 +23,12 @@ public class MuleOpenTelemetryDBTest extends AbstractMuleArtifactTraceTest {
 
   private static boolean dbInitialized = false;
 
+  @Override
+  protected void doSetUpBeforeMuleContextCreation() throws Exception {
+    super.doSetUpBeforeMuleContextCreation();
+    System.setProperty("Database_Config.otel.db.system.fromprop", "derby_Sys");
+  }
+
   @Before
   public void initDB() throws Exception {
     if (!dbInitialized) {
@@ -53,7 +59,8 @@ public class MuleOpenTelemetryDBTest extends AbstractMuleArtifactTraceTest {
         .containsEntry("db.system", "other_sql")
         .containsEntry("mule.app.processor.namespace", "db")
         .containsEntry("db.operation", docName.toLowerCase())
-        .containsEntry("mule.app.processor.docName", docName);
+        .containsEntry("mule.app.processor.docName", docName)
+        .as("System set property").containsEntry("db.system.fromprop", "derby_Sys");
   }
 
   @Test
