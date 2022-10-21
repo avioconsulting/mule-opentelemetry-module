@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.avioconsulting</groupId>
     <artifactId>mule-opentelemetry-module</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1-SNAPSHOT</version>
     <packaging>mule-extension</packaging>
 
     <parent>
