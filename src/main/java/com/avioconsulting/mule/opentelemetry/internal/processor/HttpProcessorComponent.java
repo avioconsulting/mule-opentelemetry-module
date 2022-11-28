@@ -9,8 +9,14 @@ import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.Message;
+import org.mule.runtime.api.metadata.MediaType;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
+import org.mule.runtime.api.streaming.bytes.CursorStreamProvider;
+import org.mule.runtime.core.api.util.IOUtils;
+import org.mule.runtime.core.api.util.StreamingUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +31,8 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
 
   static final String NAMESPACE_URI = "http://www.mulesoft.org/schema/mule/http";
   public static final String NAMESPACE = "http";
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(HttpProcessorComponent.class);
 
   @Override
   protected String getNamespace() {
@@ -188,13 +196,24 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     // APIKit based flows use httpStatus variable to set response status code.
     // We use this variable to extract response status code.
     // Not APIKit flows must set this variable.
-    TypedValue<?> httpStatus = notification.getEvent().getVariables().get("httpStatus");
-    if (httpStatus != null) {
-      String statusCode = TypedValue.unwrap(httpStatus).toString();
-      TraceComponent.Builder builder = getTraceComponentBuilderFor(notification);
-      builder.withTags(singletonMap(HTTP_STATUS_CODE.getKey(), statusCode));
-      builder.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
-      return Optional.of(builder.build());
+    try {
+      TypedValue<?> httpStatus = notification.getEvent().getVariables().get("httpStatus");
+      if (httpStatus != null) {
+        String statusCode = null;
+        if (httpStatus.getDataType().getMediaType().withoutParameters().equals(MediaType.APPLICATION_JSON)) {
+          statusCode = IOUtils.toString(
+              (CursorStreamProvider) StreamingUtils.consumeRepeatableValue(httpStatus).getValue());
+        } else {
+          statusCode = TypedValue.unwrap(httpStatus).toString();
+        }
+        TraceComponent.Builder builder = getTraceComponentBuilderFor(notification);
+        builder.withTags(singletonMap(HTTP_STATUS_CODE.getKey(), statusCode));
+        builder.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
+        return Optional.of(builder.build());
+      }
+    } catch (Exception ex) {
+      LOGGER.warn(
+          "Failed to extract httpStatus variable value. Resulted span may not have http status code attribute.");
     }
     return Optional.empty();
   }
