@@ -294,7 +294,7 @@ To disable span generation for all processors in a specific namespace, set the `
 ----
 
 === Custom Tags
-In addition to all the trace attributes captured by the module, it is possible to add custom tags to the current trace using an operation `opentelemetry:add-custom-tags`.
+In addition to all the trace attributes captured by the module, it is possible to add custom tags to the current trace using an *operation* `opentelemetry:add-custom-tags`.
 
 WARNING: All custom tag keys are transformed to `custom.{keyName}`. This also prevents accidentally overriding other standard keys-value pairs in trace tags. Depending on the APM (elastic, etc.) you use, they may be displayed differently. For example, elastic will display them as `label.custom_{keyName}`.
 
@@ -326,9 +326,14 @@ Some APMs may require additional tags on spans for the correct display of traces
 
 The module may not be capturing those tags out of the box but there is a way to add additional tags to the spans of components that use global configuration elements. Some examples would be `http:listener` using `http:listener-config`, `db:insert` using `db:config`.
 
-The module will recognize system properties defined with property names following the pattern `{global_config_element_name}.otel.{tag_name}` and add `{tag_name}:{property_value}` as a tag to spans generated for all components using `{global_config_element_name}` named global element.
+For such cases, the module recognizes system properties defined with property names following the pattern `{global_config_element_name}.otel.{tag_name}` and adds `{tag_name}:{property_value}` as tags to spans generated for all components using `{global_config_element_name}` named global element.
 
 CAUTION: Any tags set using this system properties, will override module generated value for same tags.
+
+Few things to consider when using Global Tags:
+
+- Global Config spans are supported via *System Properties*. Setting global-property in mule configuration does not go in System Properties and hence won't work. Check System Properties for https://docs.mulesoft.com/mule-runtime/4.4/configuring-properties#system-properties[On-Prem] or https://docs.mulesoft.com/mule-runtime/4.4/configuring-properties#setting-properties-values-in-runtime-manager[Runtime Manager] to set attribute values.
+- This feature can ONLY add/modify Span attributes, and not the name, kind or other non-attribute data on the span. Most of the APMs may use Span name in Trace UI, and it is NOT possible to change how this module uses OpenTelemetry guidelines to compute span names.
 
 In case of Splunk, `peer.service` attribute should have the name of the remote http system being invoked. Consider following mule requester example -
 
