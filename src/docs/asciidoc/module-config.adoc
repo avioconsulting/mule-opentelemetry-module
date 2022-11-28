@@ -101,7 +101,35 @@ Extension supports following exporter configurations -
 ==== OTLP Exporter
 Extension contains all dependencies needed to send traces to an OpenTelemetry Collector endpoint i.e. when `otel.traces.exporter` is set to `otlp`. Note that `otlp` is the default exporter if the variable is not set.
 
+NOTE: When configuring the OTLP Exporter, OpenTelemetry collector endpoint *must be set to the base endpoint* of OTEL collector. The module will build trace-specific endpoints `{collectorEndpoint}/traces` based on OpenTelemetry specification guidelines.
+For example, if opentelemetry collector is listening on localhost:4317, then set `collectorEndpoint=http://localhost:4317/v1` and *NOT* [.line-through]#`collectorEndpoint=http://localhost:4317/v1/traces`#.
+
 image::module-otel-exporter-config.png[]
+
+===== Troubleshooting
+
+====== OTLP Exporter failed to export spans. Server responded with HTTP status code 404.
+OTLP Exporter is being used but no traces are seen in APM. The logs show below (or similar) error message -
+
+`Failed to export spans. Server responded with HTTP status code 404. Error message: Unable to parse response body, HTTP status message: Not Found`
+
+This is most likely caused due to incorrect value set for `collectorEndpoint`. See link:#OTLP-Exporter[OTLP Exporter] configuration reference for how to configure collector endpoint correctly.
+
+====== APM Collector does not support OTEL standard endpoint format
+
+Few APMs may not have the OTEL standard endpoint format of `{collectorEndpoint}/{signal}`. In that case, the default config property of `collectorEndpoint` may not work to auto-build the trace single endpoint.
+
+In such cases, `opentelemetry-config-properties` can be used to define trace endpoint with `otel.exporter.otlp.traces.endpoint` property.
+
+.Example OTEL exporter with Traces endpoint
+[source,xml]
+----
+<opentelemetry:otlp-exporter collectorEndpoint="${otel.collectorEndpoint}">
+    <opentelemetry:config-properties >
+        <opentelemetry:config-property key="otel.exporter.otlp.traces.endpoint" value="${my-custom-otel-trace-endpoint-url}" />
+    </opentelemetry:config-properties>
+</opentelemetry:otlp-exporter>
+----
 
 ==== Logging Exporter
 When troubleshooting generated spans data, sending traces to logs may be useful. Extension supports a simple logging exporter that can send traces to application log file.
