@@ -14,6 +14,8 @@ To use this extension, add following dependency to your mule application project
 
 <1> The latest version of the module as published on https://search.maven.org/search?q=g:com.avioconsulting%20a:mule-opentelemetry-module[Maven Central].
 
+NOTE: This module supports OpenTelemetry *Traces* only. Metrics and Logs are _not_ supported, yet. See https://github.com/avioconsulting/mule-opentelemetry-module/issues/38[Issue#38].
+
 === Auto Configuration
 Extension uses OpenTelemetry SDK *v{opentelemetry-version}* in its autoconfigured mode. In this mode, SDK will configure itself based on the environment variables.
 Supported environment variable details can be seen on https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure[open-telemetry/opentelemetry-java].
