@@ -132,7 +132,9 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
     headers.forEach(getRequest::addHeader);
     try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
       try (CloseableHttpResponse response = httpClient.execute(getRequest)) {
-        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(expectedStatus);
+        if (expectedStatus != -1) {
+          assertThat(response.getStatusLine().getStatusCode()).isEqualTo(expectedStatus);
+        }
       }
     }
   }
