@@ -101,8 +101,10 @@ Extension supports following exporter configurations -
 ==== OTLP Exporter
 Extension contains all dependencies needed to send traces to an OpenTelemetry Collector endpoint i.e. when `otel.traces.exporter` is set to `otlp`. Note that `otlp` is the default exporter if the variable is not set.
 
-NOTE: When configuring the OTLP Exporter, OpenTelemetry collector endpoint *must be set to the base endpoint* of OTEL collector. The module will build trace-specific endpoints `{collectorEndpoint}/traces` based on OpenTelemetry specification guidelines.
+NOTE: When configuring the OTLP Exporter with *HTTP Protobuf protocol*, OpenTelemetry collector endpoint *must be set to the base endpoint* of OTEL collector. The module will build trace-specific endpoints `{collectorEndpoint}/traces` based on OpenTelemetry specification guidelines.
 For example, if opentelemetry collector is listening on localhost:4317, then set `collectorEndpoint=http://localhost:4317/v1` and *NOT* [.line-through]#`collectorEndpoint=http://localhost:4317/v1/traces`#.
+
+NOTE: When configuring the OTLP Exporter with *GRPC protocol*, OpenTelemetry collector endpoint *must be set to the base endpoint* of OTEL collector. For example, if opentelemetry collector is listening on localhost:4317, then set `collectorEndpoint=http://localhost:4317` and *NOT* [.line-through]#`collectorEndpoint=http://localhost:4317/v1`#.
 
 image::module-otel-exporter-config.png[]
 
@@ -114,6 +116,9 @@ OTLP Exporter is being used but no traces are seen in APM. The logs show below (
 `Failed to export spans. Server responded with HTTP status code 404. Error message: Unable to parse response body, HTTP status message: Not Found`
 
 This is most likely caused due to incorrect value set for `collectorEndpoint`. See link:#OTLP-Exporter[OTLP Exporter] configuration reference for how to configure collector endpoint correctly.
+
+====== OTLP Exporter with GRPC Protocol failed to export spans with "OTLP endpoint must not have a path: /v1"
+This is most likely caused due to incorrect value set for `collectorEndpoint`. See link:#OTLP-Exporter[OTLP Exporter] configuration reference for how to configure GRPC collector endpoint correctly.
 
 ====== APM Collector does not support OTEL standard endpoint format
 
