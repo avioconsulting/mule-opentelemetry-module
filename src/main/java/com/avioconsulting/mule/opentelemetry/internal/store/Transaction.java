@@ -7,12 +7,14 @@ public class Transaction implements Serializable {
   private final String rootFlowName;
   private final FlowSpan rootFlowSpan;
   private final String traceId;
+  private final String spanId;
 
   public Transaction(String transactionId, String traceId, String rootFlowName, FlowSpan rootFlowSpan) {
     this.transactionId = transactionId;
     this.rootFlowName = rootFlowName;
     this.rootFlowSpan = rootFlowSpan;
     this.traceId = traceId;
+    this.spanId = rootFlowSpan.getSpan().getSpanContext().getSpanId();
   }
 
   public String getTransactionId() {
@@ -32,6 +34,6 @@ public class Transaction implements Serializable {
   }
 
   public String getSpanId() {
-    return rootFlowSpan.getSpan().getSpanContext().getSpanId();
+    return spanId;
   }
 }
