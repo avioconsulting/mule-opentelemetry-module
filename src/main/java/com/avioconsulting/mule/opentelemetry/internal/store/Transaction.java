@@ -30,4 +30,8 @@ public class Transaction implements Serializable {
   public String getTraceId() {
     return traceId;
   }
+
+  public String getSpanId() {
+    return rootFlowSpan.getSpan().getSpanContext().getSpanId();
+  }
 }
