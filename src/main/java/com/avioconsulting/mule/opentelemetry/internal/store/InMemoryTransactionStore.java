@@ -87,6 +87,15 @@ public class InMemoryTransactionStore implements TransactionStore {
     }
   }
 
+  public String getSpanIdForTransaction(String transactionId) {
+    Optional<Transaction> transaction = getTransaction(transactionId);
+    if (transaction.isPresent()) {
+      return transaction.get().getSpanId();
+    } else {
+      return null;
+    }
+  }
+  
   @Override
   public void endTransaction(
       String transactionId,
