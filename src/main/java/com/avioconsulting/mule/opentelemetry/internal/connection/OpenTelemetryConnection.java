@@ -129,6 +129,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     Map<String, String> traceContext = new HashMap<>();
     traceContext.put(TransactionStore.TRACE_TRANSACTION_ID, transactionId);
     traceContext.put(TransactionStore.TRACE_ID, getTransactionStore().getTraceIdForTransaction(transactionId));
+    traceContext.put(TransactionStore.SPAN_ID, getTransactionStore().getSpanIdForTransaction(transactionId));
     logger.debug("Creating trace context for TRACE_TRANSACTION_ID=" + transactionId);
     try (Scope scope = transactionContext.makeCurrent()) {
       injectTraceContext(traceContext, HashMapTextMapSetter.INSTANCE);
