@@ -41,7 +41,7 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
     if (tags.containsKey(MESSAGING_DESTINATION_NAME.getKey())) {
       return formattedSpanName(tags.get(MESSAGING_DESTINATION_NAME.getKey()), "publish");
     }
-    //Retaining for compatibility until SemConv v1.17.0
+    // Retaining for compatibility until SemConv v1.17.0
     if (tags.containsKey(MESSAGING_DESTINATION.getKey())) {
       return formattedSpanName(tags.get(MESSAGING_DESTINATION.getKey()), "send");
     }
@@ -63,8 +63,9 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
       // operation.
       // Should we add the message span context to Span link?
       startTraceComponent = startTraceComponent.toBuilder().withSpanKind(SpanKind.CONSUMER)
-          .withSpanName(formattedSpanName(startTraceComponent.getTags().get(MESSAGING_DESTINATION_NAME.getKey()),
-              RECEIVE))
+          .withSpanName(
+              formattedSpanName(startTraceComponent.getTags().get(MESSAGING_DESTINATION_NAME.getKey()),
+                  RECEIVE))
           .build();
     }
     return startTraceComponent;
@@ -94,13 +95,14 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
     tags.put("messaging.destination_kind", MessagingDestinationKindValues.QUEUE);
     tags.put(MESSAGING_SYSTEM.getKey(), "anypointmq");
 
-    //Backward compatibility for SemConv v1.17.0
+    // Backward compatibility for SemConv v1.17.0
     addTagIfPresent(componentWrapper.getParameters(), "destination", tags, MESSAGING_DESTINATION.getKey());
     tags.put(MESSAGING_PROTOCOL.getKey(), "http");
 
     addTagIfPresent(componentWrapper.getParameters(), "destination", tags, MESSAGING_DESTINATION_NAME.getKey());
 
-    // MESSAGING_URL is removed in SemConv v1.17.0, retaining for backward compatibility
+    // MESSAGING_URL is removed in SemConv v1.17.0, retaining for backward
+    // compatibility
     addTagIfPresent(connectionParams, "url", tags, MESSAGING_URL.getKey());
     return tags;
   }
