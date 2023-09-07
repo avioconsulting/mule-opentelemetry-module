@@ -13,10 +13,11 @@ project:
     - Adam DesJardin
     - Manik Magar
     - Tim Gonzales
-  license: MIT
-  inceptionYear: 2020
+  license: BSD 2-Clause
+  inceptionYear: 2021
   tags:
     - mule
+    - opentelemetry
   java:
     groupId: com.avioconsulting.mule
     version: 8
