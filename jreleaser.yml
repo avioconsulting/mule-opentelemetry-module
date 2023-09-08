@@ -1,0 +1,69 @@
+project:
+  name: mule-opentelemetry-module
+  description: Mule Extension to generate OpenTelemetry traces
+  longDescription: |
+    The purpose of this Mule extension is to allow Mule Applications participate in OpenTelemetry-based distributed traces.
+
+  links:
+    homepage: https://github.com/avioconsulting/
+    documentation: https://avioconsulting.github.io/mule-opentelemetry-module/
+    license: https://github.com/avioconsulting/mule-opentelemetry-module/blob/main/LICENSE
+    contribute: https://github.com/avioconsulting/mule-opentelemetry-module/blob/main/CONTRIBUTING.adoc
+  authors:
+    - Adam DesJardin
+    - Manik Magar
+    - Tim Gonzales
+  license: BSD 2-Clause
+  inceptionYear: 2021
+  tags:
+    - mule
+    - opentelemetry
+  java:
+    groupId: com.avioconsulting.mule
+    version: 8
+
+release:
+  github:
+    owner: 'avioconsulting'
+    overwrite: true
+    draft: false
+    sign: true
+    releaseName: '{{tagName}}'
+    skipTag: false
+    milestone:
+      close: false
+    changelog:
+      skipMergeCommits: true
+      formatted: ALWAYS
+      preset: conventional-commits
+      format: '- {{commitShortHash}} {{commitTitle}}'
+      contributors:
+        format: '- {{contributorName}}{{#contributorUsernameAsLink}} ({{.}}){{/contributorUsernameAsLink}}'
+      labelers:
+        - label: 'dependencies'
+          title: 'chore(deps):'
+          order: 130
+      categories:
+        - title: '⚙️  Dependencies'
+          key: 'dependencies'
+          order: 80
+          labels:
+            - 'dependencies'
+      hide:
+        categories:
+          - 'merge'
+        contributors:
+          - 'GitHub'
+
+checksum:
+  individual: true
+
+signing:
+  active: ALWAYS
+  armored: true
+  mode: MEMORY
+
+distributions:
+  mule-health-check-api:
+    artifacts:
+      - path: target/mule-opentelemetry-module-{{projectVersion}}-mule-plugin.jar
