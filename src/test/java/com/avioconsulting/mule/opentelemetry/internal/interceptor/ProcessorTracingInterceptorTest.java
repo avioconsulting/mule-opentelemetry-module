@@ -5,11 +5,12 @@ import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotification
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import org.junit.Test;
 import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.interception.InterceptionAction;
 import org.mule.runtime.api.interception.InterceptionEvent;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -23,14 +24,29 @@ public class ProcessorTracingInterceptorTest {
     when(connection.getTransactionStore()).thenReturn(transactionStore);
     when(transactionStore.transactionIdFor(any())).thenReturn("random-id");
     Map<String, String> traceparentMap = Collections.singletonMap("traceparent", "some-value");
-    when(connection.getTraceContext("random-id"))
+    when(connection.getTraceContext("random-id", "test-location"))
         .thenReturn(traceparentMap);
     MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
     when(muleNotificationProcessor.getConnectionSupplier()).thenReturn(() -> connection);
     ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
     ComponentLocation location = mock(ComponentLocation.class);
+    when(location.getLocation()).thenReturn("test-location");
     InterceptionEvent interceptionEvent = mock(InterceptionEvent.class);
     interceptor.before(location, Collections.emptyMap(), interceptionEvent);
     verify(interceptionEvent).addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY, traceparentMap);
+    verify(interceptionEvent).removeVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY);
+  }
+
+  @Test
+  public void aroundInterceptProceeds() {
+    MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
+    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
+    ComponentLocation location = mock(ComponentLocation.class);
+    when(location.getLocation()).thenReturn("test-location");
+    InterceptionEvent interceptionEvent = mock(InterceptionEvent.class);
+    InterceptionAction action = mock(InterceptionAction.class);
+    CompletableFuture<InterceptionEvent> aroundResponse = interceptor.around(location, Collections.emptyMap(),
+        interceptionEvent, action);
+    verify(action).proceed();
   }
 }

@@ -75,16 +75,24 @@ public class InMemoryTransactionStore implements TransactionStore {
         .map(Transaction::getRootFlowSpan)
         .map(FlowSpan::getSpan)
         .map(s -> s.storeInContext(Context.current()))
-        .orElse(Context.current());
+        .orElseGet(Context::current);
+  }
+
+  @Override
+  public Context getTransactionContext(String transactionId, String componentLocation) {
+    if (componentLocation == null)
+      return getTransactionContext(transactionId);
+    Optional<Context> context = getTransaction(transactionId)
+        .map(Transaction::getRootFlowSpan)
+        .flatMap(f -> f.findSpan(componentLocation))
+        .map(s -> s.storeInContext(Context.current()));
+    return context
+        .orElseGet(() -> getTransactionContext(transactionId));
   }
 
   public String getTraceIdForTransaction(String transactionId) {
     Optional<Transaction> transaction = getTransaction(transactionId);
-    if (transaction.isPresent()) {
-      return transaction.get().getTraceId();
-    } else {
-      return null;
-    }
+    return transaction.map(Transaction::getTraceId).orElse(null);
   }
 
   @Override

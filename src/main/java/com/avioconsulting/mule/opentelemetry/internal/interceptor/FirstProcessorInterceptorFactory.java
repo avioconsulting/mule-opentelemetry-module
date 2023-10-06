@@ -34,16 +34,18 @@ public class FirstProcessorInterceptorFactory implements ProcessorInterceptorFac
    * {@link MuleNotificationProcessor} instance for getting opentelemetry
    * connection supplier by processor.
    */
-  private final MuleNotificationProcessor muleNotificationProcessor;
+  private final ProcessorTracingInterceptor processorTracingInterceptor;
+  private final MuleNotificationProcessor muleNotificationProcessor;;
 
   @Inject
   public FirstProcessorInterceptorFactory(MuleNotificationProcessor muleNotificationProcessor) {
+    processorTracingInterceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
     this.muleNotificationProcessor = muleNotificationProcessor;
   }
 
   @Override
   public ProcessorInterceptor get() {
-    return new ProcessorTracingInterceptor(muleNotificationProcessor);
+    return processorTracingInterceptor;
   }
 
   /**
@@ -68,8 +70,12 @@ public class FirstProcessorInterceptorFactory implements ProcessorInterceptorFac
       Optional<TypedComponentIdentifier> componentType = location.getParts().get(0).getPartIdentifier()
           .filter(c -> TypedComponentIdentifier.ComponentType.FLOW.equals(c.getType()));
 
-      intercept = componentType.isPresent()
-          && interceptPath.equalsIgnoreCase(location.getLocation());
+      // Intercept the first processor of the flow OR known processors for injecting
+      // client span context for propagation
+      intercept = (componentType.isPresent()
+          && interceptPath.equalsIgnoreCase(location.getLocation()))
+          || muleNotificationProcessor
+              .getProcessorComponent(location.getComponentIdentifier().getIdentifier()).isPresent();
     }
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Will Intercept '{}'?: {}", location, intercept);

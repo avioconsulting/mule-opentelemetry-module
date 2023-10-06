@@ -148,6 +148,21 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
               .extracting("spanName", "spanKind", "traceId")
               .containsOnly("/test/propagation/target", "SERVER", head.getTraceId());
         }));
+    DelegatedLoggingSpanExporterProvider.Span sourceServer = DelegatedLoggingSpanExporter.spanQueue.stream()
+        .filter(s -> s.getSpanKind().equals("SERVER") && s.getSpanName().equals("/test/propagation/source"))
+        .findFirst().get();
+    DelegatedLoggingSpanExporterProvider.Span client = DelegatedLoggingSpanExporter.spanQueue.stream()
+        .filter(s -> s.getSpanKind().equals("CLIENT") && s.getSpanName().equals("/test/propagation/target"))
+        .findFirst().get();
+    DelegatedLoggingSpanExporterProvider.Span targetServer = DelegatedLoggingSpanExporter.spanQueue.stream()
+        .filter(s -> s.getSpanKind().equals("SERVER") && s.getSpanName().equals("/test/propagation/target"))
+        .findFirst().get();
+
+    assertThat(targetServer.getParentSpanContext())
+        .extracting("traceId", "spanId")
+        .as("With source server span (" + sourceServer.getSpanId()
+            + "), target server span should have client span as parent")
+        .containsExactly(client.getTraceId(), client.getSpanId());
   }
 
   @Test

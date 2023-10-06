@@ -242,7 +242,7 @@
             <!--Needed by HttpProcessorComponent-->
             <groupId>org.mule.connectors</groupId>
             <artifactId>mule-http-connector</artifactId>
-            <version>1.5.25</version>
+            <version>1.7.3</version>
             <classifier>mule-plugin</classifier>
             <scope>provided</scope>
         </dependency>

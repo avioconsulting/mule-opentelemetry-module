@@ -165,6 +165,10 @@ public class MuleNotificationProcessor {
    */
   Optional<ProcessorComponent> getProcessorComponent(MessageProcessorNotification notification) {
     ComponentIdentifier identifier = notification.getComponent().getIdentifier();
+    return getProcessorComponent(identifier);
+  }
+
+  public Optional<ProcessorComponent> getProcessorComponent(ComponentIdentifier identifier) {
     boolean ignored = traceLevelConfiguration.getIgnoreMuleComponents().stream()
         .anyMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
             & (mc.getName().equalsIgnoreCase(identifier.getName()) || "*".equalsIgnoreCase(mc.getName())));

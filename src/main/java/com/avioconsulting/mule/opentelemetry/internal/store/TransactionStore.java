@@ -71,6 +71,8 @@ public interface TransactionStore {
    */
   Context getTransactionContext(String transactionId);
 
+  Context getTransactionContext(String transactionId, String componentLocation);
+
   /**
    * Get the Trace Id associated the transaction
    *
