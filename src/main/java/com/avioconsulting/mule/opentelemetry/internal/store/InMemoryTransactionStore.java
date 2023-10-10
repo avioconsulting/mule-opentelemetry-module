@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+
+import org.mule.runtime.api.component.location.ComponentLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +42,7 @@ public class InMemoryTransactionStore implements TransactionStore {
           "Start transaction {} for flow '{}' - Adding to existing transaction",
           transactionId,
           rootFlowName);
-      transaction.get().getRootFlowSpan().addProcessorSpan(rootFlowName, rootFlowSpan);
+      transaction.get().getRootFlowSpan().addProcessorSpan(null, rootFlowName, rootFlowSpan);
     } else {
       Span span = rootFlowSpan.startSpan();
       LOGGER.trace(
@@ -79,12 +81,12 @@ public class InMemoryTransactionStore implements TransactionStore {
   }
 
   @Override
-  public Context getTransactionContext(String transactionId, String componentLocation) {
+  public Context getTransactionContext(String transactionId, ComponentLocation componentLocation) {
     if (componentLocation == null)
       return getTransactionContext(transactionId);
     Optional<Context> context = getTransaction(transactionId)
         .map(Transaction::getRootFlowSpan)
-        .flatMap(f -> f.findSpan(componentLocation))
+        .flatMap(f -> f.findSpan(componentLocation.getLocation()))
         .map(s -> s.storeInContext(Context.current()));
     return context
         .orElseGet(() -> getTransactionContext(transactionId));
@@ -98,30 +100,36 @@ public class InMemoryTransactionStore implements TransactionStore {
   @Override
   public void endTransaction(
       String transactionId,
-      String rootFlowName,
+      String flowName,
       Consumer<Span> spanUpdater,
       Instant endTime) {
-    LOGGER.trace("End transaction {} for flow '{}'", transactionId, rootFlowName);
+    LOGGER.trace("End transaction {} for flow '{}'", transactionId, flowName);
+    Consumer<Span> endSpan = (span) -> {
+      if (spanUpdater != null)
+        spanUpdater.accept(span);
+      span.end(endTime);
+      LOGGER.trace(
+          "Ended transaction {} for flow '{}': OT SpanId {}, TraceId {}",
+          transactionId,
+          flowName,
+          span.getSpanContext().getSpanId(),
+          span.getSpanContext().getTraceId());
+    };
     getTransaction(transactionId)
-        .filter(t -> rootFlowName.equalsIgnoreCase(t.getRootFlowName()))
         .ifPresent(
             transaction -> {
-              Transaction removed = transactionMap.remove(transactionId);
-              Span rootSpan = removed.getRootFlowSpan().getSpan();
-              if (spanUpdater != null)
-                spanUpdater.accept(rootSpan);
-              removed.getRootFlowSpan().end(endTime);
-              LOGGER.trace(
-                  "Ended transaction {} for flow '{}': OT SpanId {}, TraceId {}",
-                  transactionId,
-                  rootFlowName,
-                  rootSpan.getSpanContext().getSpanId(),
-                  rootSpan.getSpanContext().getTraceId());
+              if (transaction.getRootFlowName().equals(flowName)) {
+                Transaction removed = transactionMap.remove(transactionId);
+                endSpan.accept(removed.getRootFlowSpan().getSpan());
+              } else {
+                transaction.getRootFlowSpan().findSpan(flowName)
+                    .ifPresent(endSpan);
+              }
             });
   }
 
   @Override
-  public void addProcessorSpan(String transactionId, String location, SpanBuilder spanBuilder) {
+  public void addProcessorSpan(String transactionId, String containerName, String location, SpanBuilder spanBuilder) {
     getTransaction(transactionId)
         .ifPresent(
             transaction -> {
@@ -131,7 +139,7 @@ public class InMemoryTransactionStore implements TransactionStore {
                   location);
               Span span = transaction
                   .getRootFlowSpan()
-                  .addProcessorSpan(location, spanBuilder);
+                  .addProcessorSpan(containerName, location, spanBuilder);
               LOGGER.trace(
                   "Adding Processor span to transaction {} for locator span '{}': OT SpanId {}, TraceId {}",
                   transactionId,

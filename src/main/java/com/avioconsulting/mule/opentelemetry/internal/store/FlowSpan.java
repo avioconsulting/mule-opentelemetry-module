@@ -26,11 +26,29 @@ public class FlowSpan implements Serializable {
     return span;
   }
 
-  public Span addProcessorSpan(String location, SpanBuilder spanBuilder) {
+  /**
+   * Add a span created from given {@code SpanBuilder} for the processor
+   * identified at the given location {@code String}.
+   * When containerName {@code String} is provided, an existing span of that
+   * container (eg. Flow) is set as the parent span of this processor span.
+   * 
+   * @param containerName
+   *            {@link String}
+   * @param location
+   *            {@link String}
+   * @param spanBuilder
+   *            {@link SpanBuilder}
+   * @return Span
+   */
+  public Span addProcessorSpan(String containerName, String location, SpanBuilder spanBuilder) {
     if (ending || ended)
       throw new UnsupportedOperationException(
           "Flow " + flowName + " span " + (ended ? "has ended." : "is ending."));
-    Span span = spanBuilder.setParent(Context.current().with(getSpan())).startSpan();
+    if (containerName != null) {
+      Span parentSpan = childSpans.getOrDefault(containerName, getSpan());
+      spanBuilder.setParent(Context.current().with(parentSpan));
+    }
+    Span span = spanBuilder.startSpan();
     childSpans.put(location, span);
     return span;
   }

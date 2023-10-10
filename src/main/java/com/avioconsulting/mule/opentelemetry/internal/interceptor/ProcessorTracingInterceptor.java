@@ -18,7 +18,8 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Interceptor to set tracing context information in flow a variable
  * named {@link TransactionStore#TRACE_CONTEXT_MAP_KEY}.
- * See {@link TransactionStore#getTransactionContext(String)} for possible
+ * See {@link TransactionStore#getTransactionContext(String, ComponentLocation)}
+ * for possible
  * entries in the map.
  */
 @ThreadSafe
@@ -50,7 +51,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
       OpenTelemetryConnection openTelemetryConnection = muleNotificationProcessor.getConnectionSupplier().get();
       String transactionId = openTelemetryConnection.getTransactionStore().transactionIdFor(event);
       Map<String, String> traceContext = openTelemetryConnection.getTraceContext(transactionId,
-          location.getLocation());
+          location);
       event.removeVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY);
       event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY, traceContext);
       if (LOGGER.isTraceEnabled()) {
@@ -85,7 +86,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
    *            be called. The methods on this object return a
    *            {@link CompletableFuture} that may be used to return from this
    *            method.
-   * @return
+   * @return a non-null {@link CompletableFuture<InterceptionEvent>}
    */
   @Override
   public CompletableFuture<InterceptionEvent> around(ComponentLocation location,

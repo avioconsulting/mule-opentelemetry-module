@@ -48,4 +48,16 @@ http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/cu
 		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
 	</flow>
 
+	<flow name="mule-opentelemetry-app-flow-ref-parent" >
+		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test/remote/flow-ref"/>
+		<flow-ref doc:name="mule-opentelemetry-app-flow-ref-target" name="mule-opentelemetry-app-flow-ref-target"/>
+		<logger level="INFO" doc:name="Logger"/>
+	</flow>
+	<flow name="mule-opentelemetry-app-flow-ref-target" >
+		<set-payload value="From Remote target" doc:name="Set Payload"/>
+		<flow-ref doc:name="mule-opentelemetry-app-flow-ref-target-2" name="mule-opentelemetry-app-flow-ref-target-2"/>
+	</flow>
+	<flow name="mule-opentelemetry-app-flow-ref-target-2" >
+		<os:clear doc:name="Clear" doc:id="594dc5b4-8539-4277-b82c-fa3e2d2f9478" objectStore="Object_store"/>
+	</flow>
 </mule>

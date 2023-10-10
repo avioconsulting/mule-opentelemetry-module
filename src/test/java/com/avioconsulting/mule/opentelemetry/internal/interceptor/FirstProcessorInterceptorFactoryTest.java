@@ -45,6 +45,7 @@ public class FirstProcessorInterceptorFactoryTest {
 
     TypedComponentIdentifier logger = mock(TypedComponentIdentifier.class);
     ComponentIdentifier loggerIdentifier = mock(ComponentIdentifier.class);
+    when(loggerIdentifier.getName()).thenReturn("logger");
     when(logger.getIdentifier()).thenReturn(loggerIdentifier);
     when(location.getComponentIdentifier()).thenReturn(logger);
 

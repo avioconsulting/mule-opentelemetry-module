@@ -75,7 +75,8 @@ public class FirstProcessorInterceptorFactory implements ProcessorInterceptorFac
       intercept = (componentType.isPresent()
           && interceptPath.equalsIgnoreCase(location.getLocation()))
           || muleNotificationProcessor
-              .getProcessorComponent(location.getComponentIdentifier().getIdentifier()).isPresent();
+              .getProcessorComponent(location.getComponentIdentifier().getIdentifier()).isPresent()
+          || location.getComponentIdentifier().getIdentifier().getName().equals("flow-ref");
     }
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Will Intercept '{}'?: {}", location, intercept);

@@ -12,6 +12,7 @@ import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapSetter;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
+import org.mule.runtime.api.component.location.ComponentLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +126,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    * @return Map<String, String>
    */
   public Map<String, String> getTraceContext(String transactionId) {
-    return getTraceContext(transactionId, (String) null);
+    return getTraceContext(transactionId, (ComponentLocation) null);
   }
 
   /**
@@ -141,9 +142,10 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    * @param transactionId
    *            Local transaction id
    * @param componentLocation
+   *            {@link ComponentLocation} to get context for
    * @return Map<String, String>
    */
-  public Map<String, String> getTraceContext(String transactionId, String componentLocation) {
+  public Map<String, String> getTraceContext(String transactionId, ComponentLocation componentLocation) {
     Context transactionContext = getTransactionStore().getTransactionContext(transactionId, componentLocation);
     Map<String, String> traceContext = new HashMap<>();
     traceContext.put(TransactionStore.TRACE_TRANSACTION_ID, transactionId);

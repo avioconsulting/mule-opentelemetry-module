@@ -139,7 +139,9 @@ public class MuleNotificationProcessor {
                 traceComponent.getTags());
             traceComponent.getTags().forEach(spanBuilder::setAttribute);
             openTelemetryConnection.getTransactionStore().addProcessorSpan(
-                traceComponent.getTransactionId(), traceComponent.getLocation(), spanBuilder);
+                traceComponent.getTransactionId(),
+                notification.getComponent().getLocation().getRootContainerName(),
+                traceComponent.getLocation(), spanBuilder);
           });
 
     } catch (Exception ex) {
@@ -248,19 +250,21 @@ public class MuleNotificationProcessor {
     try {
       logger.trace("Handling '{}' flow end event", notification.getResourceIdentifier());
       init();
-      TraceComponent traceComponent = flowProcessorComponent
-          .getSourceEndTraceComponent(notification, openTelemetryConnection).get();
-      openTelemetryConnection.getTransactionStore().endTransaction(
-          traceComponent.getTransactionId(),
-          traceComponent.getName(),
-          rootSpan -> {
-            traceComponent.getTags().forEach(rootSpan::setAttribute);
-            setSpanStatus(traceComponent, rootSpan);
-            if (notification.getException() != null) {
-              rootSpan.recordException(notification.getException());
-            }
-          },
-          Instant.ofEpochMilli(notification.getTimestamp()));
+      flowProcessorComponent
+          .getSourceEndTraceComponent(notification, openTelemetryConnection)
+          .ifPresent(traceComponent -> {
+            openTelemetryConnection.getTransactionStore().endTransaction(
+                traceComponent.getTransactionId(),
+                traceComponent.getName(),
+                rootSpan -> {
+                  traceComponent.getTags().forEach(rootSpan::setAttribute);
+                  setSpanStatus(traceComponent, rootSpan);
+                  if (notification.getException() != null) {
+                    rootSpan.recordException(notification.getException());
+                  }
+                },
+                Instant.ofEpochMilli(notification.getTimestamp()));
+          });
     } catch (Exception ex) {
       logger.error(
           "Error in handling " + notification.getResourceIdentifier() + " flow end event",
