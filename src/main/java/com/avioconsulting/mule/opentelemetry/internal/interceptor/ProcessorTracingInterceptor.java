@@ -86,7 +86,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
    *            be called. The methods on this object return a
    *            {@link CompletableFuture} that may be used to return from this
    *            method.
-   * @return a non-null {@link CompletableFuture<InterceptionEvent>}
+   * @return a non-null {@code CompletableFuture<InterceptionEvent>}
    */
   @Override
   public CompletableFuture<InterceptionEvent> around(ComponentLocation location,
