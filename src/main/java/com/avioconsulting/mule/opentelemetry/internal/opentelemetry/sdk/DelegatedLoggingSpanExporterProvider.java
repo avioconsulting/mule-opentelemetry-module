@@ -7,11 +7,10 @@ import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Used during tests. This is not configured in module service loader provider,
@@ -36,6 +35,7 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
     private static final LoggingSpanExporter exporter = LoggingSpanExporter.create();
     public static final Queue<Span> spanQueue = new ConcurrentLinkedQueue<>();
     private final ConfigProperties config;
+    private static final Logger logger = Logger.getLogger(DelegatedLoggingSpanExporter.class.getName());
 
     public DelegatedLoggingSpanExporter(ConfigProperties config) {
       this.config = config;
@@ -55,6 +55,9 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
         Map<String, Object> attributes = new HashMap<>();
         spanData.getAttributes().forEach((key, value) -> attributes.put(key.getKey(), value));
         span.setAttributes(attributes);
+        span.setSpanContext(new SpanContext(spanData.getSpanContext()));
+        span.setParentSpanContext(new SpanContext(spanData.getParentSpanContext()));
+        logger.log(Level.INFO, span.toString());
         return span;
       }).forEach(spanQueue::add);
       return exporter.export(spans);
@@ -85,6 +88,9 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
     private String spanKind;
     private String spanStatus;
     private Map<String, Object> attributes;
+
+    private SpanContext parentSpanContext;
+    private SpanContext spanContext;
 
     public String getInstrumentationName() {
       return instrumentationName;
@@ -150,19 +156,77 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
       return attributes;
     }
 
+    public SpanContext getParentSpanContext() {
+      return parentSpanContext;
+    }
+
+    public void setParentSpanContext(SpanContext parentSpanContext) {
+      this.parentSpanContext = parentSpanContext;
+    }
+
+    public SpanContext getSpanContext() {
+      return spanContext;
+    }
+
+    public void setSpanContext(SpanContext spanContext) {
+      this.spanContext = spanContext;
+    }
+
     @Override
     public String toString() {
-      return "Tracing{" +
+      return "Span{" +
           "instrumentationName='" + instrumentationName + '\'' +
           ", instrumentationVersion='" + instrumentationVersion + '\'' +
-          "}, Span{" +
-          "spanName='" + spanName + '\'' +
+          ", spanName='" + spanName + '\'' +
           ", traceId='" + traceId + '\'' +
           ", spanId='" + spanId + '\'' +
           ", spanKind='" + spanKind + '\'' +
           ", spanStatus='" + spanStatus + '\'' +
           ", attributes=" + attributes +
+          ", parentSpanContext=" + parentSpanContext +
+          ", spanContext=" + spanContext +
           '}';
+    }
+  }
+
+  public static class SpanContext {
+    private String traceId;
+    private String spanId;
+
+    public SpanContext(io.opentelemetry.api.trace.SpanContext spanContext) {
+      this.spanId = spanContext.getSpanId();
+      this.traceId = spanContext.getTraceId();
+    }
+
+    public String getTraceId() {
+      return traceId;
+    }
+
+    public String getSpanId() {
+      return spanId;
+    }
+
+    @Override
+    public String toString() {
+      return "SpanContext{" +
+          "traceId='" + traceId + '\'' +
+          ", spanId='" + spanId + '\'' +
+          '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o)
+        return true;
+      if (o == null || getClass() != o.getClass())
+        return false;
+      SpanContext that = (SpanContext) o;
+      return Objects.equals(getTraceId(), that.getTraceId()) && Objects.equals(getSpanId(), that.getSpanId());
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(getTraceId(), getSpanId());
     }
   }
 }

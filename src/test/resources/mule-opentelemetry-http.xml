@@ -96,7 +96,8 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 	<flow name="mule-opentelemetry-app-2-context-propagation-source" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
 		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test/propagation/source"/>
 		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
-		<http:request method="GET" doc:name="Request" config-ref="SELF_HTTP_Request_configuration" path="/test/propagation/target">
+		<!-- to simulate two different traces, propagated correlrationId must be different than this flows correlationId id -->
+		<http:request method="GET" doc:name="Request" config-ref="SELF_HTTP_Request_configuration" path="/test/propagation/target" correlationId="#[uuid()]">
 			<http:headers ><![CDATA[#[output application/java
 ---
 {

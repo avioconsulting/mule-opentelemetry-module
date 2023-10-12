@@ -6,7 +6,7 @@ import org.junit.Test;
 import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.tck.junit4.rule.DynamicPort;
 
-import static com.avioconsulting.mule.opentelemetry.internal.interceptor.FirstProcessorInterceptorFactory.MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME;
+import static com.avioconsulting.mule.opentelemetry.internal.interceptor.MessageProcessorTracingInterceptorFactory.MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MuleOpenTelemetryDisabledInterceptorHttpTest extends AbstractMuleArtifactTraceTest {

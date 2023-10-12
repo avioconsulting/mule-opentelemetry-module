@@ -76,6 +76,10 @@ public class MuleNotificationProcessor {
     return connectionSupplier;
   }
 
+  public TraceLevelConfiguration getTraceLevelConfiguration() {
+    return traceLevelConfiguration;
+  }
+
   public void init(Supplier<OpenTelemetryConnection> connectionSupplier, boolean spanAllProcessors) {
     init(connectionSupplier, new TraceLevelConfiguration(spanAllProcessors, Collections.emptyList()));
   }
@@ -139,7 +143,9 @@ public class MuleNotificationProcessor {
                 traceComponent.getTags());
             traceComponent.getTags().forEach(spanBuilder::setAttribute);
             openTelemetryConnection.getTransactionStore().addProcessorSpan(
-                traceComponent.getTransactionId(), traceComponent.getLocation(), spanBuilder);
+                traceComponent.getTransactionId(),
+                notification.getComponent().getLocation().getRootContainerName(),
+                traceComponent.getLocation(), spanBuilder);
           });
 
     } catch (Exception ex) {
@@ -165,6 +171,10 @@ public class MuleNotificationProcessor {
    */
   Optional<ProcessorComponent> getProcessorComponent(MessageProcessorNotification notification) {
     ComponentIdentifier identifier = notification.getComponent().getIdentifier();
+    return getProcessorComponent(identifier);
+  }
+
+  public Optional<ProcessorComponent> getProcessorComponent(ComponentIdentifier identifier) {
     boolean ignored = traceLevelConfiguration.getIgnoreMuleComponents().stream()
         .anyMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
             & (mc.getName().equalsIgnoreCase(identifier.getName()) || "*".equalsIgnoreCase(mc.getName())));
@@ -244,19 +254,21 @@ public class MuleNotificationProcessor {
     try {
       logger.trace("Handling '{}' flow end event", notification.getResourceIdentifier());
       init();
-      TraceComponent traceComponent = flowProcessorComponent
-          .getSourceEndTraceComponent(notification, openTelemetryConnection).get();
-      openTelemetryConnection.getTransactionStore().endTransaction(
-          traceComponent.getTransactionId(),
-          traceComponent.getName(),
-          rootSpan -> {
-            traceComponent.getTags().forEach(rootSpan::setAttribute);
-            setSpanStatus(traceComponent, rootSpan);
-            if (notification.getException() != null) {
-              rootSpan.recordException(notification.getException());
-            }
-          },
-          Instant.ofEpochMilli(notification.getTimestamp()));
+      flowProcessorComponent
+          .getSourceEndTraceComponent(notification, openTelemetryConnection)
+          .ifPresent(traceComponent -> {
+            openTelemetryConnection.getTransactionStore().endTransaction(
+                traceComponent.getTransactionId(),
+                traceComponent.getName(),
+                rootSpan -> {
+                  traceComponent.getTags().forEach(rootSpan::setAttribute);
+                  setSpanStatus(traceComponent, rootSpan);
+                  if (notification.getException() != null) {
+                    rootSpan.recordException(notification.getException());
+                  }
+                },
+                Instant.ofEpochMilli(notification.getTimestamp()));
+          });
     } catch (Exception ex) {
       logger.error(
           "Error in handling " + notification.getResourceIdentifier() + " flow end event",

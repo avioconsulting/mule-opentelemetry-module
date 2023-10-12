@@ -12,6 +12,7 @@ import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapSetter;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
+import org.mule.runtime.api.component.location.ComponentLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,15 +135,36 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    * @return Map<String, String>
    */
   public Map<String, String> getTraceContext(String transactionId) {
-    Context transactionContext = getTransactionStore().getTransactionContext(transactionId);
+    return getTraceContext(transactionId, (ComponentLocation) null);
+  }
+
+  /**
+   * Get the trace context information for a given transaction id. This returns
+   * a {@link Map} with
+   * at least one entry with key {@link TransactionStore#TRACE_TRANSACTION_ID} and
+   * transactionId as value.
+   * The other entries in the map depends on the propagator used.
+   * <p>
+   * For W3C Trace Context Propagator, it can contain entries for `traceparent`
+   * and optionally `tracestate`.
+   *
+   * @param transactionId
+   *            Local transaction id
+   * @param componentLocation
+   *            {@link ComponentLocation} to get context for
+   * @return Map<String, String>
+   */
+  public Map<String, String> getTraceContext(String transactionId, ComponentLocation componentLocation) {
+    Context transactionContext = getTransactionStore().getTransactionContext(transactionId, componentLocation);
     Map<String, String> traceContext = new HashMap<>();
     traceContext.put(TransactionStore.TRACE_TRANSACTION_ID, transactionId);
     traceContext.put(TransactionStore.TRACE_ID, getTransactionStore().getTraceIdForTransaction(transactionId));
-    logger.debug("Creating trace context for TRACE_TRANSACTION_ID=" + transactionId);
     try (Scope scope = transactionContext.makeCurrent()) {
       injectTraceContext(traceContext, HashMapTextMapSetter.INSTANCE);
     }
-    logger.debug("traceContext: [" + traceContext + "]");
+    logger.debug("Created trace context '{}' for TRACE_TRANSACTION_ID={}, Component Location '{}'", traceContext,
+        transactionId,
+        componentLocation);
     return Collections.unmodifiableMap(traceContext);
   }
 

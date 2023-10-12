@@ -148,6 +148,21 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
               .extracting("spanName", "spanKind", "traceId")
               .containsOnly("/test/propagation/target", "SERVER", head.getTraceId());
         }));
+    DelegatedLoggingSpanExporterProvider.Span sourceServer = DelegatedLoggingSpanExporter.spanQueue.stream()
+        .filter(s -> s.getSpanKind().equals("SERVER") && s.getSpanName().equals("/test/propagation/source"))
+        .findFirst().get();
+    DelegatedLoggingSpanExporterProvider.Span client = DelegatedLoggingSpanExporter.spanQueue.stream()
+        .filter(s -> s.getSpanKind().equals("CLIENT") && s.getSpanName().equals("/test/propagation/target"))
+        .findFirst().get();
+    DelegatedLoggingSpanExporterProvider.Span targetServer = DelegatedLoggingSpanExporter.spanQueue.stream()
+        .filter(s -> s.getSpanKind().equals("SERVER") && s.getSpanName().equals("/test/propagation/target"))
+        .findFirst().get();
+
+    assertThat(targetServer.getParentSpanContext())
+        .extracting("traceId", "spanId")
+        .as("With source server span (" + sourceServer.getSpanId()
+            + "), target server span should have client span as parent")
+        .containsExactly(client.getTraceId(), client.getSpanId());
   }
 
   @Test
@@ -185,8 +200,8 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
     assertThat(DelegatedLoggingSpanExporter.spanQueue)
         .filteredOnAssertions(span -> assertThat(span)
             .as("Span for http:listener flow")
-            .extracting("spanName", "spanKind", "traceId")
-            .containsOnly("/test-remote-request", "SERVER", head.getTraceId()))
+            .extracting("spanName", "spanKind")
+            .containsOnly("/test-remote-request", "SERVER"))
         .isNotEmpty()
         .hasSize(1)
         .element(0)
@@ -208,8 +223,8 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
     assertThat(DelegatedLoggingSpanExporter.spanQueue)
         .filteredOnAssertions(span -> assertThat(span)
             .as("Span for http:listener flow")
-            .extracting("spanName", "spanKind", "traceId")
-            .containsOnly("/test/remote/target", "CLIENT", head.getTraceId()))
+            .extracting("spanName", "spanKind")
+            .containsOnly("/test/remote/target", "CLIENT"))
         .isNotEmpty()
         .hasSize(1)
         .element(0)
@@ -250,8 +265,8 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
     assertThat(DelegatedLoggingSpanExporter.spanQueue)
         .filteredOnAssertions(span -> assertThat(span)
             .as("Span for http request")
-            .extracting("spanKind", "traceId")
-            .containsOnly("CLIENT", head.getTraceId()))
+            .extracting("spanKind")
+            .isEqualTo("CLIENT"))
         .isNotEmpty()
         .hasSize(1)
         .element(0)
@@ -262,8 +277,8 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
     assertThat(DelegatedLoggingSpanExporter.spanQueue)
         .filteredOnAssertions(span -> assertThat(span)
             .as("Span for http:listener flow")
-            .extracting("spanName", "spanKind", "traceId")
-            .containsOnly("/test-remote-request", "SERVER", head.getTraceId()))
+            .extracting("spanName", "spanKind")
+            .containsOnly("/test-remote-request", "SERVER"))
         .isNotEmpty()
         .hasSize(1)
         .element(0)

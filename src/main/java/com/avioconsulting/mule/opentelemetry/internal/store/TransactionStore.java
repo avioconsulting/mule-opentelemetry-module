@@ -6,6 +6,8 @@ import io.opentelemetry.context.Context;
 import java.time.Instant;
 import java.util.Map;
 import java.util.function.Consumer;
+
+import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.event.Event;
 
 /** Transaction store for managing service transactions. */
@@ -67,9 +69,11 @@ public interface TransactionStore {
    * @param transactionId
    *            A unique transaction id within the context of an application. Eg.
    *            Correlation id.
+   * @param componentLocation
+   *            {@link ComponentLocation}
    * @return {@link Context}
    */
-  Context getTransactionContext(String transactionId);
+  Context getTransactionContext(String transactionId, ComponentLocation componentLocation);
 
   /**
    * Get the Trace Id associated the transaction
@@ -141,16 +145,23 @@ public interface TransactionStore {
    * Add a new processor span under an existing transaction.
    *
    * @param transactionId
+   *            {@link String} to add new span
+   * @param containerName
+   *            {@link String} such as Flow name that contains requested location
    * @param location
+   *            {@link String} of the processor
    * @param spanBuilder
+   *            {@link SpanBuilder}
    */
-  void addProcessorSpan(String transactionId, String location, SpanBuilder spanBuilder);
+  void addProcessorSpan(String transactionId, String containerName, String location, SpanBuilder spanBuilder);
 
   /**
    * End an existing span under an existing transaction.
    *
    * @param transactionId
+   *            {@link String} to add end span for
    * @param location
+   *            {@link String} of the processor
    */
   default void endProcessorSpan(String transactionId, String location) {
     endProcessorSpan(transactionId, location, span -> {

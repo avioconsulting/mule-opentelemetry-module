@@ -7,6 +7,7 @@ import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Placement;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class TraceLevelConfiguration {
@@ -26,12 +27,35 @@ public class TraceLevelConfiguration {
   @Summary("When generating spans for all processors, this list defines the processors that should be skipped from tracing. No spans will be generated for these components.")
   private List<MuleComponent> ignoreMuleComponents;
 
+  @Parameter
+  @NullSafe
+  @Optional
+  @Placement(order = 1)
+  @DisplayName(value = "Disable Interception for")
+  @Summary("Module uses message processor interception mechanism to inject trace context variable. Any specific message processor (namespace:name) or specific namespace (namespace:*) can be excluded from this interception process.")
+  private List<MuleComponent> interceptionDisabledComponents;
+
+  @Parameter
+  @NullSafe
+  @Optional
+  @Placement(order = 2)
+  @DisplayName(value = "Enable Interception for")
+  @Summary("Module uses message processor interception mechanism to inject trace context variable. Any specific message processor (namespace:name) or specific namespace (namespace:*) can be included from this interception process.")
+  private List<MuleComponent> interceptionEnabledComponents;
+
   public TraceLevelConfiguration() {
   }
 
   public TraceLevelConfiguration(boolean spanAllProcessors, List<MuleComponent> ignoreMuleComponents) {
+    this(spanAllProcessors, ignoreMuleComponents, new ArrayList<>(), new ArrayList<>());
+  }
+
+  public TraceLevelConfiguration(boolean spanAllProcessors, List<MuleComponent> ignoreMuleComponents,
+      List<MuleComponent> interceptionDisabledComponents, List<MuleComponent> interceptionEnabledComponents) {
     this.spanAllProcessors = spanAllProcessors;
     this.ignoreMuleComponents = ignoreMuleComponents;
+    this.interceptionDisabledComponents = interceptionDisabledComponents;
+    this.interceptionEnabledComponents = interceptionEnabledComponents;
   }
 
   public boolean isSpanAllProcessors() {
@@ -41,4 +65,13 @@ public class TraceLevelConfiguration {
   public List<MuleComponent> getIgnoreMuleComponents() {
     return ignoreMuleComponents;
   }
+
+  public List<MuleComponent> getInterceptionDisabledComponents() {
+    return interceptionDisabledComponents;
+  }
+
+  public List<MuleComponent> getInterceptionEnabledComponents() {
+    return interceptionEnabledComponents;
+  }
+
 }

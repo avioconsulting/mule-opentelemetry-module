@@ -2,10 +2,13 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
+import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.context.Context;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.Location;
+import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import java.util.HashMap;
@@ -69,6 +72,15 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     TraceComponent.Builder builder = startTraceComponent.toBuilder().withSpanKind(SpanKind.SERVER);
     ComponentIdentifier sourceIdentifier = getSourceIdentifier(notification);
     if (sourceIdentifier == null) {
+      if (notification.getEvent().getVariables().containsKey(TransactionStore.TRACE_CONTEXT_MAP_KEY)) {
+        // When flows are called using flow-ref, the variables may contain the parent
+        // span information
+        TypedValue<Map<String, String>> contextMap = ((TypedValue<Map<String, String>>) notification.getEvent()
+            .getVariables().get(TransactionStore.TRACE_CONTEXT_MAP_KEY));
+        Context traceContext = traceContextHandler.getTraceContext(contextMap.getValue(),
+            ContextMapGetter.INSTANCE);
+        builder.withContext(traceContext);
+      }
       return Optional.of(builder.build());
     }
     startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_NAME.getKey(), sourceIdentifier.getName());
