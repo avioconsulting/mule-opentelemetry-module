@@ -66,6 +66,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
       logger.debug("Creating OpenTelemetryConnection with properties: [" + configMap + "]");
     }
     builder.setServiceClassLoader(AutoConfiguredOpenTelemetrySdkBuilder.class.getClassLoader());
+    builder.setResultAsGlobal();
     openTelemetry = builder.build().getOpenTelemetrySdk();
     tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
     transactionStore = InMemoryTransactionStore.getInstance();
