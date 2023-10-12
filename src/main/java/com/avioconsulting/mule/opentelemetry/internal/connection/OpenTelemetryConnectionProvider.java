@@ -8,9 +8,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
+import java.util.function.Supplier;
 
 public class OpenTelemetryConnectionProvider
-    implements CachedConnectionProvider<OpenTelemetryConnection> {
+    implements CachedConnectionProvider<Supplier<OpenTelemetryConnection>> {
 
   private final Logger LOGGER = LoggerFactory.getLogger(OpenTelemetryConnectionProvider.class);
 
@@ -21,15 +22,14 @@ public class OpenTelemetryConnectionProvider
   NotificationListenerRegistry notificationListenerRegistry;
 
   @Override
-  public OpenTelemetryConnection connect() throws ConnectionException {
-    return OpenTelemetryConnection.get().orElseThrow(
-        () -> new ConnectionException("Configuration must first start for OpenTelemetry connection."));
+  public Supplier<OpenTelemetryConnection> connect() throws ConnectionException {
+    return OpenTelemetryConnection.supplier();
   }
 
   @Override
-  public void disconnect(OpenTelemetryConnection connection) {
+  public void disconnect(Supplier<OpenTelemetryConnection> connection) {
     try {
-      connection.invalidate();
+      connection.get().invalidate();
     } catch (Exception e) {
       LOGGER.error(
           "Error while disconnecting OpenTelemetry: " + e.getMessage(), e);
@@ -37,7 +37,7 @@ public class OpenTelemetryConnectionProvider
   }
 
   @Override
-  public ConnectionValidationResult validate(OpenTelemetryConnection connection) {
+  public ConnectionValidationResult validate(Supplier<OpenTelemetryConnection> connection) {
     return ConnectionValidationResult.success();
   }
 }

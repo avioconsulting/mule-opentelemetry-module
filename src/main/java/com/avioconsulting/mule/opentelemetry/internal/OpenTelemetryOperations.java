@@ -7,15 +7,16 @@ import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.runtime.parameter.CorrelationInfo;
 
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class OpenTelemetryOperations {
 
   @DisplayName("Get Trace Context")
   @Alias("get-trace-context")
-  public Map<String, String> getTraceContext(@Connection OpenTelemetryConnection openTelemetryConnection,
+  public Map<String, String> getTraceContext(@Connection Supplier<OpenTelemetryConnection> openTelemetryConnection,
       CorrelationInfo correlationInfo) {
     String transactionId = correlationInfo.getCorrelationId();
-    return openTelemetryConnection.getTraceContext(transactionId);
+    return openTelemetryConnection.get().getTraceContext(transactionId);
   }
 
   /**
@@ -34,10 +35,11 @@ public class OpenTelemetryOperations {
    *            {@link CorrelationInfo} from the runtime
    */
   @DisplayName("Add Custom Tags")
-  public void addCustomTags(@Connection OpenTelemetryConnection openTelemetryConnection,
+  public void addCustomTags(@Connection Supplier<OpenTelemetryConnection> openTelemetryConnection,
       Map<String, String> tags,
       CorrelationInfo correlationInfo) {
-    openTelemetryConnection.getTransactionStore().addTransactionTags(correlationInfo.getCorrelationId(), "custom",
+    openTelemetryConnection.get().getTransactionStore().addTransactionTags(correlationInfo.getCorrelationId(),
+        "custom",
         tags);
   }
 }

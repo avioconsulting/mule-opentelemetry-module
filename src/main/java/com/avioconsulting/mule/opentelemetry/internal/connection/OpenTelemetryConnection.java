@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.function.Supplier;
 
 public class OpenTelemetryConnection implements TraceContextHandler {
 
@@ -72,8 +73,15 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     transactionStore = InMemoryTransactionStore.getInstance();
   }
 
-  public static Optional<OpenTelemetryConnection> get() {
-    return Optional.ofNullable(openTelemetryConnection);
+  /**
+   * {@link Supplier} to use with
+   * {@link org.mule.runtime.api.connection.ConnectionProvider} where lazy
+   * initialization is required.
+   * 
+   * @return a non-null {@code Supplier<OpenTelemetryConnection>}
+   */
+  public static Supplier<OpenTelemetryConnection> supplier() {
+    return () -> openTelemetryConnection;
   }
 
   public static synchronized OpenTelemetryConnection getInstance(
