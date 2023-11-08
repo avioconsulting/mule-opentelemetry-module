@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.avioconsulting</groupId>
     <artifactId>mule-opentelemetry-module</artifactId>
-    <version>1.3.0-SNAPSHOT</version>
+    <version>1.3.0.2-SNAPSHOT</version>
     <packaging>mule-extension</packaging>
 
     <parent>
@@ -30,6 +30,7 @@
         <opentelemetry.version>1.29.0</opentelemetry.version>
         <munit.extensions.maven.plugin.version>1.1.2</munit.extensions.maven.plugin.version>
         <munit.version>2.3.8</munit.version>
+        <jmh.version>1.36</jmh.version>
     </properties>
 
     <developers>
@@ -108,6 +109,11 @@
                     <artifactId>asciidoctor-maven-plugin</artifactId>
                     <version>2.2.2</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.bsc.maven</groupId>
+                    <artifactId>maven-processor-plugin</artifactId>
+                    <version>3.3.3</version>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
@@ -132,6 +138,26 @@
                     </execution>
                 </executions>
             </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.bsc.maven</groupId>-->
+<!--                <artifactId>maven-processor-plugin</artifactId>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>process-test</id>-->
+<!--                        <goals>-->
+<!--                            <goal>process-test</goal>-->
+<!--                        </goals>-->
+<!--                        <phase>generate-test-sources</phase>-->
+<!--                        <configuration>-->
+<!--                            <processors>-->
+<!--                                <processor>${extensionsAnnotationProcessor}</processor>-->
+<!--                                <processor>org.openjdk.jmh.generators.BenchmarkProcessor</processor>-->
+<!--                            </processors>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+
+<!--            </plugin>-->
             <plugin>
                 <groupId>org.asciidoctor</groupId>
                 <artifactId>asciidoctor-maven-plugin</artifactId>
@@ -324,6 +350,18 @@
             <version>2.32.0</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-core</artifactId>
+            <version>${jmh.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-generator-annprocess</artifactId>
+            <version>${jmh.version}</version>
+            <scope>test</scope>
+        </dependency>
         <!--	Open Telemetry	-->
         <dependency>
             <groupId>io.opentelemetry</groupId>
@@ -495,6 +533,82 @@
                                 <arg>loopback</arg>
                             </gpgArguments>
                         </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>benchmark</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <argLine>-Djmh.ignoreLock=false -DrunJMH=true</argLine>
+                            <systemPropertyVariables>
+                                <enablePerformanceTests>false</enablePerformanceTests>
+                                <contiperf.active>false</contiperf.active>
+                                <mule.test.timeoutSecs>300</mule.test.timeoutSecs>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.bsc.maven</groupId>
+                        <artifactId>maven-processor-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>process-test</id>
+                                <goals>
+                                    <goal>process-test</goal>
+                                </goals>
+                                <phase>generate-test-sources</phase>
+                                <configuration>
+                                    <processors>
+                                        <processor>${extensionsAnnotationProcessor}</processor>
+                                        <processor>org.openjdk.jmh.generators.BenchmarkProcessor</processor>
+                                    </processors>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>run-benchmarks</id>
+                                <phase>integration-test</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <classpathScope>test</classpathScope>
+                                    <executable>java</executable>
+                                    <workingDirectory>${basedir}/target</workingDirectory>
+                                    <arguments>
+                                        <argument>-classpath</argument>
+                                        <classpath/>
+                                        <mainClass>org.openjdk.jmh.Main</mainClass>
+                                        <!--Run only a certain class-->
+                                        <argument>.*</argument>
+                                        <!--Create json report-->
+                                        <argument>-rf</argument>
+                                        <argument>json</argument>
+                                        <!--Enable gc profiler-->
+                                        <argument>-prof</argument>
+                                        <argument>gc</argument>
+                                        <!--Number of Iterations-->
+                                        <argument>-i</argument>
+                                        <argument>10</argument>
+                                        <!--Number of Warmup Iterations-->
+                                        <argument>-wi</argument>
+                                        <argument>10</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>

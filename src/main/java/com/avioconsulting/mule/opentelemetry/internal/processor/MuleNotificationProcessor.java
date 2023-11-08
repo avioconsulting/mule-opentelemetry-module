@@ -57,15 +57,15 @@ public class MuleNotificationProcessor {
    * not have a specific processor like {@link HttpProcessorComponent}.
    */
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Avoid to creation object per notification instance
-  private final Optional<ProcessorComponent> genericProcessorComponent;
+  private final ProcessorComponent genericProcessorComponent;
 
   @Inject
   public MuleNotificationProcessor(ConfigurationComponentLocator configurationComponentLocator) {
     this.configurationComponentLocator = configurationComponentLocator;
     flowProcessorComponent = new FlowProcessorComponent()
         .withConfigurationComponentLocator(configurationComponentLocator);
-    genericProcessorComponent = Optional
-        .of(new GenericProcessorComponent().withConfigurationComponentLocator(configurationComponentLocator));
+    genericProcessorComponent = new GenericProcessorComponent()
+        .withConfigurationComponentLocator(configurationComponentLocator);
   }
 
   public boolean hasConnection() {
@@ -126,28 +126,27 @@ public class MuleNotificationProcessor {
 
   public void handleProcessorStartEvent(MessageProcessorNotification notification) {
     try {
-      getProcessorComponent(notification)
-          .ifPresent(processor -> {
-            logger.trace(
-                "Handling '{}:{}' processor start event",
-                notification.getResourceIdentifier(),
-                notification.getComponent().getIdentifier());
-            init();
-            TraceComponent traceComponent = processor.getStartTraceComponent(notification);
-            SpanBuilder spanBuilder = openTelemetryConnection
-                .spanBuilder(traceComponent.getSpanName())
-                .setSpanKind(traceComponent.getSpanKind())
-                .setStartTimestamp(Instant.ofEpochMilli(notification.getTimestamp()));
-            globalConfigSystemAttributes(
-                traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF.getKey()),
-                traceComponent.getTags());
-            traceComponent.getTags().forEach(spanBuilder::setAttribute);
-            openTelemetryConnection.getTransactionStore().addProcessorSpan(
-                traceComponent.getTransactionId(),
-                notification.getComponent().getLocation().getRootContainerName(),
-                traceComponent.getLocation(), spanBuilder);
-          });
-
+      ProcessorComponent processorComponent = getProcessorComponent(notification);
+      if (processorComponent != null) {
+        logger.trace(
+            "Handling '{}:{}' processor start event",
+            notification.getResourceIdentifier(),
+            notification.getComponent().getIdentifier());
+        init();
+        TraceComponent traceComponent = processorComponent.getStartTraceComponent(notification);
+        SpanBuilder spanBuilder = openTelemetryConnection
+            .spanBuilder(traceComponent.getSpanName())
+            .setSpanKind(traceComponent.getSpanKind())
+            .setStartTimestamp(Instant.ofEpochMilli(notification.getTimestamp()));
+        globalConfigSystemAttributes(
+            traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF.getKey()),
+            traceComponent.getTags());
+        traceComponent.getTags().forEach(spanBuilder::setAttribute);
+        openTelemetryConnection.getTransactionStore().addProcessorSpan(
+            traceComponent.getTransactionId(),
+            notification.getComponent().getLocation().getRootContainerName(),
+            traceComponent.getLocation(), spanBuilder);
+      }
     } catch (Exception ex) {
       logger.error("Error in handling processor start event", ex);
       throw ex;
@@ -169,22 +168,22 @@ public class MuleNotificationProcessor {
    *            target {@link org.mule.runtime.api.component.Component}.
    * @return Optional<ProcessorComponent> that can process this notification
    */
-  Optional<ProcessorComponent> getProcessorComponent(MessageProcessorNotification notification) {
+  ProcessorComponent getProcessorComponent(MessageProcessorNotification notification) {
     ComponentIdentifier identifier = notification.getComponent().getIdentifier();
     return getProcessorComponent(identifier);
   }
 
-  public Optional<ProcessorComponent> getProcessorComponent(ComponentIdentifier identifier) {
+  public ProcessorComponent getProcessorComponent(ComponentIdentifier identifier) {
     boolean ignored = traceLevelConfiguration.getIgnoreMuleComponents().stream()
         .anyMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
             & (mc.getName().equalsIgnoreCase(identifier.getName()) || "*".equalsIgnoreCase(mc.getName())));
     if (spanAllProcessors && ignored)
-      return Optional.empty();
+      return null;
 
-    Optional<ProcessorComponent> processorComponent = processorComponentService
+    ProcessorComponent processorComponent = processorComponentService
         .getProcessorComponentFor(identifier, configurationComponentLocator);
 
-    if (!processorComponent.isPresent() && spanAllProcessors) {
+    if (processorComponent == null && spanAllProcessors) {
       processorComponent = genericProcessorComponent;
     }
     return processorComponent;
@@ -192,29 +191,29 @@ public class MuleNotificationProcessor {
 
   public void handleProcessorEndEvent(MessageProcessorNotification notification) {
     try {
-      getProcessorComponent(notification)
-          .ifPresent(processorComponent -> {
-            logger.trace(
-                "Handling '{}:{}' processor end event ",
-                notification.getResourceIdentifier(),
-                notification.getComponent().getIdentifier());
-            init();
-            TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification);
-            openTelemetryConnection.getTransactionStore().endProcessorSpan(
-                traceComponent.getTransactionId(),
-                traceComponent.getLocation(),
-                span -> {
+      ProcessorComponent processorComponent = getProcessorComponent(notification);
+      if (processorComponent != null) {
+        logger.trace(
+            "Handling '{}:{}' processor end event ",
+            notification.getResourceIdentifier(),
+            notification.getComponent().getIdentifier());
+        init();
+        TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification);
+        openTelemetryConnection.getTransactionStore().endProcessorSpan(
+            traceComponent.getTransactionId(),
+            traceComponent.getLocation(),
+            span -> {
 
-                  if (notification.getEvent().getError().isPresent()) {
-                    Error error = notification.getEvent().getError().get();
-                    span.recordException(error.getCause());
-                  }
-                  setSpanStatus(traceComponent, span);
-                  if (traceComponent.getTags() != null)
-                    traceComponent.getTags().forEach(span::setAttribute);
-                },
-                Instant.ofEpochMilli(notification.getTimestamp()));
-          });
+              if (notification.getEvent().getError().isPresent()) {
+                Error error = notification.getEvent().getError().get();
+                span.recordException(error.getCause());
+              }
+              setSpanStatus(traceComponent, span);
+              if (traceComponent.getTags() != null)
+                traceComponent.getTags().forEach(span::setAttribute);
+            },
+            Instant.ofEpochMilli(notification.getTimestamp()));
+      }
     } catch (Exception ex) {
       logger.error("Error in handling processor end event", ex);
       throw ex;
@@ -226,7 +225,7 @@ public class MuleNotificationProcessor {
       logger.trace("Handling '{}' flow start event", notification.getResourceIdentifier());
       init();
       TraceComponent traceComponent = flowProcessorComponent
-          .getSourceStartTraceComponent(notification, openTelemetryConnection).get();
+          .getSourceStartTraceComponent(notification, openTelemetryConnection);
       SpanBuilder spanBuilder = openTelemetryConnection
           .spanBuilder(traceComponent.getSpanName())
           .setSpanKind(traceComponent.getSpanKind())
@@ -254,21 +253,21 @@ public class MuleNotificationProcessor {
     try {
       logger.trace("Handling '{}' flow end event", notification.getResourceIdentifier());
       init();
-      flowProcessorComponent
-          .getSourceEndTraceComponent(notification, openTelemetryConnection)
-          .ifPresent(traceComponent -> {
-            openTelemetryConnection.getTransactionStore().endTransaction(
-                traceComponent.getTransactionId(),
-                traceComponent.getName(),
-                rootSpan -> {
-                  traceComponent.getTags().forEach(rootSpan::setAttribute);
-                  setSpanStatus(traceComponent, rootSpan);
-                  if (notification.getException() != null) {
-                    rootSpan.recordException(notification.getException());
-                  }
-                },
-                Instant.ofEpochMilli(notification.getTimestamp()));
-          });
+      TraceComponent traceComponent = flowProcessorComponent
+          .getSourceEndTraceComponent(notification, openTelemetryConnection);
+      if (traceComponent != null) {
+        openTelemetryConnection.getTransactionStore().endTransaction(
+            traceComponent.getTransactionId(),
+            traceComponent.getName(),
+            rootSpan -> {
+              traceComponent.getTags().forEach(rootSpan::setAttribute);
+              setSpanStatus(traceComponent, rootSpan);
+              if (notification.getException() != null) {
+                rootSpan.recordException(notification.getException());
+              }
+            },
+            Instant.ofEpochMilli(notification.getTimestamp()));
+      }
     } catch (Exception ex) {
       logger.error(
           "Error in handling " + notification.getResourceIdentifier() + " flow end event",

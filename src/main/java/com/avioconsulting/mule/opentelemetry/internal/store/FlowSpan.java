@@ -69,7 +69,7 @@ public class FlowSpan implements Serializable {
     ended = true;
   }
 
-  public Optional<Span> findSpan(String location) {
-    return Optional.ofNullable(childSpans.get(location));
+  public Span findSpan(String location) {
+    return childSpans.get(location);
   }
 }

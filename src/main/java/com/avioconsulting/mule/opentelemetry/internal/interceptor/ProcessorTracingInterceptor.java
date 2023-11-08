@@ -27,6 +27,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessorTracingInterceptor.class);
   private final MuleNotificationProcessor muleNotificationProcessor;
+  private OpenTelemetryConnection openTelemetryConnection;
 
   /**
    * Interceptor.
@@ -48,12 +49,13 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
     // If the tracing is disabled, the module configuration will not initialize
     // connection supplier.
     if (muleNotificationProcessor.getConnectionSupplier() != null) {
-      OpenTelemetryConnection openTelemetryConnection = muleNotificationProcessor.getConnectionSupplier().get();
+      if (openTelemetryConnection == null) {
+        openTelemetryConnection = muleNotificationProcessor.getConnectionSupplier().get();
+      }
       String transactionId = openTelemetryConnection.getTransactionStore().transactionIdFor(event);
-      Map<String, String> traceContext = openTelemetryConnection.getTraceContext(transactionId,
-          location);
-      event.removeVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY);
-      event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY, traceContext);
+      event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY,
+          openTelemetryConnection.getTraceContext(transactionId,
+              location));
       if (LOGGER.isTraceEnabled()) {
         LOGGER.trace("Intercepted with logic '{}'", location);
       }

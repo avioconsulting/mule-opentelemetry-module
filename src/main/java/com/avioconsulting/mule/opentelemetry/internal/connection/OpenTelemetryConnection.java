@@ -155,21 +155,25 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    * @return Map<String, String>
    */
   public Map<String, String> getTraceContext(String transactionId, ComponentLocation componentLocation) {
-    Context transactionContext = getTransactionStore().getTransactionContext(transactionId, componentLocation);
-    Map<String, String> traceContext = new HashMap<>();
+    Context transactionContext = getTransactionStore().getTransactionContext(transactionId,
+        componentLocation);
+    Map<String, String> traceContext = new HashMap<>(10);
     traceContext.put(TransactionStore.TRACE_TRANSACTION_ID, transactionId);
     traceContext.put(TransactionStore.TRACE_ID, getTransactionStore().getTraceIdForTransaction(transactionId));
-    try (Scope scope = transactionContext.makeCurrent()) {
-      injectTraceContext(traceContext, HashMapTextMapSetter.INSTANCE);
-    }
+    injectTraceContext(transactionContext, traceContext,
+        HashMapTextMapSetter.INSTANCE);
     logger.debug("Created trace context '{}' for TRACE_TRANSACTION_ID={}, Component Location '{}'", traceContext,
         transactionId,
         componentLocation);
-    return Collections.unmodifiableMap(traceContext);
+    return traceContext;
   }
 
   public <T> void injectTraceContext(T carrier, TextMapSetter<T> textMapSetter) {
     openTelemetry.getPropagators().getTextMapPropagator().inject(Context.current(), carrier, textMapSetter);
+  }
+
+  private <T> void injectTraceContext(Context context, T carrier, TextMapSetter<T> textMapSetter) {
+    openTelemetry.getPropagators().getTextMapPropagator().inject(context, carrier, textMapSetter);
   }
 
   public TransactionStore getTransactionStore() {

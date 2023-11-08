@@ -6,12 +6,14 @@ import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.util.LazyValue;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ProcessorComponentService {
   private static ProcessorComponentService service;
   private final List<ProcessorComponent> processorComponents;
   private static final LazyValue<ProcessorComponentService> VALUE = new LazyValue<>(new ProcessorComponentService());
   private final List<ProcessorComponent> cached = new ArrayList<>();
+  private final Map<ComponentIdentifier, ProcessorComponent> cachedMap = new ConcurrentHashMap<>();
 
   private ProcessorComponentService() {
     ServiceLoader<ProcessorComponent> loader = ServiceLoader.load(ProcessorComponent.class,
@@ -25,18 +27,14 @@ public class ProcessorComponentService {
     return VALUE.get();
   }
 
-  public Optional<ProcessorComponent> getProcessorComponentFor(ComponentIdentifier identifier,
+  public ProcessorComponent getProcessorComponentFor(ComponentIdentifier identifier,
       ConfigurationComponentLocator configurationComponentLocator) {
-    Optional<ProcessorComponent> cachedPC = cached.stream().filter(p -> p.canHandle(identifier))
-        .findFirst();
-    if (!cachedPC.isPresent()) {
-      processorComponents.stream().filter(p -> p.canHandle(identifier))
-          .findFirst()
-          .map(pc -> pc.withConfigurationComponentLocator(configurationComponentLocator))
-          .ifPresent(cached::add);
-      cachedPC = cached.stream().filter(p -> p.canHandle(identifier))
-          .findFirst();
+    for (ProcessorComponent pc : processorComponents) {
+      if (pc.canHandle(identifier)) {
+        pc.withConfigurationComponentLocator(configurationComponentLocator);
+        return pc;
+      }
     }
-    return cachedPC;
+    return null;
   }
 }

@@ -87,15 +87,14 @@ public class HttpProcessorComponentSourceTest extends AbstractProcessorComponent
 
     HttpProcessorComponent httpProcessorComponent = new HttpProcessorComponent();
     TraceContextHandler traceContextHandler = mock(TraceContextHandler.class);
-    Optional<TraceComponent> sourceTraceComponent = httpProcessorComponent.getSourceEndTraceComponent(
+    TraceComponent sourceTraceComponent = httpProcessorComponent.getSourceEndTraceComponent(
         notification,
         traceContextHandler);
 
     assertThat(sourceTraceComponent)
-        .isNotEmpty()
-        .get()
+        .isNotNull()
         .extracting("name", "spanName", "statusCode").containsExactly("test-flow", null, spanStatusCode);
-    assertThat(sourceTraceComponent.get().getTags())
+    assertThat(sourceTraceComponent.getTags())
         .containsEntry("http.status_code", httpStatus);
   }
 

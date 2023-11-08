@@ -171,10 +171,10 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  public Optional<TraceComponent> getSourceStartTraceComponent(EnrichedServerNotification notification,
+  public TraceComponent getSourceStartTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
     if (!isListenerFlowEvent(notification)) {
-      return Optional.empty();
+      return null;
     }
     TypedValue<HttpRequestAttributes> attributesTypedValue = notification.getEvent().getMessage().getAttributes();
     HttpRequestAttributes attributes = attributesTypedValue.getValue();
@@ -185,11 +185,11 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         .withSpanName(attributes.getListenerPath()) // In case of wildcard, it may be to generic. Eg. /api/*
         .withContext(traceContextHandler.getTraceContext(attributes.getHeaders(), ContextMapGetter.INSTANCE))
         .build();
-    return Optional.of(traceComponent);
+    return traceComponent;
   }
 
   @Override
-  public Optional<TraceComponent> getSourceEndTraceComponent(EnrichedServerNotification notification,
+  public TraceComponent getSourceEndTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
     // Notification event does not expose any information about HTTP Response
     // object.
@@ -209,13 +209,13 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         TraceComponent.Builder builder = getTraceComponentBuilderFor(notification);
         builder.withTags(singletonMap(HTTP_STATUS_CODE.getKey(), statusCode));
         builder.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
-        return Optional.of(builder.build());
+        return builder.build();
       }
     } catch (Exception ex) {
       LOGGER.warn(
           "Failed to extract httpStatus variable value. Resulted span may not have http status code attribute.");
     }
-    return Optional.empty();
+    return null;
   }
 
   private Map<String, String> attributesToTags(HttpRequestAttributes attributes) {

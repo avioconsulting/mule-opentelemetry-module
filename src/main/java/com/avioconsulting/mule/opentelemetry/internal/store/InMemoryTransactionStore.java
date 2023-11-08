@@ -7,7 +7,6 @@ import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.context.Context;
 import java.time.Instant;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -36,13 +35,13 @@ public class InMemoryTransactionStore implements TransactionStore {
   @Override
   public void startTransaction(
       final String transactionId, final String rootFlowName, SpanBuilder rootFlowSpan) {
-    Optional<Transaction> transaction = getTransaction(transactionId);
-    if (transaction.isPresent()) {
+    Transaction transaction = getTransaction(transactionId);
+    if (transaction != null) {
       LOGGER.trace(
           "Start transaction {} for flow '{}' - Adding to existing transaction",
           transactionId,
           rootFlowName);
-      transaction.get().getRootFlowSpan().addProcessorSpan(null, rootFlowName, rootFlowSpan);
+      transaction.getRootFlowSpan().addProcessorSpan(null, rootFlowName, rootFlowSpan);
     } else {
       Span span = rootFlowSpan.startSpan();
       LOGGER.trace(
@@ -63,38 +62,38 @@ public class InMemoryTransactionStore implements TransactionStore {
     AttributesBuilder builder = Attributes.builder();
     String format = "%s.%s";
     tags.forEach((k, v) -> builder.put(String.format(format, tagPrefix, k), v));
-    getTransaction(transactionId)
-        .map(Transaction::getRootFlowSpan)
-        .map(FlowSpan::getSpan).ifPresent(span -> span.setAllAttributes(builder.build()));
+    Transaction transaction = getTransaction(transactionId);
+    Span span = transaction.getRootFlowSpan().getSpan();
+    if (span != null) {
+      span.setAllAttributes(builder.build());
+    }
   }
 
-  private Optional<Transaction> getTransaction(String transactionId) {
-    return Optional.ofNullable(transactionMap.get(transactionId));
+  private Transaction getTransaction(String transactionId) {
+    return transactionMap.get(transactionId);
   }
 
-  public Context getTransactionContext(String transactionId) {
-    return getTransaction(transactionId)
-        .map(Transaction::getRootFlowSpan)
-        .map(FlowSpan::getSpan)
-        .map(s -> s.storeInContext(Context.current()))
-        .orElseGet(Context::current);
+  private Context getTransactionContext(Transaction transaction) {
+    return transaction == null ? Context.current()
+        : transaction.getRootFlowSpan().getSpan().storeInContext(Context.current());
   }
 
   @Override
   public Context getTransactionContext(String transactionId, ComponentLocation componentLocation) {
+    Transaction transaction = getTransaction(transactionId);
     if (componentLocation == null)
-      return getTransactionContext(transactionId);
-    Optional<Context> context = getTransaction(transactionId)
-        .map(Transaction::getRootFlowSpan)
-        .flatMap(f -> f.findSpan(componentLocation.getLocation()))
-        .map(s -> s.storeInContext(Context.current()));
-    return context
-        .orElseGet(() -> getTransactionContext(transactionId));
+      return getTransactionContext(transaction);
+    Span span = null;
+    if (transaction != null
+        && ((span = transaction.getRootFlowSpan().findSpan(componentLocation.getLocation())) != null)) {
+      return span.storeInContext(Context.current());
+    } else {
+      return getTransactionContext(transaction);
+    }
   }
 
   public String getTraceIdForTransaction(String transactionId) {
-    Optional<Transaction> transaction = getTransaction(transactionId);
-    return transaction.map(Transaction::getTraceId).orElse(null);
+    return transactionMap.containsKey(transactionId) ? getTransaction(transactionId).getTraceId() : null;
   }
 
   @Override
@@ -115,38 +114,38 @@ public class InMemoryTransactionStore implements TransactionStore {
           span.getSpanContext().getSpanId(),
           span.getSpanContext().getTraceId());
     };
-    getTransaction(transactionId)
-        .ifPresent(
-            transaction -> {
-              if (transaction.getRootFlowName().equals(flowName)) {
-                Transaction removed = transactionMap.remove(transactionId);
-                endSpan.accept(removed.getRootFlowSpan().getSpan());
-              } else {
-                transaction.getRootFlowSpan().findSpan(flowName)
-                    .ifPresent(endSpan);
-              }
-            });
+    Transaction transaction = getTransaction(transactionId);
+    if (transaction != null) {
+      if (transaction.getRootFlowName().equals(flowName)) {
+        Transaction removed = transactionMap.remove(transactionId);
+        endSpan.accept(removed.getRootFlowSpan().getSpan());
+      } else {
+        Span span = transaction.getRootFlowSpan().findSpan(flowName);
+        if (span != null)
+          endSpan.accept(span);
+      }
+    }
   }
 
   @Override
   public void addProcessorSpan(String transactionId, String containerName, String location, SpanBuilder spanBuilder) {
-    getTransaction(transactionId)
-        .ifPresent(
-            transaction -> {
-              LOGGER.trace(
-                  "Adding Processor span to transaction {} for location '{}'",
-                  transactionId,
-                  location);
-              Span span = transaction
-                  .getRootFlowSpan()
-                  .addProcessorSpan(containerName, location, spanBuilder);
-              LOGGER.trace(
-                  "Adding Processor span to transaction {} for locator span '{}': OT SpanId {}, TraceId {}",
-                  transactionId,
-                  location,
-                  span.getSpanContext().getSpanId(),
-                  span.getSpanContext().getTraceId());
-            });
+    Transaction transaction = getTransaction(transactionId);
+
+    if (transaction != null) {
+      LOGGER.trace(
+          "Adding Processor span to transaction {} for location '{}'",
+          transactionId,
+          location);
+      Span span = transaction
+          .getRootFlowSpan()
+          .addProcessorSpan(containerName, location, spanBuilder);
+      LOGGER.trace(
+          "Adding Processor span to transaction {} for locator span '{}': OT SpanId {}, TraceId {}",
+          transactionId,
+          location,
+          span.getSpanContext().getSpanId(),
+          span.getSpanContext().getTraceId());
+    }
   }
 
   @Override
@@ -156,10 +155,12 @@ public class InMemoryTransactionStore implements TransactionStore {
         "Ending Processor span of transaction {} for location '{}'",
         transactionId,
         location);
-    getTransaction(transactionId)
-        .ifPresent(
-            transaction -> transaction
-                .getRootFlowSpan()
-                .endProcessorSpan(location, spanUpdater, endTime));
+    Transaction transaction = getTransaction(transactionId);
+
+    if (transaction != null) {
+      transaction
+          .getRootFlowSpan()
+          .endProcessorSpan(location, spanUpdater, endTime);
+    }
   }
 }

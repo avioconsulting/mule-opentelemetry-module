@@ -16,6 +16,7 @@ import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
  * ProcessorInterceptorFactory can intercept processors. This is injected
@@ -62,10 +63,14 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
    * </pre>
    */
   private void setupInterceptableComponents(MuleNotificationProcessor muleNotificationProcessor) {
-    interceptExclusions.add(new MuleComponent("ee", "*"));
-    interceptExclusions.add(new MuleComponent("mule", "*"));
+
+    String excludedNamespaces = "ee,mule,validations,aggregators,json,oauth,scripting,tracing,oauth2-provider,xml,wss,spring,java,avio-logger";
+
+    Stream.of(excludedNamespaces.split(","))
+        .forEach(ns -> interceptExclusions.add(new MuleComponent(ns, "*")));
 
     interceptInclusions.add(new MuleComponent("mule", "flow-ref"));
+
     if (muleNotificationProcessor.getTraceLevelConfiguration() != null) {
       if (muleNotificationProcessor.getTraceLevelConfiguration().getInterceptionDisabledComponents() != null)
         interceptExclusions

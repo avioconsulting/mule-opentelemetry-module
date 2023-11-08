@@ -6,8 +6,6 @@ import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
-import java.util.Optional;
-
 public interface ProcessorComponent {
   boolean canHandle(ComponentIdentifier componentIdentifier);
 
@@ -38,16 +36,16 @@ public interface ProcessorComponent {
   /**
    * If a message processor has a source variation, then this implementation can
    * do more processing of a component.
-   * 
+   *
    * @param notification
    *            {@link EnrichedServerNotification}
    * @param traceContextHandler
    *            {@link TraceContextHandler} to help extract OpenTelemetry context
-   * @return {@link Optional}
+   * @return {@link TraceComponent}
    */
-  default Optional<TraceComponent> getSourceStartTraceComponent(EnrichedServerNotification notification,
+  default TraceComponent getSourceStartTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
-    return Optional.empty();
+    return null;
   }
 
   /**
@@ -55,12 +53,14 @@ public interface ProcessorComponent {
    * to build source specific traces.
    *
    * @param notification
+   *            {@link EnrichedServerNotification}
    * @param traceContextHandler
-   * @return Optional trace component
+   *            {@link TraceContextHandler}
+   * @return TraceComponent
    */
-  default Optional<TraceComponent> getSourceEndTraceComponent(EnrichedServerNotification notification,
+  default TraceComponent getSourceEndTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
-    return Optional.empty();
+    return null;
   }
 
 }

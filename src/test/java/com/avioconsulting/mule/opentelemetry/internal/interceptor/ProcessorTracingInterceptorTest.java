@@ -36,7 +36,6 @@ public class ProcessorTracingInterceptorTest {
     InterceptionEvent interceptionEvent = mock(InterceptionEvent.class);
     interceptor.before(location, Collections.emptyMap(), interceptionEvent);
     verify(interceptionEvent).addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY, traceparentMap);
-    verify(interceptionEvent).removeVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY);
   }
 
   @Test
