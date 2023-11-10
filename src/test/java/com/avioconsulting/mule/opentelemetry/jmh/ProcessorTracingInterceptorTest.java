@@ -22,10 +22,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -61,11 +58,7 @@ public class ProcessorTracingInterceptorTest extends AbstractJMHTest {
     MuleNotificationProcessor muleNotificationProcessor = new MuleNotificationProcessor(componentLocator);
     muleNotificationProcessor.init(() -> connection, true);
     interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
-
-    event = mock(InterceptionEvent.class);
-    when(event.addVariable(anyString(), any())).thenReturn(event);
-    when(event.removeVariable(anyString())).thenReturn(event);
-    when(event.getCorrelationId()).thenReturn(TEST_1_TRANSACTION_ID);
+    event = new TestInterceptionEvent(TEST_1_TRANSACTION_ID);
   }
 
   @Benchmark
@@ -73,6 +66,9 @@ public class ProcessorTracingInterceptorTest extends AbstractJMHTest {
   @Warmup(iterations = 3)
   public void interceptBefore(Blackhole blackhole) {
     interceptor.before(COMPONENT_LOCATION, Collections.emptyMap(), event);
+
+    // Benchmark Mode Cnt Score Error Units
+    // ProcessorTracingInterceptorTest.interceptBefore thrpt 2 6163.569 ops/ms
   }
 
   @Override
