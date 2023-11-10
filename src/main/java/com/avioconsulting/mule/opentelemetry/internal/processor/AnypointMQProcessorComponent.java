@@ -108,7 +108,7 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  public Optional<TraceComponent> getSourceStartTraceComponent(EnrichedServerNotification notification,
+  public TraceComponent getSourceStartTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
     TypedValue<AnypointMQMessageAttributes> attributesTypedValue = notification.getEvent().getMessage()
         .getAttributes();
@@ -124,7 +124,7 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
         .withSpanKind(SpanKind.CONSUMER)
         .withContext(traceContextHandler.getTraceContext(attributes.getProperties(), ContextMapGetter.INSTANCE))
         .build();
-    return Optional.of(traceComponent);
+    return traceComponent;
   }
 
   @Override
@@ -133,8 +133,8 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  public Optional<TraceComponent> getSourceEndTraceComponent(EnrichedServerNotification notification,
+  public TraceComponent getSourceEndTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
-    return Optional.of(getTraceComponentBuilderFor(notification).withStatsCode(StatusCode.OK).build());
+    return getTraceComponentBuilderFor(notification).withStatsCode(StatusCode.OK).build();
   }
 }

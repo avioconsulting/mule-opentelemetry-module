@@ -182,15 +182,14 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
 
     HttpProcessorComponent httpProcessorComponent = new HttpProcessorComponent();
     TraceContextHandler traceContextHandler = mock(TraceContextHandler.class);
-    Optional<TraceComponent> sourceTraceComponent = httpProcessorComponent.getSourceStartTraceComponent(
+    TraceComponent sourceTraceComponent = httpProcessorComponent.getSourceStartTraceComponent(
         notification,
         traceContextHandler);
 
     assertThat(sourceTraceComponent)
-        .isNotEmpty()
-        .get()
+        .isNotNull()
         .extracting("name", "spanName").containsExactly("test-flow", "/test");
-    assertThat(sourceTraceComponent.get().getTags())
+    assertThat(sourceTraceComponent.getTags())
         .hasSize(7)
         .containsEntry("http.method", "GET")
         .containsEntry("http.flavor", "1.1")

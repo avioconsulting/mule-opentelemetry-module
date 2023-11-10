@@ -9,7 +9,7 @@
         <Logger name="io.opentelemetry.exporter" level="DEBUG">
             <AppenderRef ref="Console"/>
         </Logger>
-        <Logger name="com.avioconsulting.mule.opentelemetry" level="DEBUG">
+        <Logger name="com.avioconsulting.mule.opentelemetry" level="INFO">
             <AppenderRef ref="Console"/>
         </Logger>
         <Logger name="com.avioconsulting.mule.opentelemetry.internal.interceptor" level="INFO">

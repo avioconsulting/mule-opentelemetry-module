@@ -16,7 +16,9 @@ import org.mule.runtime.api.component.location.LocationPart;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.avioconsulting.mule.opentelemetry.internal.interceptor.MessageProcessorTracingInterceptorFactory.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -210,25 +212,33 @@ public class MessageProcessorTracingInterceptorFactoryTest {
 
   @Test
   public void getInterceptExclusions() {
+    List<MuleComponent> expected = Arrays.stream(
+        "ee,mule,validations,aggregators,json,oauth,scripting,tracing,oauth2-provider,xml,wss,spring,java,avio-logger"
+            .split(","))
+        .map(s -> new MuleComponent(s, "*")).collect(Collectors.toList());
     assertThat(new MessageProcessorTracingInterceptorFactory(new MuleNotificationProcessor(null))
         .getInterceptExclusions())
             .as("Default Exclusions")
             .isNotEmpty()
-            .containsOnly(new MuleComponent("mule", "*"),
-                new MuleComponent("ee", "*"));
+            .containsExactlyInAnyOrderElementsOf(expected);
   }
 
   @Test
   public void getInterceptExclusionsWithTraceLevelConfig() {
+
+    List<MuleComponent> expected = Arrays.stream(
+        "ee,mule,validations,aggregators,json,oauth,scripting,tracing,oauth2-provider,xml,wss,spring,java,avio-logger"
+            .split(","))
+        .map(s -> new MuleComponent(s, "*")).collect(Collectors.toList());
+
     MuleNotificationProcessor muleNotificationProcessor1 = new MuleNotificationProcessor(null);
     muleNotificationProcessor1.init(null, new TraceLevelConfiguration(true, Collections.emptyList(),
         Collections.singletonList(new MuleComponent("mule", "logger")), Collections.emptyList()));
     assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor1).getInterceptExclusions())
         .as("Default with Trace level Exclusions")
         .isNotEmpty()
-        .containsOnly(new MuleComponent("mule", "*"),
-            new MuleComponent("ee", "*"),
-            new MuleComponent("mule", "logger"));
+        .containsAll(expected)
+        .contains(new MuleComponent("mule", "logger"));
   }
 
   @Test
