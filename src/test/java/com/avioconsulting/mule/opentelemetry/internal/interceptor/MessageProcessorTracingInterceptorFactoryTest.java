@@ -12,6 +12,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.LocationPart;
 
 import java.util.Arrays;
@@ -30,6 +31,9 @@ public class MessageProcessorTracingInterceptorFactoryTest {
   @Mock
   MuleNotificationProcessor muleNotificationProcessor;
 
+  @Mock
+  ConfigurationComponentLocator configurationComponentLocator;
+
   @Before
   public void setMocks() {
     when(muleNotificationProcessor.hasConnection()).thenReturn(true);
@@ -37,8 +41,10 @@ public class MessageProcessorTracingInterceptorFactoryTest {
 
   @Test
   public void get() {
-    assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor).get())
-        .isInstanceOf(ProcessorTracingInterceptor.class);
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .get())
+                .isInstanceOf(ProcessorTracingInterceptor.class);
   }
 
   @Test
@@ -59,8 +65,10 @@ public class MessageProcessorTracingInterceptorFactoryTest {
     when(identifier.getType()).thenReturn(TypedComponentIdentifier.ComponentType.FLOW);
     when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
     when(location.getParts()).thenReturn(Arrays.asList(part1));
-    assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor).intercept(location))
-        .isFalse();
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(location))
+                .isFalse();
   }
 
   private TypedComponentIdentifier getComponentIdentifier(String namespace, String name) {
@@ -89,8 +97,10 @@ public class MessageProcessorTracingInterceptorFactoryTest {
     when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
     when(location.getParts()).thenReturn(Arrays.asList(part1));
 
-    assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor).intercept(location))
-        .isTrue();
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(location))
+                .isTrue();
   }
 
   @Test
@@ -108,8 +118,10 @@ public class MessageProcessorTracingInterceptorFactoryTest {
     when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
     when(location.getParts()).thenReturn(Arrays.asList(part1));
 
-    assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor).intercept(location))
-        .isTrue();
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(location))
+                .isTrue();
   }
 
   @Test
@@ -127,8 +139,10 @@ public class MessageProcessorTracingInterceptorFactoryTest {
     when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
     when(location.getParts()).thenReturn(Arrays.asList(part1));
 
-    assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor).intercept(location))
-        .isFalse();
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(location))
+                .isFalse();
   }
 
   @Test
@@ -150,8 +164,10 @@ public class MessageProcessorTracingInterceptorFactoryTest {
     muleNotificationProcessor1.init(() -> null, new TraceLevelConfiguration(true, Collections.emptyList(),
         Collections.singletonList(new MuleComponent("http", "*")), Collections.emptyList()));
 
-    assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor1).intercept(location))
-        .isFalse();
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor1, configurationComponentLocator)
+            .intercept(location))
+                .isFalse();
   }
 
   @Test
@@ -168,8 +184,10 @@ public class MessageProcessorTracingInterceptorFactoryTest {
 
     TypedComponentIdentifier componentIdentifier = getComponentIdentifier(null, null);
     when(location.getComponentIdentifier()).thenReturn(componentIdentifier);
-    assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor).intercept(location))
-        .isTrue();
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(location))
+                .isTrue();
   }
 
   private static LocationPart getLocationPart(String path) {
@@ -183,8 +201,10 @@ public class MessageProcessorTracingInterceptorFactoryTest {
     reset(muleNotificationProcessor);
     when(muleNotificationProcessor.hasConnection()).thenReturn(false);
     ComponentLocation location = Mockito.mock(ComponentLocation.class);
-    assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor).intercept(location))
-        .isFalse();
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(location))
+                .isFalse();
   }
 
   @Test
@@ -199,14 +219,18 @@ public class MessageProcessorTracingInterceptorFactoryTest {
     when(location.getParts()).thenReturn(Arrays.asList(part1));
     TypedComponentIdentifier componentIdentifier = getComponentIdentifier(null, null);
     when(location.getComponentIdentifier()).thenReturn(componentIdentifier);
-    assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor).intercept(location))
-        .as("Interception before system property")
-        .isTrue();
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(location))
+                .as("Interception before system property")
+                .isTrue();
     System.setProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME, "false");
 
-    assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor).intercept(location))
-        .as("Interception after system property")
-        .isFalse();
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(location))
+                .as("Interception after system property")
+                .isFalse();
     System.clearProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME);
   }
 
@@ -216,11 +240,12 @@ public class MessageProcessorTracingInterceptorFactoryTest {
         "ee,mule,validations,aggregators,json,oauth,scripting,tracing,oauth2-provider,xml,wss,spring,java,avio-logger"
             .split(","))
         .map(s -> new MuleComponent(s, "*")).collect(Collectors.toList());
-    assertThat(new MessageProcessorTracingInterceptorFactory(new MuleNotificationProcessor(null))
-        .getInterceptExclusions())
-            .as("Default Exclusions")
-            .isNotEmpty()
-            .containsExactlyInAnyOrderElementsOf(expected);
+    assertThat(new MessageProcessorTracingInterceptorFactory(new MuleNotificationProcessor(null),
+        configurationComponentLocator)
+            .getInterceptExclusions())
+                .as("Default Exclusions")
+                .isNotEmpty()
+                .containsExactlyInAnyOrderElementsOf(expected);
   }
 
   @Test
@@ -234,20 +259,23 @@ public class MessageProcessorTracingInterceptorFactoryTest {
     MuleNotificationProcessor muleNotificationProcessor1 = new MuleNotificationProcessor(null);
     muleNotificationProcessor1.init(null, new TraceLevelConfiguration(true, Collections.emptyList(),
         Collections.singletonList(new MuleComponent("mule", "logger")), Collections.emptyList()));
-    assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor1).getInterceptExclusions())
-        .as("Default with Trace level Exclusions")
-        .isNotEmpty()
-        .containsAll(expected)
-        .contains(new MuleComponent("mule", "logger"));
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor1, configurationComponentLocator)
+            .getInterceptExclusions())
+                .as("Default with Trace level Exclusions")
+                .isNotEmpty()
+                .containsAll(expected)
+                .contains(new MuleComponent("mule", "logger"));
   }
 
   @Test
   public void getInterceptInclusions() {
-    assertThat(new MessageProcessorTracingInterceptorFactory(new MuleNotificationProcessor(null))
-        .getInterceptInclusions())
-            .as("Default Inclusion")
-            .isNotEmpty()
-            .containsOnly(new MuleComponent("mule", "flow-ref"));
+    assertThat(new MessageProcessorTracingInterceptorFactory(new MuleNotificationProcessor(null),
+        configurationComponentLocator)
+            .getInterceptInclusions())
+                .as("Default Inclusion")
+                .isNotEmpty()
+                .containsOnly(new MuleComponent("mule", "flow-ref"));
   }
 
   @Test
@@ -255,10 +283,12 @@ public class MessageProcessorTracingInterceptorFactoryTest {
     MuleNotificationProcessor muleNotificationProcessor1 = new MuleNotificationProcessor(null);
     muleNotificationProcessor1.init(null, new TraceLevelConfiguration(true, Collections.emptyList(),
         Collections.emptyList(), Collections.singletonList(new MuleComponent("mule", "logger"))));
-    assertThat(new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor1).getInterceptInclusions())
-        .as("Default with Trace level Inclusion")
-        .isNotEmpty()
-        .containsOnly(new MuleComponent("mule", "flow-ref"),
-            new MuleComponent("mule", "logger"));
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor1, configurationComponentLocator)
+            .getInterceptInclusions())
+                .as("Default with Trace level Inclusion")
+                .isNotEmpty()
+                .containsOnly(new MuleComponent("mule", "flow-ref"),
+                    new MuleComponent("mule", "logger"));
   }
 }

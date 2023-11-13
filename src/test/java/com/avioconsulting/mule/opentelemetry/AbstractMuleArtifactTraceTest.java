@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry;
 
+import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter;
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
@@ -32,7 +33,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ArtifactClassLoaderRunnerConfig(exportPluginClasses = {
+@ArtifactClassLoaderRunnerConfig(exportPluginClasses = { OpenTelemetryConnection.class,
     DelegatedLoggingSpanExporterProvider.class }, applicationSharedRuntimeLibs = {
         "org.apache.derby:derby" })
 public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {
@@ -64,6 +65,7 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
 
   @Override
   protected void doSetUpBeforeMuleContextCreation() throws Exception {
+    OpenTelemetryConnection.resetForTest();
     super.doSetUpBeforeMuleContextCreation();
     System.setProperty(TEST_TIMEOUT_SYSTEM_PROPERTY, "120_000_000");
   }

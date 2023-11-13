@@ -1,18 +1,25 @@
 package com.avioconsulting.mule.opentelemetry.internal.connection;
 
+import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryUtil;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes;
+import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.events.GlobalEventEmitterProvider;
+import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapSetter;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
 import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.message.Error;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class OpenTelemetryConnection implements TraceContextHandler {
 
@@ -35,6 +43,13 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    * Instrumentation Name must be picked from the module's artifact id.
    * This is a fallback for any dev testing.
    */
+
+  /**
+   * Collect all otel specific system properties and cache them in a map.
+   */
+  public final Map<String, String> OTEL_SYSTEM_PROPERTIES_MAP = System.getProperties().stringPropertyNames().stream()
+      .filter(p -> p.contains(".otel.")).collect(Collectors.toMap(String::toLowerCase, System::getProperty));
+
   private static final String INSTRUMENTATION_NAME = "mule-opentelemetry-module-DEV";
   private final TransactionStore transactionStore;
   private static OpenTelemetryConnection openTelemetryConnection;
@@ -83,6 +98,16 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    */
   public static Supplier<OpenTelemetryConnection> supplier() {
     return () -> openTelemetryConnection;
+  }
+
+  /**
+   * This is for tests to reset the static instance in-between the tests.
+   * Reset Global OpenTelemetry instances.
+   */
+  public static void resetForTest() {
+    GlobalOpenTelemetry.resetForTest();
+    GlobalEventEmitterProvider.resetForTest();
+    openTelemetryConnection = null;
   }
 
   public static synchronized OpenTelemetryConnection getInstance(
@@ -193,4 +218,84 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         carrier.put(key, value);
     }
   }
+
+  /**
+   * Creates a {@link Span} for given {@link TraceComponent} and adds it to the
+   * {@link TraceComponent#getTransactionId()} transaction.
+   * 
+   * @param traceComponent
+   *            {@link TraceComponent}
+   * @param rootContainerName
+   *            {@link String} name of the container such as flow that holds this
+   *            component
+   */
+  public void addProcessorSpan(TraceComponent traceComponent, String rootContainerName) {
+    SpanBuilder spanBuilder = this
+        .spanBuilder(traceComponent.getSpanName())
+        .setSpanKind(traceComponent.getSpanKind())
+        .setStartTimestamp(traceComponent.getStartTime());
+    OpenTelemetryUtil.addGlobalConfigSystemAttributes(
+        traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF.getKey()),
+        traceComponent.getTags(), OTEL_SYSTEM_PROPERTIES_MAP);
+    traceComponent.getTags().forEach(spanBuilder::setAttribute);
+    getTransactionStore().addProcessorSpan(
+        traceComponent.getTransactionId(),
+        rootContainerName,
+        traceComponent.getLocation(), spanBuilder);
+  }
+
+  public void endProcessorSpan(final TraceComponent traceComponent, Error error) {
+    getTransactionStore().endProcessorSpan(
+        traceComponent.getTransactionId(),
+        traceComponent.getLocation(),
+        span -> {
+          if (error != null) {
+            span.recordException(error.getCause());
+          }
+          setSpanStatus(traceComponent, span);
+          if (traceComponent.getTags() != null)
+            traceComponent.getTags().forEach(span::setAttribute);
+        },
+        traceComponent.getEndTime());
+  }
+
+  public void startTransaction(TraceComponent traceComponent) {
+    SpanBuilder spanBuilder = openTelemetryConnection
+        .spanBuilder(traceComponent.getSpanName())
+        .setSpanKind(traceComponent.getSpanKind())
+        .setParent(traceComponent.getContext())
+        .setStartTimestamp(traceComponent.getStartTime());
+
+    OpenTelemetryUtil.addGlobalConfigSystemAttributes(
+        traceComponent.getTags().get(SemanticAttributes.MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey()),
+        traceComponent.getTags(), openTelemetryConnection.OTEL_SYSTEM_PROPERTIES_MAP);
+
+    traceComponent.getTags().forEach(spanBuilder::setAttribute);
+    getTransactionStore().startTransaction(
+        traceComponent.getTransactionId(), traceComponent.getName(), spanBuilder);
+  }
+
+  public void endTransaction(final TraceComponent traceComponent, Exception exception) {
+    if (traceComponent != null) {
+      openTelemetryConnection.getTransactionStore().endTransaction(
+          traceComponent.getTransactionId(),
+          traceComponent.getName(),
+          rootSpan -> {
+            traceComponent.getTags().forEach(rootSpan::setAttribute);
+            openTelemetryConnection.setSpanStatus(traceComponent, rootSpan);
+            if (exception != null) {
+              rootSpan.recordException(exception);
+            }
+          },
+          traceComponent.getEndTime());
+    }
+  }
+
+  public void setSpanStatus(TraceComponent traceComponent, Span span) {
+    if (traceComponent.getStatusCode() != null
+        && !StatusCode.UNSET.equals(traceComponent.getStatusCode())) {
+      span.setStatus(traceComponent.getStatusCode());
+    }
+  }
+
 }

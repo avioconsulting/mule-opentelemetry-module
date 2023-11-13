@@ -3,6 +3,8 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
+
+import java.time.Instant;
 import java.util.Map;
 
 public class TraceComponent {
@@ -15,6 +17,9 @@ public class TraceComponent {
   private SpanKind spanKind = SpanKind.INTERNAL;
   private String errorMessage;
   private StatusCode statusCode = StatusCode.UNSET;
+  private Instant startTime;
+
+  private Instant endTime;
 
   private TraceComponent(Builder builder) {
     tags = builder.tags;
@@ -62,6 +67,24 @@ public class TraceComponent {
 
   public String getErrorMessage() {
     return errorMessage;
+  }
+
+  public Instant getStartTime() {
+    return startTime;
+  }
+
+  public Instant getEndTime() {
+    return this.endTime;
+  }
+
+  public TraceComponent withStartTime(Instant startTime) {
+    this.startTime = startTime;
+    return this;
+  }
+
+  public TraceComponent withEndTime(Instant endTime) {
+    this.endTime = endTime;
+    return this;
   }
 
   public Builder toBuilder() {

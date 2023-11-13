@@ -5,6 +5,7 @@ import com.mulesoft.extension.mq.api.attributes.AnypointMQMessageAttributes;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import org.mule.runtime.api.component.Component;
+import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
@@ -53,8 +54,8 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
-    TraceComponent startTraceComponent = super.getStartTraceComponent(notification);
+  public TraceComponent getStartTraceComponent(Component component, Message message, String correlationId) {
+    TraceComponent startTraceComponent = super.getStartTraceComponent(component, message, correlationId);
     if ("consume".equalsIgnoreCase(startTraceComponent.getTags().get(MULE_APP_PROCESSOR_NAME.getKey()))) {
       // TODO: Handling a different Parent Span than flow containing Consume
       // It may be possible that message was published by a different server flow

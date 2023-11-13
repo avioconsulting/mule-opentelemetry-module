@@ -6,6 +6,7 @@ import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotification
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.interception.ProcessorInterceptor;
 import org.mule.runtime.api.interception.ProcessorInterceptorFactory;
 import org.slf4j.Logger;
@@ -47,8 +48,10 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
   private final List<MuleComponent> interceptInclusions = new ArrayList<>();
 
   @Inject
-  public MessageProcessorTracingInterceptorFactory(MuleNotificationProcessor muleNotificationProcessor) {
-    processorTracingInterceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
+  public MessageProcessorTracingInterceptorFactory(MuleNotificationProcessor muleNotificationProcessor,
+      ConfigurationComponentLocator configurationComponentLocator) {
+    processorTracingInterceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
+        configurationComponentLocator);
     this.muleNotificationProcessor = muleNotificationProcessor;
     setupInterceptableComponents(muleNotificationProcessor);
   }
@@ -132,6 +135,14 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
               .noneMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
                   & (mc.getName().equalsIgnoreCase(identifier.getName())
                       || "*".equalsIgnoreCase(mc.getName())));
+    }
+    if (intercept) {
+      // This factory executes during application initialization.
+      // Let's reuse the intercept decisions for excluding span creation in
+      // notification processor.
+      // This will let us avoid the lookup for each component in notification
+      // processor.
+      muleNotificationProcessor.addInterceptEnabledComponents(location.getLocation());
     }
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Will Intercept '{}'?: {}", location, intercept);
