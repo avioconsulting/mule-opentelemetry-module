@@ -130,22 +130,23 @@ public class InMemoryTransactionStore implements TransactionStore {
   @Override
   public void addProcessorSpan(String transactionId, String containerName, String location, SpanBuilder spanBuilder) {
     Transaction transaction = getTransaction(transactionId);
-
-    if (transaction != null) {
-      LOGGER.trace(
-          "Adding Processor span to transaction {} for location '{}'",
-          transactionId,
-          location);
-      Span span = transaction
-          .getRootFlowSpan()
-          .addProcessorSpan(containerName, location, spanBuilder);
-      LOGGER.trace(
-          "Adding Processor span to transaction {} for locator span '{}': OT SpanId {}, TraceId {}",
-          transactionId,
-          location,
-          span.getSpanContext().getSpanId(),
-          span.getSpanContext().getTraceId());
+    if (transaction == null) {
+      return;
     }
+    LOGGER.trace(
+        "Adding Processor span to transaction {} for location '{}'",
+        transactionId,
+        location);
+    Span span = transaction
+        .getRootFlowSpan()
+        .addProcessorSpan(containerName, location, spanBuilder);
+    LOGGER.trace(
+        "Adding Processor span to transaction {} for locator span '{}': OT SpanId {}, TraceId {}",
+        transactionId,
+        location,
+        span.getSpanContext().getSpanId(),
+        span.getSpanContext().getTraceId());
+
   }
 
   @Override

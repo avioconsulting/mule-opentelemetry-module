@@ -54,10 +54,11 @@ public class ProcessorTracingInterceptorTest extends AbstractJMHTest {
 
     connection.getTransactionStore().addProcessorSpan(TEST_1_TRANSACTION_ID, TEST_1_FLOW, TEST_1_FLOW_FLOW_REF,
         tracer.spanBuilder(TEST_1_FLOW_FLOW_REF).setSpanKind(SpanKind.INTERNAL));
-    ConfigurationComponentLocator componentLocator = mock(ConfigurationComponentLocator.class);
-    MuleNotificationProcessor muleNotificationProcessor = new MuleNotificationProcessor(componentLocator);
+    ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
+    MuleNotificationProcessor muleNotificationProcessor = new MuleNotificationProcessor(
+        configurationComponentLocator);
     muleNotificationProcessor.init(() -> connection, true);
-    interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
+    interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor, configurationComponentLocator);
     event = new TestInterceptionEvent(TEST_1_TRANSACTION_ID);
   }
 

@@ -11,6 +11,7 @@ import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.message.Error;
+import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 import org.slf4j.Logger;
@@ -99,13 +100,13 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
     return notification.getEvent().getCorrelationId();
   }
 
-  protected Map<String, String> getProcessorCommonTags(EnrichedServerNotification notification) {
-    ComponentWrapper componentWrapper = new ComponentWrapper(notification.getInfo().getComponent(),
+  protected Map<String, String> getProcessorCommonTags(Component component) {
+    ComponentWrapper componentWrapper = new ComponentWrapper(component,
         configurationComponentLocator);
     Map<String, String> tags = new HashMap<>();
     tags.put(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
-        notification.getComponent().getIdentifier().getNamespace());
-    tags.put(MULE_APP_PROCESSOR_NAME.getKey(), notification.getComponent().getIdentifier().getName());
+        component.getIdentifier().getNamespace());
+    tags.put(MULE_APP_PROCESSOR_NAME.getKey(), component.getIdentifier().getName());
     if (componentWrapper.getDocName() != null)
       tags.put(MULE_APP_PROCESSOR_DOC_NAME.getKey(), componentWrapper.getDocName());
     if (componentWrapper.getConfigRef() != null)
@@ -135,16 +136,33 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   @Override
   public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
-    Map<String, String> tags = new HashMap<>(getProcessorCommonTags(notification));
-    tags.put(MULE_CORRELATION_ID.getKey(), notification.getEvent().getCorrelationId());
-    tags.putAll(getAttributes(notification.getInfo().getComponent(),
-        notification.getEvent().getMessage().getAttributes()));
-    return TraceComponent.newBuilder(notification.getComponent().getLocation().getLocation())
-        .withLocation(notification.getComponent().getLocation().getLocation())
+    return getStartTraceComponent(notification.getComponent(), notification.getEvent().getMessage(),
+        getTransactionId(notification));
+  }
+
+  /**
+   * Create a start trace component without the notification object. This is
+   * mostly consumed by interceptors.
+   * 
+   * @param component
+   *            {@link Component}
+   * @param message
+   *            {@link Message}
+   * @param correlationId
+   *            {@link String}
+   * @return TraceComponent
+   */
+  public TraceComponent getStartTraceComponent(Component component, Message message, String correlationId) {
+    Map<String, String> tags = new HashMap<>(getProcessorCommonTags(component));
+    tags.put(MULE_CORRELATION_ID.getKey(), correlationId);
+    tags.putAll(getAttributes(component,
+        message.getAttributes()));
+    return TraceComponent.newBuilder(component.getLocation().getLocation())
+        .withLocation(component.getLocation().getLocation())
         .withSpanName(getDefaultSpanName(tags))
         .withTags(tags)
         .withSpanKind(getSpanKind())
-        .withTransactionId(getTransactionId(notification))
+        .withTransactionId(correlationId)
         .build();
   }
 

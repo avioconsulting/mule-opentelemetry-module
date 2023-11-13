@@ -117,17 +117,17 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
+  public TraceComponent getStartTraceComponent(Component component, Message message, String correlationId) {
 
-    TraceComponent traceComponent = super.getStartTraceComponent(notification);
+    TraceComponent traceComponent = super.getStartTraceComponent(component, message, correlationId);
 
-    Map<String, String> requesterTags = getAttributes(notification.getInfo().getComponent(),
-        notification.getEvent().getMessage().getAttributes());
+    Map<String, String> requesterTags = getAttributes(component,
+        message.getAttributes());
     requesterTags.putAll(traceComponent.getTags());
 
-    return TraceComponent.newBuilder(notification.getResourceIdentifier())
+    return TraceComponent.newBuilder(component.getLocation().getRootContainerName())
         .withTags(requesterTags)
-        .withLocation(notification.getComponent().getLocation().getLocation())
+        .withLocation(component.getLocation().getLocation())
         .withSpanName(requesterTags.get(HTTP_ROUTE.getKey()))
         .withTransactionId(traceComponent.getTransactionId())
         .withSpanKind(getSpanKind())
