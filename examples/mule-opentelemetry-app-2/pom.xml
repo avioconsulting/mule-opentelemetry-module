@@ -40,7 +40,7 @@
 		<dependency>
 			<groupId>com.avioconsulting</groupId>
 			<artifactId>mule-opentelemetry-module</artifactId>
-			<version>1.0.0-SNAPSHOT</version>
+			<version>1.2.1</version>
 			<classifier>mule-plugin</classifier>
 		</dependency>
 		<dependency>
