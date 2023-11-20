@@ -80,7 +80,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
           return;
         }
         traceComponent.ifPresent(tc -> {
-          LOGGER.info("Creating Span in the interceptor for {} at {}",
+          LOGGER.trace("Creating Span in the interceptor for {} at {}",
               location.getComponentIdentifier().getIdentifier(), location.getLocation());
           openTelemetryConnection.addProcessorSpan(tc, location.getRootContainerName());
           String transactionId = openTelemetryConnection.getTransactionStore().transactionIdFor(event);
