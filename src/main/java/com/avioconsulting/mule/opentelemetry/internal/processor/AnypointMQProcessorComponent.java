@@ -63,11 +63,10 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
       // a different trace id than the one created by flow containing Consume
       // operation.
       // Should we add the message span context to Span link?
-      startTraceComponent = startTraceComponent.toBuilder().withSpanKind(SpanKind.CONSUMER)
+      startTraceComponent = startTraceComponent.withSpanKind(SpanKind.CONSUMER)
           .withSpanName(
               formattedSpanName(startTraceComponent.getTags().get(MESSAGING_DESTINATION_NAME.getKey()),
-                  RECEIVE))
-          .build();
+                  RECEIVE));
     }
     return startTraceComponent;
   }
@@ -117,25 +116,24 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
     Map<String, String> tags = getAttributes(getSourceComponent(notification).orElse(notification.getComponent()),
         attributesTypedValue);
     tags.put(MESSAGING_OPERATION.getKey(), PROCESS);
-    TraceComponent traceComponent = TraceComponent.newBuilder(notification.getResourceIdentifier())
+    return TraceComponent.named(notification.getResourceIdentifier())
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
         .withSpanName(formattedSpanName(attributes.getDestination(), PROCESS))
         .withStatsCode(StatusCode.OK)
         .withSpanKind(SpanKind.CONSUMER)
-        .withContext(traceContextHandler.getTraceContext(attributes.getProperties(), ContextMapGetter.INSTANCE))
-        .build();
-    return traceComponent;
+        .withContext(
+            traceContextHandler.getTraceContext(attributes.getProperties(), ContextMapGetter.INSTANCE));
   }
 
   @Override
   public TraceComponent getEndTraceComponent(EnrichedServerNotification notification) {
-    return getTraceComponentBuilderFor(notification).withStatsCode(StatusCode.OK).build();
+    return getTraceComponentBuilderFor(notification).withStatsCode(StatusCode.OK);
   }
 
   @Override
   public TraceComponent getSourceEndTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
-    return getTraceComponentBuilderFor(notification).withStatsCode(StatusCode.OK).build();
+    return getTraceComponentBuilderFor(notification).withStatsCode(StatusCode.OK);
   }
 }

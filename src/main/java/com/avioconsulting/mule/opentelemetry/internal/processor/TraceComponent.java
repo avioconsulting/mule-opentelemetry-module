@@ -14,27 +14,18 @@ public class TraceComponent {
   private String spanName;
   private String location;
   private Context context;
-  private SpanKind spanKind = SpanKind.INTERNAL;
+  private SpanKind spanKind;
   private String errorMessage;
-  private StatusCode statusCode = StatusCode.UNSET;
+  private StatusCode statusCode;
   private Instant startTime;
-
   private Instant endTime;
 
-  private TraceComponent(Builder builder) {
-    tags = builder.tags;
-    name = builder.name;
-    transactionId = builder.transactionId;
-    spanName = builder.spanName;
-    location = builder.location;
-    context = builder.context;
-    spanKind = builder.spanKind;
-    errorMessage = builder.errorMessage;
-    statusCode = builder.statusCode;
+  private TraceComponent(String name) {
+    this.name = name;
   }
 
-  public static Builder newBuilder(String name) {
-    return new Builder(name);
+  public static TraceComponent named(String name) {
+    return new TraceComponent(name);
   }
 
   public SpanKind getSpanKind() {
@@ -77,6 +68,46 @@ public class TraceComponent {
     return this.endTime;
   }
 
+  public TraceComponent withTags(Map<String, String> val) {
+    tags = val;
+    return this;
+  }
+
+  public TraceComponent withTransactionId(String val) {
+    transactionId = val;
+    return this;
+  }
+
+  public TraceComponent withSpanName(String val) {
+    spanName = val;
+    return this;
+  }
+
+  public TraceComponent withLocation(String val) {
+    location = val;
+    return this;
+  }
+
+  public TraceComponent withContext(Context val) {
+    context = val;
+    return this;
+  }
+
+  public TraceComponent withSpanKind(SpanKind val) {
+    spanKind = val;
+    return this;
+  }
+
+  public TraceComponent withErrorMessage(String val) {
+    errorMessage = val;
+    return this;
+  }
+
+  public TraceComponent withStatsCode(StatusCode statusCode) {
+    this.statusCode = statusCode;
+    return this;
+  }
+
   public TraceComponent withStartTime(Instant startTime) {
     this.startTime = startTime;
     return this;
@@ -87,79 +118,8 @@ public class TraceComponent {
     return this;
   }
 
-  public Builder toBuilder() {
-    return new Builder(this.getName())
-        .withErrorMessage(this.getErrorMessage())
-        .withContext(this.getContext())
-        .withTransactionId(this.getTransactionId())
-        .withTags(this.getTags())
-        .withSpanName(this.getSpanName())
-        .withLocation(this.getLocation())
-        .withSpanKind(this.getSpanKind())
-        .withStatsCode(this.getStatusCode());
-  }
-
   public StatusCode getStatusCode() {
     return statusCode;
   }
 
-  public static final class Builder {
-    public StatusCode statusCode;
-    private Map<String, String> tags;
-    private final String name;
-    private String transactionId;
-    private String spanName;
-    private String location;
-    private Context context;
-    private SpanKind spanKind;
-    private String errorMessage;
-
-    private Builder(String name) {
-      this.name = name;
-    }
-
-    public Builder withTags(Map<String, String> val) {
-      tags = val;
-      return this;
-    }
-
-    public Builder withTransactionId(String val) {
-      transactionId = val;
-      return this;
-    }
-
-    public Builder withSpanName(String val) {
-      spanName = val;
-      return this;
-    }
-
-    public Builder withLocation(String val) {
-      location = val;
-      return this;
-    }
-
-    public Builder withContext(Context val) {
-      context = val;
-      return this;
-    }
-
-    public Builder withSpanKind(SpanKind val) {
-      spanKind = val;
-      return this;
-    }
-
-    public Builder withErrorMessage(String val) {
-      errorMessage = val;
-      return this;
-    }
-
-    public Builder withStatsCode(StatusCode statusCode) {
-      this.statusCode = statusCode;
-      return this;
-    }
-
-    public TraceComponent build() {
-      return new TraceComponent(this);
-    }
-  }
 }

@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.*;
 import static java.util.Collections.singletonList;
@@ -92,17 +91,16 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     }
     // If HTTP Requester generates an error (eg. 404), then error message does
     // include the HTTP Response attributes.
-    TraceComponent.Builder builder = endTraceComponent.toBuilder();
     HttpResponseAttributes attributes = responseAttributes.getValue();
     Map<String, String> tags = new HashMap<>();
     tags.put(HTTP_STATUS_CODE.getKey(), Integer.toString(attributes.getStatusCode()));
-    builder.withStatsCode(getSpanStatus(false, attributes.getStatusCode()));
+    endTraceComponent.withStatsCode(getSpanStatus(false, attributes.getStatusCode()));
     tags.put(
         HTTP_RESPONSE_CONTENT_LENGTH.getKey(),
         attributes.getHeaders().get("content-length"));
     if (endTraceComponent.getTags() != null)
       tags.putAll(endTraceComponent.getTags());
-    return builder.withTags(tags).build();
+    return endTraceComponent.withTags(tags);
   }
 
   private StatusCode getSpanStatus(boolean isServer, int statusCode) {
@@ -125,13 +123,12 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         message.getAttributes());
     requesterTags.putAll(traceComponent.getTags());
 
-    return TraceComponent.newBuilder(component.getLocation().getRootContainerName())
+    return TraceComponent.named(component.getLocation().getRootContainerName())
         .withTags(requesterTags)
         .withLocation(component.getLocation().getLocation())
         .withSpanName(requesterTags.get(HTTP_ROUTE.getKey()))
         .withTransactionId(traceComponent.getTransactionId())
-        .withSpanKind(getSpanKind())
-        .build();
+        .withSpanKind(getSpanKind());
   }
 
   @Override
@@ -179,13 +176,11 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     TypedValue<HttpRequestAttributes> attributesTypedValue = notification.getEvent().getMessage().getAttributes();
     HttpRequestAttributes attributes = attributesTypedValue.getValue();
     Map<String, String> tags = attributesToTags(attributes);
-    TraceComponent traceComponent = TraceComponent.newBuilder(notification.getResourceIdentifier())
+    return TraceComponent.named(notification.getResourceIdentifier())
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
         .withSpanName(attributes.getListenerPath()) // In case of wildcard, it may be to generic. Eg. /api/*
-        .withContext(traceContextHandler.getTraceContext(attributes.getHeaders(), ContextMapGetter.INSTANCE))
-        .build();
-    return traceComponent;
+        .withContext(traceContextHandler.getTraceContext(attributes.getHeaders(), ContextMapGetter.INSTANCE));
   }
 
   @Override
@@ -206,10 +201,10 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         } else {
           statusCode = TypedValue.unwrap(httpStatus).toString();
         }
-        TraceComponent.Builder builder = getTraceComponentBuilderFor(notification);
-        builder.withTags(singletonMap(HTTP_STATUS_CODE.getKey(), statusCode));
-        builder.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
-        return builder.build();
+        TraceComponent traceComponent = getTraceComponentBuilderFor(notification);
+        traceComponent.withTags(singletonMap(HTTP_STATUS_CODE.getKey(), statusCode));
+        traceComponent.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
+        return traceComponent;
       }
     } catch (Exception ex) {
       LOGGER.warn(

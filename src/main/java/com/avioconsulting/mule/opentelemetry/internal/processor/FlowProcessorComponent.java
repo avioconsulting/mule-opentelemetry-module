@@ -51,25 +51,24 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
               + " for flow processor.");
     }
 
-    TraceComponent.Builder builder = TraceComponent.newBuilder(notification.getResourceIdentifier());
+    TraceComponent traceComponent = TraceComponent.named(notification.getResourceIdentifier());
 
     Map<String, String> tags = new HashMap<>();
     tags.put(MULE_APP_FLOW_NAME.getKey(), notification.getResourceIdentifier());
     tags.put(MULE_SERVER_ID.getKey(), notification.getServerId());
     tags.put(MULE_CORRELATION_ID.getKey(), notification.getEvent().getCorrelationId());
 
-    builder.withTags(tags)
+    traceComponent.withTags(tags)
         .withTransactionId(getTransactionId(notification))
         .withSpanName(notification.getResourceIdentifier());
 
-    return builder.build();
+    return traceComponent;
   }
 
   @Override
   public TraceComponent getSourceStartTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
-    TraceComponent startTraceComponent = getStartTraceComponent(notification);
-    TraceComponent.Builder builder = startTraceComponent.toBuilder().withSpanKind(SpanKind.SERVER);
+    TraceComponent startTraceComponent = getStartTraceComponent(notification).withSpanKind(SpanKind.SERVER);
     ComponentIdentifier sourceIdentifier = getSourceIdentifier(notification);
     if (sourceIdentifier == null) {
       if (notification.getEvent().getVariables().containsKey(TransactionStore.TRACE_CONTEXT_MAP_KEY)) {
@@ -79,9 +78,9 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
             .getVariables().get(TransactionStore.TRACE_CONTEXT_MAP_KEY));
         Context traceContext = traceContextHandler.getTraceContext(contextMap.getValue(),
             ContextMapGetter.INSTANCE);
-        builder.withContext(traceContext);
+        startTraceComponent.withContext(traceContext);
       }
-      return builder.build();
+      return startTraceComponent;
     }
     startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_NAME.getKey(), sourceIdentifier.getName());
     startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_NAMESPACE.getKey(), sourceIdentifier.getNamespace());
@@ -101,23 +100,22 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
         SpanKind sourceKind = sourceTrace.getSpanKind() != null ? sourceTrace.getSpanKind()
             : SpanKind.SERVER;
         startTraceComponent.getTags().putAll(sourceTrace.getTags());
-        builder.withSpanKind(sourceKind)
+        startTraceComponent.withSpanKind(sourceKind)
             .withSpanName(sourceTrace.getSpanName())
             .withTransactionId(sourceTrace.getTransactionId())
             .withContext(sourceTrace.getContext());
       }
     }
-    return builder.build();
+    return startTraceComponent;
   }
 
   @Override
   public TraceComponent getSourceEndTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
-    TraceComponent traceComponent = getEndTraceComponent(notification);
-    TraceComponent.Builder builder = traceComponent.toBuilder().withSpanKind(SpanKind.SERVER);
+    TraceComponent traceComponent = getEndTraceComponent(notification).withSpanKind(SpanKind.SERVER);
     ComponentIdentifier sourceIdentifier = getSourceIdentifier(notification);
     if (sourceIdentifier == null) {
-      return builder.build();
+      return traceComponent;
     }
 
     // Find if there is a processor component to handle flow source component.
@@ -130,10 +128,9 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
           traceContextHandler);
       if (sourceTrace != null) {
         traceComponent.getTags().putAll(sourceTrace.getTags());
-        builder.withStatsCode(sourceTrace.getStatusCode());
-        builder.withTags(traceComponent.getTags());
+        traceComponent.withStatsCode(sourceTrace.getStatusCode());
       }
     }
-    return builder.build();
+    return traceComponent;
   }
 }

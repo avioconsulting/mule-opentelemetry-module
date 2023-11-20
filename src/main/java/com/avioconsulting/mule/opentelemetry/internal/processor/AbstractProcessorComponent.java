@@ -69,12 +69,11 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   @Override
   public TraceComponent getEndTraceComponent(EnrichedServerNotification notification) {
-    return getTraceComponentBuilderFor(notification)
-        .build();
+    return getTraceComponentBuilderFor(notification);
   }
 
-  protected TraceComponent.Builder getTraceComponentBuilderFor(EnrichedServerNotification notification) {
-    return TraceComponent.newBuilder(notification.getResourceIdentifier())
+  protected TraceComponent getTraceComponentBuilderFor(EnrichedServerNotification notification) {
+    return TraceComponent.named(notification.getResourceIdentifier())
         .withTransactionId(getTransactionId(notification))
         .withLocation(notification.getComponent().getLocation().getLocation())
         .withTags(new HashMap<>())
@@ -82,9 +81,9 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
             notification.getEvent().getError().map(Error::getDescription).orElse(null));
   }
 
-  protected TraceComponent.Builder getBaseTraceComponent(
+  protected TraceComponent getBaseTraceComponent(
       EnrichedServerNotification notification) {
-    return TraceComponent.newBuilder(notification.getComponent().getLocation().getLocation())
+    return TraceComponent.named(notification.getComponent().getLocation().getLocation())
         .withLocation(notification.getComponent().getLocation().getLocation())
         .withSpanName(notification.getComponent().getIdentifier().getName())
         .withTransactionId(getTransactionId(notification));
@@ -157,13 +156,12 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
     tags.put(MULE_CORRELATION_ID.getKey(), correlationId);
     tags.putAll(getAttributes(component,
         message.getAttributes()));
-    return TraceComponent.newBuilder(component.getLocation().getLocation())
+    return TraceComponent.named(component.getLocation().getLocation())
         .withLocation(component.getLocation().getLocation())
         .withSpanName(getDefaultSpanName(tags))
         .withTags(tags)
         .withSpanKind(getSpanKind())
-        .withTransactionId(correlationId)
-        .build();
+        .withTransactionId(correlationId);
   }
 
   protected void addTagIfPresent(Map<String, String> sourceMap, String sourceKey, Map<String, String> targetMap,
@@ -173,9 +171,8 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   }
 
   protected Optional<Component> getSourceComponent(EnrichedServerNotification notification) {
-    Optional<Component> component = configurationComponentLocator.find(Location.builderFromStringRepresentation(
+    return configurationComponentLocator.find(Location.builderFromStringRepresentation(
         notification.getEvent().getContext().getOriginatingLocation().getLocation()).build());
-    return component;
   }
 
   protected enum ContextMapGetter implements TextMapGetter<Map<String, String>> {
