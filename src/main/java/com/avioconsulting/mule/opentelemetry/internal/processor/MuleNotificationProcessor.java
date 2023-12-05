@@ -3,9 +3,15 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
+import com.avioconsulting.mule.opentelemetry.internal.notifications.MetricEventNotification;
+import com.avioconsulting.mule.opentelemetry.internal.processor.metrics.DefaultMuleMetricsProcessor;
+import com.avioconsulting.mule.opentelemetry.internal.processor.metrics.MuleMetricsProcessor;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
+import com.avioconsulting.mule.opentelemetry.internal.store.SpanMeta;
+import com.avioconsulting.mule.opentelemetry.internal.store.TransactionMeta;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.notification.ExtensionNotification;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.slf4j.Logger;
@@ -33,7 +39,8 @@ public class MuleNotificationProcessor {
   private OpenTelemetryConnection openTelemetryConnection;
 
   ConfigurationComponentLocator configurationComponentLocator;
-  private final List<String> interceptEnabledComponents = new ArrayList<>();
+  private final List<String> interceptSpannedComponents = new ArrayList<>();
+  private final List<String> meteredComponentLocations = new ArrayList<>();
   private ProcessorComponentService processorComponentService;
   private final ProcessorComponent flowProcessorComponent;
 
@@ -41,8 +48,8 @@ public class MuleNotificationProcessor {
    * This {@link GenericProcessorComponent} will be used for processors that do
    * not have a specific processor like {@link HttpProcessorComponent}.
    */
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Avoid to creation object per notification instance
   private final ProcessorComponent genericProcessorComponent;
+  private MuleMetricsProcessor muleMetricsProcessor;
 
   @Inject
   public MuleNotificationProcessor(ConfigurationComponentLocator configurationComponentLocator) {
@@ -53,8 +60,25 @@ public class MuleNotificationProcessor {
         .withConfigurationComponentLocator(configurationComponentLocator);
   }
 
-  public void addInterceptEnabledComponents(String location) {
-    interceptEnabledComponents.add(location);
+  /**
+   * Locations that are intercepted for span creation. These will be excluded from
+   * span creation from notifications.
+   * 
+   * @param location
+   *            {@link String} value of target processor
+   */
+  public void addInterceptSpannedComponents(String location) {
+    interceptSpannedComponents.add(location);
+  }
+
+  /**
+   * Locations that are intercepted and eligible for capturing metrics.
+   * 
+   * @param location
+   *            {@link String} value of target processor
+   */
+  public void addMeteredComponentLocation(String location) {
+    meteredComponentLocations.add(location);
   }
 
   public boolean hasConnection() {
@@ -86,11 +110,13 @@ public class MuleNotificationProcessor {
     if (openTelemetryConnection == null) {
       openTelemetryConnection = connectionSupplier.get();
     }
+    muleMetricsProcessor = openTelemetryConnection.isTurnOffMetrics() ? MuleMetricsProcessor.noop
+        : new DefaultMuleMetricsProcessor(openTelemetryConnection, meteredComponentLocations);
   }
 
   public void handleProcessorStartEvent(MessageProcessorNotification notification) {
     String location = notification.getComponent().getLocation().getLocation();
-    if (interceptEnabledComponents.contains(location)) {
+    if (interceptSpannedComponents.contains(location)) {
       logger.trace(
           "Component {} will be processed by interceptor, skipping notification processing to create span",
           location);
@@ -152,6 +178,7 @@ public class MuleNotificationProcessor {
   }
 
   public void handleProcessorEndEvent(MessageProcessorNotification notification) {
+    String location = notification.getComponent().getLocation().getLocation();
     try {
       ProcessorComponent processorComponent = getProcessorComponent(notification);
       if (processorComponent != null) {
@@ -162,8 +189,12 @@ public class MuleNotificationProcessor {
         init();
         TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification)
             .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()));
-        openTelemetryConnection.endProcessorSpan(traceComponent,
+        SpanMeta spanMeta = openTelemetryConnection.endProcessorSpan(traceComponent,
             notification.getEvent().getError().orElse(null));
+        if (spanMeta != null) {
+          muleMetricsProcessor.captureProcessorMetrics(notification.getComponent(),
+              notification.getEvent().getError().orElse(null), location, spanMeta);
+        }
       }
     } catch (Exception ex) {
       logger.error("Error in handling processor end event", ex);
@@ -196,13 +227,23 @@ public class MuleNotificationProcessor {
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceEndTraceComponent(notification, openTelemetryConnection)
           .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()));
-      openTelemetryConnection.endTransaction(traceComponent, notification.getException());
+      TransactionMeta transactionMeta = openTelemetryConnection.endTransaction(traceComponent,
+          notification.getException());
+      muleMetricsProcessor.captureFlowMetrics(transactionMeta, notification.getResourceIdentifier(),
+          notification.getException());
+
     } catch (Exception ex) {
       logger.error(
           "Error in handling " + notification.getResourceIdentifier() + " flow end event",
           ex);
       throw ex;
     }
+  }
+
+  public void captureCustomMetric(ExtensionNotification extensionNotification) {
+    MetricEventNotification<Long> metric = (MetricEventNotification<Long>) extensionNotification.getData()
+        .getValue();
+    muleMetricsProcessor.captureCustomMetric(metric);
   }
 
 }

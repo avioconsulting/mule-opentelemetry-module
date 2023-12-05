@@ -125,24 +125,31 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
       // included processor/namespaces OR
       // any processor/namespaces that are not excluded
       ComponentIdentifier identifier = location.getComponentIdentifier().getIdentifier();
-      intercept = (flowAsContainer.isPresent()
-          && interceptPath.equalsIgnoreCase(location.getLocation()))
-          || interceptInclusions.stream()
-              .anyMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
-                  & (mc.getName().equalsIgnoreCase(identifier.getName())
-                      || "*".equalsIgnoreCase(mc.getName())))
+      boolean firstProcessor = flowAsContainer.isPresent()
+          && interceptPath.equalsIgnoreCase(location.getLocation());
+      boolean interceptConfigured = interceptInclusions.stream()
+          .anyMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
+              & (mc.getName().equalsIgnoreCase(identifier.getName())
+                  || "*".equalsIgnoreCase(mc.getName())))
           || interceptExclusions.stream()
               .noneMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
                   & (mc.getName().equalsIgnoreCase(identifier.getName())
                       || "*".equalsIgnoreCase(mc.getName())));
-    }
-    if (intercept) {
-      // This factory executes during application initialization.
-      // Let's reuse the intercept decisions for excluding span creation in
-      // notification processor.
-      // This will let us avoid the lookup for each component in notification
-      // processor.
-      muleNotificationProcessor.addInterceptEnabledComponents(location.getLocation());
+      intercept = firstProcessor
+          || interceptConfigured;
+
+      if (intercept) {
+        // This factory executes during application initialization.
+        // Let's reuse the intercept decisions for excluding span creation in
+        // notification processor.
+        // This will let us avoid the lookup for each component in notification
+        // processor.
+        muleNotificationProcessor.addInterceptSpannedComponents(location.getLocation());
+        if (interceptConfigured) {
+          // Exclude any first processors that are generic processors such as loggers
+          muleNotificationProcessor.addMeteredComponentLocation(location.getLocation());
+        }
+      }
     }
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Will Intercept '{}'?: {}", location, intercept);

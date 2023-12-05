@@ -5,7 +5,9 @@ import com.avioconsulting.mule.opentelemetry.api.config.SpanProcessorConfigurati
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.LoggingExporter;
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.OpenTelemetryExporter;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
+import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
+import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
@@ -34,17 +36,21 @@ public class InMemoryTransactionStoreTest extends AbstractJMHTest {
   public void setup() {
     OpenTelemetryResource resource = new OpenTelemetryResource();
     OpenTelemetryExporter exporter = new LoggingExporter();
-    OpenTelemetryConfigWrapper wrapper = new OpenTelemetryConfigWrapper(resource, exporter,
-        new SpanProcessorConfiguration());
+    OpenTelemetryExtensionConfiguration configuration = new OpenTelemetryExtensionConfiguration();
+
+    OpenTelemetryConfigWrapper wrapper = new OpenTelemetryConfigWrapper(configuration);
     connection = OpenTelemetryConnection.getInstance(wrapper);
 
     Tracer tracer = GlobalOpenTelemetry.get().getTracer("test", "v1");
+    Instant startTimestamp = Instant.now();
     SpanBuilder spanBuilder = tracer.spanBuilder("test-transaction")
         .setSpanKind(SpanKind.SERVER)
-        .setStartTimestamp(Instant.now());
-    connection.getTransactionStore().startTransaction("test-1", TEST_1_FLOW, spanBuilder);
-
-    connection.getTransactionStore().addProcessorSpan("test-1", TEST_1_FLOW, TEST_1_FLOW_FLOW_REF,
+        .setStartTimestamp(startTimestamp);
+    TraceComponent traceComponent = TraceComponent.named("test-1").withTransactionId("test-1")
+        .withStartTime(startTimestamp)
+        .withLocation(TEST_1_FLOW_FLOW_REF);
+    connection.getTransactionStore().startTransaction(traceComponent, TEST_1_FLOW, spanBuilder);
+    connection.getTransactionStore().addProcessorSpan(TEST_1_FLOW, traceComponent,
         tracer.spanBuilder(TEST_1_FLOW_FLOW_REF).setSpanKind(SpanKind.INTERNAL));
   }
 

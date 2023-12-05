@@ -1,6 +1,6 @@
 package com.avioconsulting.mule.opentelemetry;
 
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Test;
 import org.mule.runtime.api.metadata.TypedValue;
@@ -23,12 +23,12 @@ public class MuleOpenTelemetryOperationsTest extends AbstractMuleArtifactTraceTe
   public void testHttpTracing_WithCustomTags() throws Exception {
     sendRequest(CORRELATION_ID, "tags", 200, Collections.emptyMap(),
         Collections.singletonMap("orderId", "order123"));
-    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .hasSize(1)
         .element(0)
         .extracting("spanName", "spanKind", "spanStatus")
         .containsOnly("/tags", "SERVER", "UNSET"));
-    assertThat(DelegatedLoggingSpanExporter.spanQueue)
+    assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
         .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
         .containsEntry("http.status_code", "200")

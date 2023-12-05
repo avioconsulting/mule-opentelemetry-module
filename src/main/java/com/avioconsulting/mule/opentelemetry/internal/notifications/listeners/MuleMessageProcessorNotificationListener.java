@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry.internal.listeners;
+package com.avioconsulting.mule.opentelemetry.internal.notifications.listeners;
 
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
@@ -6,19 +6,17 @@ import org.mule.runtime.api.notification.MessageProcessorNotificationListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MuleMessageProcessorNotificationListener
+public class MuleMessageProcessorNotificationListener extends AbstractMuleNotificationListener
     implements MessageProcessorNotificationListener<MessageProcessorNotification> {
-
-  private final MuleNotificationProcessor muleNotificationProcessor;
-  private Logger logger = LoggerFactory.getLogger(MuleMessageProcessorNotificationListener.class);
+  private final Logger LOGGER = LoggerFactory.getLogger(MuleMessageProcessorNotificationListener.class);
 
   public MuleMessageProcessorNotificationListener(MuleNotificationProcessor muleNotificationProcessor) {
-    this.muleNotificationProcessor = muleNotificationProcessor;
+    super(muleNotificationProcessor);
   }
 
   @Override
   public void onNotification(MessageProcessorNotification notification) {
-    logger.trace(
+    LOGGER.trace(
         "===> Received "
             + notification.getClass().getName()
             + ":"

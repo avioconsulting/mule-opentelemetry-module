@@ -121,4 +121,9 @@ public final class SemanticAttributes {
    * Key to define datasource name for db connections
    */
   public static final AttributeKey<String> DB_DATASOURCE = AttributeKey.stringKey("db.datasource");
+
+  /**
+   * Key to capture Error types
+   */
+  public static final AttributeKey<String> ERROR_TYPE = AttributeKey.stringKey("error.type");
 }

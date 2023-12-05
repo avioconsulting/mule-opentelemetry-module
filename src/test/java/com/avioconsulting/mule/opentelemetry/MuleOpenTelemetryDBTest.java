@@ -1,7 +1,6 @@
 package com.avioconsulting.mule.opentelemetry;
 
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider;
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
 import org.junit.Before;
@@ -34,18 +33,18 @@ public class MuleOpenTelemetryDBTest extends AbstractMuleArtifactTraceTest {
     if (!dbInitialized) {
       runFlow("init-db");
       await().untilAsserted(() -> {
-        assertThat(DelegatedLoggingSpanExporter.spanQueue)
+        assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
             .isNotEmpty()
             .anySatisfy(span -> assertThat(span)
                 .extracting("spanName", "spanKind")
                 .containsOnly("init-db", "SERVER"));
       });
-      DelegatedLoggingSpanExporter.spanQueue.clear();
+      DelegatedLoggingSpanTestExporter.spanQueue.clear();
       dbInitialized = true;
     }
   }
 
-  private void assertDBSpan(DelegatedLoggingSpanExporterProvider.Span span, String docName, String statement) {
+  private void assertDBSpan(DelegatedLoggingSpanTestExporter.Span span, String docName, String statement) {
     assertThat(span)
         .as("Span for db:" + docName)
         .extracting("spanName", "spanKind")
@@ -69,7 +68,7 @@ public class MuleOpenTelemetryDBTest extends AbstractMuleArtifactTraceTest {
     sendRequest(UUID.randomUUID().toString(), "/test/db/" + path, 200);
     // TODO: This works but Exporter provider is in main package
     // and requires plugin class exporting to make it visible in test.
-    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .isNotEmpty()
         .anySatisfy(span -> assertDBSpan(span, docName, statement)));
   }

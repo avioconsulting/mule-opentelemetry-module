@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd">
+
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="79881531-bfaa-49fd-8227-b67e35d64cf8" >
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
+	</http:listener-config>
+
+	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1"  maxQueueSize="2048"
+						  maxBatchExportSize="512" batchExportDelayInterval="5000"
+						  exportTimeout="30000">
+			<opentelemetry:custom-metric-instruments >
+				<opentelemetry:metric-instrument description="Count the number of orders received" unit="1" metricName="org.business.order.count">
+					<opentelemetry:attribute-keys >
+						<opentelemetry:attribute-key value="org.business.order.source.channel" />
+					</opentelemetry:attribute-keys>
+				</opentelemetry:metric-instrument>
+			</opentelemetry:custom-metric-instruments>
+		<opentelemetry:resource-attributes >
+			<opentelemetry:attribute key="mule.env" value="Dev" />
+		</opentelemetry:resource-attributes>
+		<opentelemetry:exporter >
+			<!--			<opentelemetry:logging-exporter logPrefix="test-log" />-->
+			<opentelemetry:generic-exporter >
+				<opentelemetry:config-properties >
+					<opentelemetry:config-property key="otel.traces.exporter" value="delegatedLogging" />
+				</opentelemetry:config-properties>
+			</opentelemetry:generic-exporter>
+		</opentelemetry:exporter>
+	</opentelemetry:config>
+	<http:request-config name="INVALID_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="c18eed36-eb42-4c29-abc9-9e7a2c6049e1" >
+		<http:request-connection host="0.0.0.0" port="9080" />
+	</http:request-config>
+	<http:request-config name="SELF_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="c18eed36-eb42-4c29-abc9-9e7a2c6049e1" >
+		<http:request-connection host="0.0.0.0" port="${http.port}" />
+	</http:request-config>
+
+	<http:request-config name="INVALID_HTTP_BasePath_Request_configuration" doc:name="HTTP Request configuration" doc:id="c18eed36-eb42-4c29-abc9-9e7a2c6049e1" basePath="/api" >
+		<http:request-connection host="0.0.0.0" port="9085" />
+	</http:request-config>
+	<flow name="mule-opentelemetry-app-2-context-propagation-source" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
+		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test/propagation/source"/>
+		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+		<!-- to simulate two different traces, propagated correlrationId must be different than this flows correlationId id -->
+		<http:request method="GET" doc:name="Request" config-ref="SELF_HTTP_Request_configuration" path="/test/propagation/target" correlationId="#[uuid()]">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"traceparent" : vars.OTEL_TRACE_CONTEXT.traceparent as String
+}]]]></http:headers>
+		</http:request>
+	</flow>
+	<flow name="mule-opentelemetry-app-2-context-propagation-target" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
+		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test/propagation/target"/>
+		<set-payload value="From Propagation target" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+	</flow>
+	<flow name="mule-opentelemetry-app-target" >
+		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test/metric/custom"/>
+		<opentelemetry:add-custom-metric metricName="org.business.order.count"
+										 value="1"
+										 config-ref="OpenTelemetry_Config">
+			<opentelemetry:metric-attributes >
+				<opentelemetry:metric-attribute key="#['org.business.order.source.channel']" value="#['online']" />
+			</opentelemetry:metric-attributes>
+		</opentelemetry:add-custom-metric>
+		<set-payload value="From Remote target" doc:name="Set Payload"/>
+	</flow>
+
+	<flow name="mule-opentelemetry-app-invalid-attribute" >
+		<opentelemetry:add-custom-metric metricName="org.business.order.count"
+										 value="1"
+										 config-ref="OpenTelemetry_Config">
+			<opentelemetry:metric-attributes >
+				<opentelemetry:metric-attribute key="#['org.business.order.source.channel-2']" value="#['online']" />
+			</opentelemetry:metric-attributes>
+		</opentelemetry:add-custom-metric>
+		<set-payload value="From Remote target" doc:name="Set Payload"/>
+	</flow>
+</mule>

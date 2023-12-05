@@ -1,8 +1,7 @@
-package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk;
+package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test;
 
 import io.opentelemetry.exporter.logging.LoggingSpanExporter;
 import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;
-import io.opentelemetry.sdk.autoconfigure.spi.traces.ConfigurableSpanExporterProvider;
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.trace.data.SpanData;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
@@ -12,71 +11,51 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * Used during tests. This is not configured in module service loader provider,
- * so cannot be used by module.
- *
- * This delegates spans to {@link LoggingSpanExporter} and also stores them
- * in {@link DelegatedLoggingSpanExporter#spanQueue} for tests to access and
- * verify.
- */
-public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExporterProvider {
-  @Override
-  public SpanExporter createExporter(ConfigProperties config) {
-    return new DelegatedLoggingSpanExporter(config);
+public class DelegatedLoggingSpanTestExporter implements SpanExporter {
+  private static final LoggingSpanExporter exporter = LoggingSpanExporter.create();
+  public static final Queue<Span> spanQueue = new ConcurrentLinkedQueue<>();
+  private final ConfigProperties config;
+  private static final Logger logger = Logger.getLogger(DelegatedLoggingSpanTestExporter.class.getName());
+
+  public DelegatedLoggingSpanTestExporter(ConfigProperties config) {
+    this.config = config;
   }
 
   @Override
-  public String getName() {
-    return "delegatedLogging";
+  public CompletableResultCode export(Collection<SpanData> spans) {
+    spans.stream().map(spanData -> {
+      Span span = new Span();
+      span.setSpanName(spanData.getName());
+      span.setSpanId(spanData.getSpanId());
+      span.setSpanKind(spanData.getKind().toString());
+      span.setTraceId(spanData.getTraceId());
+      span.setSpanStatus(spanData.getStatus().getStatusCode().name());
+      span.setInstrumentationName(spanData.getInstrumentationScopeInfo().getName());
+      span.setInstrumentationVersion(spanData.getInstrumentationScopeInfo().getVersion());
+      Map<String, Object> attributes = new HashMap<>();
+      spanData.getAttributes().forEach((key, value) -> attributes.put(key.getKey(), value));
+      span.setAttributes(attributes);
+      span.setSpanContext(new SpanContext(spanData.getSpanContext()));
+      span.setParentSpanContext(new SpanContext(spanData.getParentSpanContext()));
+      logger.log(Level.INFO, span.toString());
+      return span;
+    }).forEach(spanQueue::add);
+    return exporter.export(spans);
   }
 
-  public static class DelegatedLoggingSpanExporter implements SpanExporter {
-    private static final LoggingSpanExporter exporter = LoggingSpanExporter.create();
-    public static final Queue<Span> spanQueue = new ConcurrentLinkedQueue<>();
-    private final ConfigProperties config;
-    private static final Logger logger = Logger.getLogger(DelegatedLoggingSpanExporter.class.getName());
+  @Override
+  public CompletableResultCode flush() {
+    spanQueue.clear();
+    return exporter.flush();
+  }
 
-    public DelegatedLoggingSpanExporter(ConfigProperties config) {
-      this.config = config;
-    }
+  @Override
+  public CompletableResultCode shutdown() {
+    return flush();
+  }
 
-    @Override
-    public CompletableResultCode export(Collection<SpanData> spans) {
-      spans.stream().map(spanData -> {
-        Span span = new Span();
-        span.setSpanName(spanData.getName());
-        span.setSpanId(spanData.getSpanId());
-        span.setSpanKind(spanData.getKind().toString());
-        span.setTraceId(spanData.getTraceId());
-        span.setSpanStatus(spanData.getStatus().getStatusCode().name());
-        span.setInstrumentationName(spanData.getInstrumentationLibraryInfo().getName());
-        span.setInstrumentationVersion(spanData.getInstrumentationLibraryInfo().getVersion());
-        Map<String, Object> attributes = new HashMap<>();
-        spanData.getAttributes().forEach((key, value) -> attributes.put(key.getKey(), value));
-        span.setAttributes(attributes);
-        span.setSpanContext(new SpanContext(spanData.getSpanContext()));
-        span.setParentSpanContext(new SpanContext(spanData.getParentSpanContext()));
-        logger.log(Level.INFO, span.toString());
-        return span;
-      }).forEach(spanQueue::add);
-      return exporter.export(spans);
-    }
-
-    @Override
-    public CompletableResultCode flush() {
-      spanQueue.clear();
-      return exporter.flush();
-    }
-
-    @Override
-    public CompletableResultCode shutdown() {
-      return flush();
-    }
-
-    public ConfigProperties getConfig() {
-      return config;
-    }
+  public ConfigProperties getConfig() {
+    return config;
   }
 
   public static class Span {
@@ -190,8 +169,8 @@ public class DelegatedLoggingSpanExporterProvider implements ConfigurableSpanExp
   }
 
   public static class SpanContext {
-    private String traceId;
-    private String spanId;
+    private final String traceId;
+    private final String spanId;
 
     public SpanContext(io.opentelemetry.api.trace.SpanContext spanContext) {
       this.spanId = spanContext.getSpanId();

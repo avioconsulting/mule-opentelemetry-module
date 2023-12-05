@@ -11,7 +11,8 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 
 	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1"  maxQueueSize="2048"
 						  maxBatchExportSize="512" batchExportDelayInterval="5000"
-						  exportTimeout="30000">
+						  exportTimeout="30000"
+						  turnOffMetrics="true">
 		<opentelemetry:resource-attributes >
 			<opentelemetry:attribute key="mule.env" value="Dev" />
 		</opentelemetry:resource-attributes>

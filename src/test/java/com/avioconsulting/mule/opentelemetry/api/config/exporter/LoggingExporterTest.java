@@ -15,7 +15,7 @@ public class LoggingExporterTest {
     LoggingExporter exporter = new LoggingExporter();
     assertThat(exporter.getExporterProperties())
         .containsEntry(OTEL_TRACES_EXPORTER_KEY, "logging")
-        .containsEntry(OTEL_METRICS_EXPORTER_KEY, "none")
+        .containsEntry(OTEL_METRICS_EXPORTER_KEY, "logging")
         .containsEntry(OTEL_LOGS_EXPORTER_KEY, "none")
         .containsEntry(OTEL_EXPORTER_LOGGING_PREFIX_KEY, null);
   }

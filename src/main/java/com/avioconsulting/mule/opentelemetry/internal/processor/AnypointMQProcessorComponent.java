@@ -12,9 +12,9 @@ import org.mule.runtime.api.notification.EnrichedServerNotification;
 import java.util.*;
 
 import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.*;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MessagingOperationValues.PROCESS;
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.MessagingOperationValues.RECEIVE;
+import static io.opentelemetry.semconv.SemanticAttributes.*;
+import static io.opentelemetry.semconv.SemanticAttributes.MessagingOperationValues.PROCESS;
+import static io.opentelemetry.semconv.SemanticAttributes.MessagingOperationValues.RECEIVE;
 
 public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
   @Override

@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.store;
 
+import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.context.Context;
@@ -38,15 +39,14 @@ public interface TransactionStore {
    * may be added to
    * an existing transaction as a span.
    *
-   * @param transactionId
-   *            A unique transaction id within the context of an application. Eg.
-   *            Correlation id.
+   * @param traceComponent
+   *            {@link TraceComponent} with tracing information
    * @param rootFlowName
    *            Name of the flow requesting to start transaction.
    * @param rootFlowSpan
    *            {@link SpanBuilder} for building the root span.
    */
-  void startTransaction(String transactionId, String rootFlowName, SpanBuilder rootFlowSpan);
+  void startTransaction(TraceComponent traceComponent, String rootFlowName, SpanBuilder rootFlowSpan);
 
   /**
    * Add custom tags to an existing transaction.
@@ -138,22 +138,19 @@ public interface TransactionStore {
    * @param spanUpdater
    * @param endTime
    */
-  void endTransaction(
+  TransactionMeta endTransaction(
       String transactionId, String rootFlowName, Consumer<Span> spanUpdater, Instant endTime);
 
   /**
    * Add a new processor span under an existing transaction.
    *
-   * @param transactionId
-   *            {@link String} to add new span
    * @param containerName
    *            {@link String} such as Flow name that contains requested location
-   * @param location
-   *            {@link String} of the processor
+   * @param traceComponent
    * @param spanBuilder
    *            {@link SpanBuilder}
    */
-  void addProcessorSpan(String transactionId, String containerName, String location, SpanBuilder spanBuilder);
+  void addProcessorSpan(String containerName, TraceComponent traceComponent, SpanBuilder spanBuilder);
 
   /**
    * End an existing span under an existing transaction.
@@ -192,9 +189,9 @@ public interface TransactionStore {
    * @param spanUpdater
    *            {@link Consumer} to allow updating Span before ending.
    */
-  default void endProcessorSpan(
-      String transactionId, String location, Consumer<Span> spanUpdater) {
-    endProcessorSpan(transactionId, location, spanUpdater, null);
+  default SpanMeta endProcessorSpan(
+      String transactionId, String location, Consumer<ProcessorSpan> spanUpdater) {
+    return endProcessorSpan(transactionId, location, spanUpdater, null);
   }
 
   /**
@@ -206,7 +203,8 @@ public interface TransactionStore {
    * @param location
    * @param spanUpdater
    * @param endTime
+   * @return SpanMeta
    */
-  void endProcessorSpan(
-      String transactionId, String location, Consumer<Span> spanUpdater, Instant endTime);
+  SpanMeta endProcessorSpan(
+      String transactionId, String location, Consumer<ProcessorSpan> spanUpdater, Instant endTime);
 }

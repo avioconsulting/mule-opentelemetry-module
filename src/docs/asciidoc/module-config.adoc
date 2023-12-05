@@ -14,7 +14,7 @@ To use this extension, add following dependency to your mule application project
 
 <1> The latest version of the module as published on https://search.maven.org/search?q=g:com.avioconsulting%20a:mule-opentelemetry-module[Maven Central].
 
-NOTE: This module supports OpenTelemetry *Traces* only. Metrics and Logs are _not_ supported, yet. See https://github.com/avioconsulting/mule-opentelemetry-module/issues/38[Issue#38].
+NOTE: This module supports OpenTelemetry *Traces and Metrics* only. Logs are _not_ supported, yet.
 
 === Auto Configuration
 Extension uses OpenTelemetry SDK *v{opentelemetry-version}* in its autoconfigured mode. In this mode, SDK will configure itself based on the environment variables.
@@ -46,7 +46,8 @@ Following example shows an OpenTelemetry Config with OTLP Exporter configured -
 
 When additional properties from SDK Auto-configuration are needed for exporter, `config-properties` can be used to add those. Environment and System properties will still override those entries.
 
-=== Common Resource Attributes
+=== Resource Attributes
+==== Common Resource Attributes
 Extension uses the OpenTelemetry SDK's https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#resource-provider-spi[Resource Provider SPI] to gather data of common resources such as Host, OS, Processes of the Mule runtime Server and host. SDK supported all common resources providers are configured by this module.
 
 .Example Set of tags captured with common resource providers
@@ -68,7 +69,7 @@ Extension uses the OpenTelemetry SDK's https://github.com/open-telemetry/opentel
 
 See https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#disabling-automatic-resourceproviders[Disabling Common Resource Providers] if any resource provider must be disabled.
 
-=== Mule Resource Attributes
+==== Mule Resource Attributes
 Extension is aware of https://help.mulesoft.com/s/article/CloudHub-Reserved-Properties[CloudHub Reserved Properties] and automatically adds some of that data into trace data.
 
 .Example Set of tags captured with Mule Resource Provider
@@ -97,11 +98,13 @@ Extension supports following exporter configurations -
 - Logging Exporter
 - Generic Exporter
 
+NOTE: Configured exporter is used for all supported signals - Traces, and Metrics.
+
 [#OTLP-Exporter]
 ==== OTLP Exporter
-Extension contains all dependencies needed to send traces to an OpenTelemetry Collector endpoint i.e. when `otel.traces.exporter` is set to `otlp`. Note that `otlp` is the default exporter if the variable is not set.
+Extension contains all dependencies needed to send traces and metrics signals to an OpenTelemetry Collector endpoint.
 
-NOTE: When configuring the OTLP Exporter with *HTTP Protobuf protocol*, OpenTelemetry collector endpoint *must be set to the base endpoint* of OTEL collector. The module will build trace-specific endpoints `{collectorEndpoint}/traces` based on OpenTelemetry specification guidelines.
+NOTE: When configuring the OTLP Exporter with *HTTP Protobuf protocol*, OpenTelemetry collector endpoint *must be set to the base endpoint* of OTEL collector. The module will build signal-specific endpoints such as `{collectorEndpoint}/traces` based on OpenTelemetry specification guidelines.
 For example, if opentelemetry collector is listening on localhost:4317, then set `collectorEndpoint=http://localhost:4317/v1` and *NOT* [.line-through]#`collectorEndpoint=http://localhost:4317/v1/traces`#.
 
 NOTE: When configuring the OTLP Exporter with *GRPC protocol*, OpenTelemetry collector endpoint *must be set to the base endpoint* of OTEL collector. For example, if opentelemetry collector is listening on localhost:4317, then set `collectorEndpoint=http://localhost:4317` and *NOT* [.line-through]#`collectorEndpoint=http://localhost:4317/v1`#.
@@ -122,9 +125,9 @@ This is most likely caused due to incorrect value set for `collectorEndpoint`. S
 
 ====== APM Collector does not support OTEL standard endpoint format
 
-Few APMs may not have the OTEL standard endpoint format of `{collectorEndpoint}/{signal}`. In that case, the default config property of `collectorEndpoint` may not work to auto-build the trace single endpoint.
+A few APMs may not have the OTEL standard endpoint format of `{collectorEndpoint}/{signal}`. In that case, the default config property of `collectorEndpoint` may not work to auto-build the single endpoints.
 
-In such cases, `opentelemetry-config-properties` can be used to define trace endpoint with `otel.exporter.otlp.traces.endpoint` property.
+In such cases, `opentelemetry-config-properties` can be used to define trace endpoint with `otel.exporter.otlp.{signal}.endpoint` property where signal can be `traces` or `metrics`.
 
 .Example OTEL exporter with Traces endpoint
 [source,xml]
@@ -137,7 +140,7 @@ In such cases, `opentelemetry-config-properties` can be used to define trace end
 ----
 
 ==== Logging Exporter
-When troubleshooting generated spans data, sending traces to logs may be useful. Extension supports a simple logging exporter that can send traces to application log file.
+When troubleshooting generated signal data, sending it to logs may be useful. Extension supports a simple logging exporter that can send signal data to application's log file.
 
 .Logging Exporter Configuration
 [source,xml]
@@ -160,9 +163,11 @@ Example span entry from log file -
 ----
 
 ==== Generic Exporter
-This generic exporter allows to configure any other exporters supported by https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#exporters[sdk-extensions/autoconfigure#exporters].
+This generic exporter allows to configure any other signal exporters supported by https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#exporters[sdk-extensions/autoconfigure#exporters].
 
-Following example shows possible configuration for to send traces to Zipkin.
+Following example shows possible configuration for sending traces to Zipkin.
+
+WARNING: If the generic exporter is used to configure signal specific exporter, then it must be configured appropriately for all supported signals (Traces and Metrics).
 
 .Generic Exporter Configuration
 [source,xml]
@@ -211,7 +216,8 @@ The required Zipkin exporter dependencies must be configured as an https://docs.
 </plugin>
 ----
 
-=== Span Processors
+=== Tracing Configuration
+==== Span Processors
 For non-logging exporters, Tracing SDK uses https://opentelemetry.io/docs/reference/specification/trace/sdk/#batching-processor[Batch Span Processor]. Global Configuration allows to customize Batch span processor settings -
 
 [source,xml]
@@ -226,7 +232,7 @@ For non-logging exporters, Tracing SDK uses https://opentelemetry.io/docs/refere
 .... other config ....
 </opentelemetry:config>
 ----
-=== Span Sampler
+==== Span Sampler
 
 By default, _every span is recorded_. In a high transaction environment, this can become noisy or needing high storage requirements for backend APM. In such cases, it is possible to reduce the span recorded and sent to the APM. This can help reduce the network traffic as well as data sent to the backend. Although, it comes at a cost of not collecting all traces, which maybe acceptable in certain use cases.
 
@@ -257,7 +263,7 @@ otel.traces.sampler.arg=0.001   // <1>
 
 <1> Sets the trace id ratio to 1 in 1000. Resulting configuration will record 1 in 1000 traces.
 
-=== Trace Spans
+==== Trace Spans
 By default, this module will create trace spans for following mule components -
 
 - Flows
@@ -267,7 +273,7 @@ By default, this module will create trace spans for following mule components -
 
 More verbose span generation can be configured. See setting Trace Levels below.
 
-==== Trace Levels
+===== Trace Levels
 
 Module can create spans for every mule processors by setting `spanAllProcessors = "true"`. This can be overridden by setting a system property `mule.otel.span.processors.enable` to `true|false`.
 
@@ -298,7 +304,7 @@ To disable span generation for all processors in a specific namespace, set the `
 <opentelemetry:mule-component namespace="os" name="*" />
 ----
 
-=== Custom Tags
+==== Custom Tags
 In addition to all the trace attributes captured by the module, it is possible to add custom tags to the current trace using an *operation* `opentelemetry:add-custom-tags`.
 
 WARNING: All custom tag keys are transformed to `custom.{keyName}`. This also prevents accidentally overriding other standard keys-value pairs in trace tags. Depending on the APM (elastic, etc.) you use, they may be displayed differently. For example, elastic will display them as `label.custom_{keyName}`.
@@ -326,7 +332,7 @@ You can also use dataweave to set the tags.
                 tags="#[output java --- {orderNumber: payload.orderNumber}]" />
 ----
 
-=== Global Config Span tags
+==== Global Config Span tags
 Some APMs may require additional tags on spans for the correct display of traces. For example, Splunk APM can use `peer.service` on http request spans when creating inferred services in service maps.
 
 The module may not be capturing those tags out of the box but there is a way to add additional tags to the spans of components that use global configuration elements. Some examples would be `http:listener` using `http:listener-config`, `db:insert` using `db:config`.
@@ -364,14 +370,12 @@ To add a tag `peer.service=my_remote_api` to `http:request` 's span, you can set
 Remote_Request_configuration.otel.peer.service=my_remote_api
 ----
 
-
-
-=== Context Propagation
+==== Context Propagation
 
 This module supports context propagation in
 https://www.w3.org/TR/trace-context/#trace-context-http-headers-format[W3C Trace Context] and https://www.w3.org/TR/baggage/#baggage-http-header-format[W3C Baggage Context] formats.
 
-==== Context Extraction
+===== Context Extraction
 Extension supports extracting Open Telemetry Trace context extraction for certain source components. For these components if the Context information is received in appropriate place, the module will establish the parent-child relation for the traces.
 
 Source Components supporting context extraction:
@@ -381,10 +385,11 @@ Source Components supporting context extraction:
 
 NOTE: OpenTelemetry Trace Context is extracted/injected using configured Propagators. The entries in the context may vary depending on the propagators used and validations it applies. All examples here are with *W3C Trace Context*.
 
-==== Context Injection
+===== Context Injection
 
-===== Auto Injection to Flow Variables
-Extension uses a processor interceptor. OpenTelemetry's tracing context will be automatically added to a flow variable named **OTEL_TRACE_CONTEXT** as below -
+====== Auto Injection to Flow Variables
+Extension uses a processor interceptor. OpenTelemetry's tracing context will be automatically added to a flow variable before the first processor is invoked.
+It is always injected under a key **OTEL_TRACE_CONTEXT**.
 
 - Before the first processor is invoked - this context relates to the flow span instead of any specific processor
 - Before certain outbound specific processors are invoked - this context is specific to the span of the processor being intercepted
@@ -424,7 +429,7 @@ If the intercepted processors needs fine-tuning such as including or excluding c
 
 image::processor-interceptor-configuration.png[600, 600, title="Trace Level - Processor Interception Configuration", align="center"]
 
-===== Manual Injection
+====== Manual Injection
 If needed, `<opentelemetry:get-trace-context />` operation can be used to manually inject trace context into flow.
 
 **NOTE:** `target` must be used to set operation output to a flow variable.
@@ -439,8 +444,8 @@ WARNING: Similar to link:module-config.adoc#_first_processor_interceptor[First P
 image::manual-context-flow-injection.png[]
 
 [#_http_request_context_injection]
-===== HTTP Request Context Injection
-The Module does **NOT** support automatic context propagation.In order to *propagate the trace header* information to other web applications, the Mule HTTP Requester Configuration *must*
+====== HTTP Request Context Injection
+The Module does **NOT** support automatic context propagation. In order to *propagate the trace header* information to other web applications, the Mule HTTP Requester Configuration *must*
 have default headers configured in the following way:
 
 image::http-requester-config.png[600,600,title="Mule HTTP Requester Configuration",align="center"]
@@ -468,7 +473,7 @@ image::http-requester-config.png[600,600,title="Mule HTTP Requester Configuratio
 ----
 
 
-===== Anypoint MQ Context Injection
+====== Anypoint MQ Context Injection
 
 When using Anypoint MQ, the `publish` operation can add `vars.OTEL_TRACE_CONTEXT` to user properties. If this module is being used by the Anypoint MQ Subscription application, the Context will be extracted from the user properties and linked to the parent incoming trace.
 
@@ -480,7 +485,7 @@ When using Anypoint MQ, the `publish` operation can add `vars.OTEL_TRACE_CONTEXT
     </anypoint-mq:publish>
 ----
 
-=== Turn Off Tracing
+==== Turn Off Tracing
 
 Once you have configured the module in your application, there may be a need to remove or temporarily turn it off.
 
@@ -495,6 +500,300 @@ Once you have configured the module in your application, there may be a need to 
 - Set `turnOffTracing="true"` on global config. You may use a property placeholder for the value.
 - Alternately, you can set the `mule.otel.tracing.disabled` system property to `true`.
 - To re-enable the tracing, just reset the property to `false` (default value).
+
+=== Metrics Configuration
+
+NOTE: Metrics are supported v1.4.0 onwards.
+
+This module supports generating application and infrastructure metrics as per OpenTelemetry specification.
+
+==== Standard Metrics
+
+When metrics are enabled, module will automatically start capturing certain standard metrics related to system, JVM, infrastructure etc.
+
+* Java Runtime Metrics using https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/vpass:a[{opentelemetry-version}]/instrumentation/runtime-telemetry/runtime-telemetry-java8/library[OpenTelemetry Runtime Java 8 Library]
+- Classes
+- CPU
+- Memory Pools
+- Threads
+- Garbage Collector
+* Operating System and Hardware using https://github.com/open-telemetry/opentelemetry-java-instrumentation/tree/vpass:a[{opentelemetry-version}]/instrumentation/oshi/library[OSHI Library]
+- System Metrics
+- Process Metrics
+
+==== Mule Metrics
+
+When metrics are enabled, module will automatically start capturing Mule Application related metrics. Following section describes the metrics keys and attributes.
+
+===== mule.app.message.count
+
+Measure the number of mule messages triggered from flow invocations in the mule application.
+
+|===
+|Name |Instrument Type |Unit |Description
+
+|`mule.app.message.count`
+|Counter
+|{message}
+|Number of Mule Messages triggered from Flow Invocations in the Mule Application
+|===
+
+|===
+|Attribute|Type|Description|Examples|Requirement Level
+
+|`error.type`
+|string
+|Describes a class of error the operation ended with.
+|timeout; java.net.UnknownHostException; server_certificate_invalid; 500
+|Conditionally Required: if message processing has failed.
+
+|`mule.app.flow.name`
+|string
+|Name of the flow triggering this message
+|
+|Required
+
+|`mule.app.flow.source.namespace`
+|string
+|Namespaces of the flow source
+|http, anypoint-mq
+|Conditionally Required: if the flow has a mule source component
+
+|`mule.app.flow.source.name`
+|string
+|Name of the flow source from the namespace
+|listener, subscriber
+|Conditionally Required: if the flow has a mule source component
+
+|`mule.app.flow.source.configRef`
+|string
+|Name of the configuration element for flow source
+|HTTP_Listener_config
+|Conditionally Required: if the flow has a mule source component
+
+|===
+
+===== mule.app.message.duration
+
+Measure the duration of mule message processing.
+
+|===
+|Name|Instrument Type|Unit|Description
+
+|`mule.app.message.duration`|Histogram|ms|Duration of Mule Messages
+
+|===
+
+
+|===
+|Attribute|Type|Description|Examples|Requirement Level
+
+|`error.type`
+|string
+|Describes a class of error the operation ended with. [1]
+|timeout; java.net.UnknownHostException; server_certificate_invalid; 500
+|Conditionally Required: if message processing has failed.
+
+|`mule.app.flow.name`
+|string
+|Name of the flow triggering this message
+|
+|Required
+
+|`mule.app.flow.source.namespace`
+|string
+|Namespaces of the flow source
+|http, anypoint-mq
+|Conditionally Required: if the flow has a mule source component
+
+|`mule.app.flow.source.name`
+|string
+|Name of the flow source from the namespace
+|listener, subscriber
+|Conditionally Required: if the flow has a mule source component
+
+|`mule.app.flow.source.configRef`
+|string
+|Name of the configuration element for flow source
+|HTTP_Listener_config
+|Conditionally Required: if the flow has a mule source component
+
+|===
+
+===== mule.app.processor.request.count
+
+
+|===
+|Name|Instrument Type|Unit|Description
+
+|mule.app.processor.request.count
+|Counter
+|{message}
+|Number of Mule Messages triggered from Flow Invocations in the Mule Application
+|===
+
+|===
+|Attribute|Type|Description|Examples|Requirement Level
+
+|error.type
+|string
+|Describes a class of error the operation ended with.
+|timeout; java.net.UnknownHostException; server_certificate_invalid; 500
+|Conditionally Required: if message processing has failed.
+
+|mule.app.processor.namespace
+|string
+|Namespace of the message processor
+|http; anypoint-mq
+|Required
+
+|mule.app.processor.name
+|string
+|Name of the message processor
+|request; publish; consume
+|Required
+
+|mule.app.processor.configRef
+|string
+|Name of the configuration element for message processor
+|HTTP_Request_configuration
+|Conditionally Required: if the message processor has configuration reference
+|===
+
+===== mule.app.processor.request.duration
+
+|===
+|Name|Instrument Type|Unit|Description
+
+|`mule.app.processor.request.duration`
+|Histogram
+|ms
+|Duration of Mule Messages
+|===
+
+|===
+|Attribute|Type|Description|Examples|Requirement Level
+
+|`error.type`
+|string
+|Describes a class of error the operation ended with. [1]
+|timeout; java.net.UnknownHostException; server_certificate_invalid; 500
+|Conditionally Required: if message processing has failed.
+
+|`mule.app.processor.namespace`
+|string
+|Namespace of the message processor
+|http; anypoint-mq
+|Required
+
+|`mule.app.processor.name`
+|string
+|Name of the message processor
+|request; publish; consume
+|Required
+
+|`mule.app.processor.configRef`
+|string
+|Name of the configuration element for message processor
+|HTTP_Request_configuration
+|Conditionally Required: if the message processor has configuration reference
+
+|===
+
+==== Mule Custom Metrics
+
+Module supports capturing custom metrics via an operation. This can be useful to capture any business metrics such as number of orders received, shipments sent etc.
+
+To capture custom metrics, a global configuration is required that describe the metric instruments.
+
+.OpenTelemetry Global Configuration for Custom Metric
+[source, xml]
+----
+<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" serviceName="order-sys-api">
+		<opentelemetry:custom-metric-instruments > //<1>
+			<opentelemetry:metric-instrument metricName="org.business.order.count" instrumentType="COUNTER" description="Count the number of orders received" unit="1" > //<2>
+				<opentelemetry:attribute-keys >
+					<opentelemetry:attribute-key value="org.business.order.quantity" />
+				</opentelemetry:attribute-keys>
+			</opentelemetry:metric-instrument>
+		</opentelemetry:custom-metric-instruments>
+		<opentelemetry:exporter >
+			<opentelemetry:logging-exporter />
+		</opentelemetry:exporter>
+	</opentelemetry:config>
+----
+
+<1> Add Custom metric instruments
+<2> Instrument Definition per custom metric to capture
+
+===== Custom Metric Instrument Definition
+
+In order to capture custom metrics, an instrument must be defined to describe and define the metric. Each instrument requires following information -
+
+|===
+|Property Name|Type|Description|Examples|Requirement Level
+
+|`metricName`
+|string
+|Name of the Metric Instrument. See OpenTelemetry Semantic Conventions for https://github.com/open-telemetry/semantic-conventions/blob/main/docs/general/metrics.md#instrument-naming[Instrument Naming Guidelines]
+|`org.business.order.count`, `org.business.shipment.count`
+|Required
+
+|`instrumentType`
+|enum - `COUNTER`
+|https://github.com/open-telemetry/semantic-conventions/blob/main/docs/general/metrics.md#instrument-types[Type] of the instrument to use such as Counter, Histogram, Gauge etc.
+|Only `COUNTER` is supported
+|Required. Defaults to COUNTER.
+
+|`description`
+|string
+|Description of the Metric Instrument
+|`Count the number of orders received`;
+|Required
+
+|`unit`
+|string
+|https://github.com/open-telemetry/semantic-conventions/blob/main/docs/general/metrics.md#instrument-units[Unit] of the Metric Instrument
+|Time units such as ms, s, m, h, or counts 1 or kb, gb;
+|Required
+
+|`attribute-keys`
+|List<string>
+|Each custom metric can capture zero or more attribute data points related to the metric value. Define the list of attribute keys that can be captured for any metric value on this instrument.
+|`org.business.order.quantity` when capturing the order counts.
+|Optional
+
+Note: At runtime, only the attribute keys defined here are allowed to capture on the metric. Any undefined attribute capture will result in an error at runtime.
+
+|===
+
+
+===== Custom Metric Operation
+
+Once the metric instruments are defined, `opentelemetry:add-custom-metric` operation can be used anywhere in the flow/sub-flows to add values to the metric.
+
+Following example shows, incrementing the order counter -
+
+.Add Custom Metric Operation
+[source,xml]
+----
+<opentelemetry:add-custom-metric
+    metricName="org.business.order.count"   //<1>
+    value="#[sizeOf(payload)]"  //<2>
+    doc:name="Add Custom Metric"
+    config-ref="OpenTelemetry_Config">
+    <opentelemetry:metric-attributes >
+        <opentelemetry:metric-attribute
+                key="org.business.order.quantity" //<3>
+                value="#[sum(payload.quantity)]" /> //<4>
+    </opentelemetry:metric-attributes>
+</opentelemetry:add-custom-metric>
+----
+
+<1> Set the metric name from the ones configured on global config
+<2> Set the long value of the entry, could be static (eg. 1) or expression
+<3> Add attributes using the keys defined on the global config for selected metric
+<4> Set the attribute value, could be static (eg. 1) or expression
 
 === Generated Documentation
 

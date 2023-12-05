@@ -1,6 +1,6 @@
 package com.avioconsulting.mule.opentelemetry;
 
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -32,7 +32,7 @@ public class MuleOpenTelemetryProcessorPropertyOverrideTest extends AbstractMule
   public void testProcessorTracing() throws Exception {
     sendRequest(UUID.randomUUID().toString(), "test", 200);
     await().untilAsserted(
-        () -> assertThat(DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter.spanQueue)
+        () -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
             .as("Spans for listener and processors")
             .hasSize(1)
             .extracting("spanName", "spanKind")
@@ -48,13 +48,13 @@ public class MuleOpenTelemetryProcessorPropertyOverrideTest extends AbstractMule
   public void testFlowRefParentTracesWithoutAllSpans() throws Exception {
     sendRequest(CORRELATION_ID, "/test/remote/flow-ref", 200);
     await().untilAsserted(
-        () -> assertThat(DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter.spanQueue)
+        () -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
             .isNotEmpty());
-    DelegatedLoggingSpanExporterProvider.Span head = DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter.spanQueue
+    DelegatedLoggingSpanTestExporter.Span head = DelegatedLoggingSpanTestExporter.spanQueue
         .peek();
 
     await().untilAsserted(
-        () -> assertThat(DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter.spanQueue)
+        () -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
             .hasSize(5)
             .anySatisfy(span -> {
               assertThat(span)
@@ -62,34 +62,34 @@ public class MuleOpenTelemetryProcessorPropertyOverrideTest extends AbstractMule
                   .extracting("spanName", "spanKind", "traceId")
                   .containsOnly("/test/remote/flow-ref", "SERVER", head.getTraceId());
             }));
-    DelegatedLoggingSpanExporterProvider.Span sourceServer = getSpan("SERVER", "/test/remote/flow-ref");
+    DelegatedLoggingSpanTestExporter.Span sourceServer = getSpan("SERVER", "/test/remote/flow-ref");
 
-    DelegatedLoggingSpanExporterProvider.Span flowRefTargetServer = getSpan("INTERNAL",
+    DelegatedLoggingSpanTestExporter.Span flowRefTargetServer = getSpan("INTERNAL",
         "flow-ref:mule-opentelemetry-app-flow-ref-target");
-    DelegatedLoggingSpanExporterProvider.Span targetServer = getSpan("SERVER",
+    DelegatedLoggingSpanTestExporter.Span targetServer = getSpan("SERVER",
         "mule-opentelemetry-app-flow-ref-target");
     assertParentSpan(flowRefTargetServer, "Flow ref of target 1 should have source as parent", sourceServer);
     assertParentSpan(targetServer, "Parent flow must be a span of flow-ref of first target", flowRefTargetServer);
 
-    DelegatedLoggingSpanExporterProvider.Span flowRefTargetServer2 = getSpan("INTERNAL",
+    DelegatedLoggingSpanTestExporter.Span flowRefTargetServer2 = getSpan("INTERNAL",
         "flow-ref:mule-opentelemetry-app-flow-ref-target-2");
-    DelegatedLoggingSpanExporterProvider.Span targetServer2 = getSpan("SERVER",
+    DelegatedLoggingSpanTestExporter.Span targetServer2 = getSpan("SERVER",
         "mule-opentelemetry-app-flow-ref-target-2");
     assertParentSpan(flowRefTargetServer2, "Flow ref of target 2 should have target 1 as parent", targetServer);
     assertParentSpan(targetServer2, "Parent flow must be a span of flow-ref of second target",
         flowRefTargetServer2);
   }
 
-  private static void assertParentSpan(DelegatedLoggingSpanExporterProvider.Span childSpan, String description,
-      DelegatedLoggingSpanExporterProvider.Span parentSpan) {
+  private static void assertParentSpan(DelegatedLoggingSpanTestExporter.Span childSpan, String description,
+      DelegatedLoggingSpanTestExporter.Span parentSpan) {
     assertThat(childSpan.getParentSpanContext())
         .extracting("traceId", "spanId")
         .as(description)
         .containsExactly(parentSpan.getTraceId(), parentSpan.getSpanId());
   }
 
-  private static DelegatedLoggingSpanExporterProvider.Span getSpan(String INTERNAL, String spanName) {
-    return DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter.spanQueue
+  private static DelegatedLoggingSpanTestExporter.Span getSpan(String INTERNAL, String spanName) {
+    return DelegatedLoggingSpanTestExporter.spanQueue
         .stream()
         .filter(s -> s.getSpanKind().equals(INTERNAL) && s.getSpanName().equals(spanName))
         .findFirst().get();

@@ -1,14 +1,23 @@
 package com.avioconsulting.mule.opentelemetry.internal.connection;
 
+import com.avioconsulting.mule.opentelemetry.api.config.metrics.CustomMetricInstrumentDefinition;
+import com.avioconsulting.mule.opentelemetry.internal.config.CustomMetricInstrumentHolder;
+import com.avioconsulting.mule.opentelemetry.api.config.metrics.MetricsInstrumentType;
 import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryUtil;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.metrics.MetricsInstaller;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
+import com.avioconsulting.mule.opentelemetry.internal.store.SpanMeta;
+import com.avioconsulting.mule.opentelemetry.internal.store.TransactionMeta;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.events.GlobalEventEmitterProvider;
+import io.opentelemetry.api.metrics.DoubleHistogram;
+import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.StatusCode;
@@ -27,6 +36,8 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -55,9 +66,12 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   private static OpenTelemetryConnection openTelemetryConnection;
   private final OpenTelemetry openTelemetry;
   private final Tracer tracer;
+  private final Meter meter;
+  private boolean turnOffMetrics = false;
+  private boolean turnOffTracing = false;
+  private Map<String, CustomMetricInstrumentHolder<?>> metricInstruments;
 
   private OpenTelemetryConnection(OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
-
     Properties properties = getModuleProperties();
     String instrumentationVersion = properties.getProperty("module.version", INSTRUMENTATION_VERSION);
     String instrumentationName = properties.getProperty("module.artifactId", INSTRUMENTATION_NAME);
@@ -81,12 +95,44 @@ public class OpenTelemetryConnection implements TraceContextHandler {
       }
       builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
       logger.debug("Creating OpenTelemetryConnection with properties: [" + configMap + "]");
+      turnOffMetrics = openTelemetryConfigWrapper.isTurnOffMetrics();
+      turnOffTracing = openTelemetryConfigWrapper.isTurnOffTracing();
     }
     builder.setServiceClassLoader(AutoConfiguredOpenTelemetrySdkBuilder.class.getClassLoader());
     builder.setResultAsGlobal();
     openTelemetry = builder.build().getOpenTelemetrySdk();
     tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
+    meter = openTelemetry.meterBuilder(instrumentationName).setInstrumentationVersion(instrumentationVersion)
+        .build();
+    setupCustomMetrics(openTelemetryConfigWrapper);
     transactionStore = InMemoryTransactionStore.getInstance();
+  }
+
+  private void setupCustomMetrics(OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
+    if (openTelemetryConfigWrapper == null)
+      return;
+    Map<String, CustomMetricInstrumentHolder<?>> instruments = new HashMap<>();
+    for (CustomMetricInstrumentDefinition customMetricInstrumentDefinition : openTelemetryConfigWrapper
+        .getMetricInstrumentDefinitionMap().values()) {
+      if (MetricsInstrumentType.COUNTER.equals(customMetricInstrumentDefinition.getInstrumentType())) {
+        LongCounter counter = createCounter(customMetricInstrumentDefinition.getMetricName(),
+            customMetricInstrumentDefinition.getDescription(),
+            customMetricInstrumentDefinition.getUnit());
+        instruments.put(customMetricInstrumentDefinition.getMetricName(),
+            new CustomMetricInstrumentHolder<LongCounter>()
+                .setInstrument(counter)
+                .setMetricInstrument(customMetricInstrumentDefinition));
+      }
+    }
+    metricInstruments = Collections.unmodifiableMap(instruments);
+  }
+
+  public boolean isTurnOffMetrics() {
+    return turnOffMetrics;
+  }
+
+  public boolean isTurnOffTracing() {
+    return turnOffTracing;
   }
 
   /**
@@ -110,10 +156,27 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     openTelemetryConnection = null;
   }
 
+  /**
+   * Get Meter for provided metric name
+   * 
+   * @param name
+   *            of the metric
+   * @return CustomMetricInstrumentWrapper
+   * @param <I>
+   *            Instrument type such as LongCounter
+   */
+  @SuppressWarnings("unchecked")
+  public <I> CustomMetricInstrumentHolder<I> getMetricInstrument(final String name) {
+    return (CustomMetricInstrumentHolder<I>) metricInstruments.get(name);
+  }
+
   public static synchronized OpenTelemetryConnection getInstance(
       OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
     if (openTelemetryConnection == null) {
       openTelemetryConnection = new OpenTelemetryConnection(openTelemetryConfigWrapper);
+      if (!openTelemetryConfigWrapper.isTurnOffMetrics()) {
+        MetricsInstaller.install(openTelemetryConnection);
+      }
     }
     return openTelemetryConnection;
   }
@@ -239,22 +302,21 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         traceComponent.getTags(), OTEL_SYSTEM_PROPERTIES_MAP);
     traceComponent.getTags().forEach(spanBuilder::setAttribute);
     getTransactionStore().addProcessorSpan(
-        traceComponent.getTransactionId(),
         rootContainerName,
-        traceComponent.getLocation(), spanBuilder);
+        traceComponent, spanBuilder);
   }
 
-  public void endProcessorSpan(final TraceComponent traceComponent, Error error) {
-    getTransactionStore().endProcessorSpan(
+  public SpanMeta endProcessorSpan(final TraceComponent traceComponent, Error error) {
+    return getTransactionStore().endProcessorSpan(
         traceComponent.getTransactionId(),
         traceComponent.getLocation(),
-        span -> {
+        processorSpan -> {
           if (error != null) {
-            span.recordException(error.getCause());
+            processorSpan.getSpan().recordException(error.getCause());
           }
-          setSpanStatus(traceComponent, span);
+          setSpanStatus(traceComponent, processorSpan.getSpan());
           if (traceComponent.getTags() != null)
-            traceComponent.getTags().forEach(span::setAttribute);
+            traceComponent.getTags().forEach(processorSpan.getSpan()::setAttribute);
         },
         traceComponent.getEndTime());
   }
@@ -272,23 +334,24 @@ public class OpenTelemetryConnection implements TraceContextHandler {
 
     traceComponent.getTags().forEach(spanBuilder::setAttribute);
     getTransactionStore().startTransaction(
-        traceComponent.getTransactionId(), traceComponent.getName(), spanBuilder);
+        traceComponent, traceComponent.getName(), spanBuilder);
   }
 
-  public void endTransaction(final TraceComponent traceComponent, Exception exception) {
-    if (traceComponent != null) {
-      openTelemetryConnection.getTransactionStore().endTransaction(
-          traceComponent.getTransactionId(),
-          traceComponent.getName(),
-          rootSpan -> {
-            traceComponent.getTags().forEach(rootSpan::setAttribute);
-            openTelemetryConnection.setSpanStatus(traceComponent, rootSpan);
-            if (exception != null) {
-              rootSpan.recordException(exception);
-            }
-          },
-          traceComponent.getEndTime());
+  public TransactionMeta endTransaction(final TraceComponent traceComponent, Exception exception) {
+    if (traceComponent == null) {
+      return null;
     }
+    return openTelemetryConnection.getTransactionStore().endTransaction(
+        traceComponent.getTransactionId(),
+        traceComponent.getName(),
+        rootSpan -> {
+          traceComponent.getTags().forEach(rootSpan::setAttribute);
+          openTelemetryConnection.setSpanStatus(traceComponent, rootSpan);
+          if (exception != null) {
+            rootSpan.recordException(exception);
+          }
+        },
+        traceComponent.getEndTime());
   }
 
   public void setSpanStatus(TraceComponent traceComponent, Span span) {
@@ -298,4 +361,31 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     }
   }
 
+  public LongCounter createCounter(String metricName, String description, String unit) {
+    logger.trace("Creating counter for metric {}", metricName);
+    return meter.counterBuilder(metricName)
+        .setDescription(description)
+        .setUnit(unit)
+        .build();
+  }
+
+  public LongCounter createCounter(String metricName, String description) {
+    return createCounter(metricName, description, "1");
+  }
+
+  public DoubleHistogram createHistogram(String metricName, String description) {
+    logger.trace("Creating histogram for metric {}", metricName);
+    return meter.histogramBuilder(metricName)
+        .setDescription(description)
+        .setUnit("ms") // Time in millis
+        .build();
+  }
+
+  public List<AutoCloseable> registerMetricsObserver(Function<OpenTelemetry, List<AutoCloseable>> observer) {
+    return observer.apply(openTelemetry);
+  }
+
+  public void registerMetricsObserver(Consumer<OpenTelemetry> observer) {
+    observer.accept(openTelemetry);
+  }
 }

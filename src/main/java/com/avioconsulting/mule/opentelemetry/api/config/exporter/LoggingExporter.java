@@ -10,6 +10,7 @@ import java.util.Map;
 public class LoggingExporter extends AbstractExporter {
 
   public static final String OTEL_EXPORTER_LOGGING_PREFIX_KEY = "otel.exporter.logging.prefix";
+  public static final String LOGGING = "logging";
   @Parameter
   @Optional
   @Summary("An optional string printed in front of the span name and attributes")
@@ -22,7 +23,8 @@ public class LoggingExporter extends AbstractExporter {
   @Override
   public Map<String, String> getExporterProperties() {
     Map<String, String> config = super.getExporterProperties();
-    config.put(OpenTelemetryExporter.OTEL_TRACES_EXPORTER_KEY, "logging");
+    config.put(OpenTelemetryExporter.OTEL_TRACES_EXPORTER_KEY, LOGGING);
+    config.put(OpenTelemetryExporter.OTEL_METRICS_EXPORTER_KEY, LOGGING);
     config.put(OTEL_EXPORTER_LOGGING_PREFIX_KEY, getLogPrefix());
     return Collections.unmodifiableMap(config);
   }

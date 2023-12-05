@@ -60,7 +60,8 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
 
     traceComponent.withTags(tags)
         .withTransactionId(getTransactionId(notification))
-        .withSpanName(notification.getResourceIdentifier());
+        .withSpanName(notification.getResourceIdentifier())
+        .withLocation(notification.getResourceIdentifier());
 
     return traceComponent;
   }

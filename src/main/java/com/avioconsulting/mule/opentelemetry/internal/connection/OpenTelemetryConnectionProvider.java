@@ -29,7 +29,9 @@ public class OpenTelemetryConnectionProvider
   @Override
   public void disconnect(Supplier<OpenTelemetryConnection> connection) {
     try {
-      connection.get().invalidate();
+      OpenTelemetryConnection openTelemetryConnection = connection.get();
+      if (openTelemetryConnection != null)
+        openTelemetryConnection.invalidate();
     } catch (Exception e) {
       LOGGER.error(
           "Error while disconnecting OpenTelemetry: " + e.getMessage(), e);
