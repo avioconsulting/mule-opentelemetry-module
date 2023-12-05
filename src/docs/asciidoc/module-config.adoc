@@ -384,23 +384,52 @@ NOTE: OpenTelemetry Trace Context is extracted/injected using configured Propaga
 ==== Context Injection
 
 ===== Auto Injection to Flow Variables
-Extension uses a processor interceptor. OpenTelemetry's tracing context will be automatically added to a flow variable before the first processor is invoked.
-It is always injected under a key **OTEL_TRACE_CONTEXT**.
+Extension uses a processor interceptor. OpenTelemetry's tracing context will be automatically added to a flow variable named **OTEL_TRACE_CONTEXT** as below -
 
-NOTE: In case interception needs to be disabled, set the system property **"mule.otel.interceptor.processor.enable"** to **"false"**.
+- Before the first processor is invoked - this context relates to the flow span instead of any specific processor
+- Before certain outbound specific processors are invoked - this context is specific to the span of the processor being intercepted
 
-Following examples show a **W3C Trace Context** extracted from incoming http request:
+NOTE: In case interception needs to be disabled, set the system property **"mule.otel.interceptor.processor.enable"** to **"false"**. Disabling the interceptor processing can result in incorrect context propagation.
 
-image::auto-context-flow-injection.png[]
+[#_first_processor_interceptor]
+====== First Processor Interceptor
+
+When the flow execution starts, OpenTelemetry context is injected into flow variables before the first processor of the flow is invoked.
+
+WARNING: This context relates to the main flow span and if used for propagation to external services then span rendering may not look accurate.See processor interceptor below.
+
+Following examples show a **W3C Trace Context** extracted from incoming http request and injected into flow variables:
+
+image::auto-context-flow-injection.png[600,600,title="Context Injection - First Processor",align="center"]
 
 Another variation when **tracestate** is received with **traceparent**
 
-image::auto-context-flow-injection-2.png[]
+image::auto-context-flow-injection-2.png[600,600,title="Context Injection - First Processor (variation)",align="center"]
+
+====== Processor Interceptor
+
+For the context propagation accuracy, certain processors are intercepted to inject current span's context into the flow variable.
+
+By default, any processors in `ee,mule,validations,aggregators,json,oauth,scripting,tracing,oauth2-provider,xml,wss,spring,java,avio-logger` namespaces are excluded from this context injection, with one exception.
+
+There is one exception in `mule` namespace - `flow-ref`. All `flow-ref` 's are intercepted for context injection. Module's flow processing is capable of extracting this flow-ref context to create accurate parent-child span relationship between calling and referenced flows.
+
+All other processors such as `http:request`, `anypoint-mq:publish` etc. are intercepted and context is injected.
+
+As a result of this, for example, when `http:request` makes an outbound request and context is link:module-config.adoc#_http_request_context_injection[injected], `http:request` processor's span is propagated as a prent span.
+
+image::span-parent-child-elastic-view.png[600, 600, title="Span View in Elastic APM", align="center"]
+
+If the intercepted processors needs fine-tuning such as including or excluding certain processors then it can be done in the Trace Level global configuration.
+
+image::processor-interceptor-configuration.png[600, 600, title="Trace Level - Processor Interception Configuration", align="center"]
 
 ===== Manual Injection
 If needed, `<opentelemetry:get-trace-context />` operation can be used to manually inject trace context into flow.
 
 **NOTE:** `target` must be used to set operation output to a flow variable.
+
+WARNING: Similar to link:module-config.adoc#_first_processor_interceptor[First Processor Interceptor], tis context relates to the main flow span and if used for propagation to external services then span rendering may not look accurate.
 
 [source,xml]
 ----
@@ -409,11 +438,12 @@ If needed, `<opentelemetry:get-trace-context />` operation can be used to manual
 
 image::manual-context-flow-injection.png[]
 
+[#_http_request_context_injection]
 ===== HTTP Request Context Injection
-The Module does **NOT** support automatic context propagation. In order to *propagate the trace header* information to other web applications, the Mule HTTP Requester Configuration *must*
+The Module does **NOT** support automatic context propagation.In order to *propagate the trace header* information to other web applications, the Mule HTTP Requester Configuration *must*
 have default headers configured in the following way:
 
-image::http-requester-config.png[600, 600, title="Mule HTTP Requester Configuration", align="center"]
+image::http-requester-config.png[600,600,title="Mule HTTP Requester Configuration",align="center"]
 
 
 .HTTP Requester Configuration for Default Headers
