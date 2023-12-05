@@ -138,26 +138,6 @@
                     </execution>
                 </executions>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.bsc.maven</groupId>-->
-<!--                <artifactId>maven-processor-plugin</artifactId>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>process-test</id>-->
-<!--                        <goals>-->
-<!--                            <goal>process-test</goal>-->
-<!--                        </goals>-->
-<!--                        <phase>generate-test-sources</phase>-->
-<!--                        <configuration>-->
-<!--                            <processors>-->
-<!--                                <processor>${extensionsAnnotationProcessor}</processor>-->
-<!--                                <processor>org.openjdk.jmh.generators.BenchmarkProcessor</processor>-->
-<!--                            </processors>-->
-<!--                        </configuration>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-
-<!--            </plugin>-->
             <plugin>
                 <groupId>org.asciidoctor</groupId>
                 <artifactId>asciidoctor-maven-plugin</artifactId>
@@ -248,6 +228,33 @@
                 <configuration>
                     <destDir>${project.build.directory}/docs/apidocs</destDir>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.5.0</version>
+                <configuration>
+                    <!-- Retain the configurations needed for publishing to OSSRH/Maven Central -->
+                    <flattenMode>ossrh</flattenMode>
+                </configuration>
+                <executions>
+                    <!-- enable flattening -->
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <!-- ensure proper cleanup -->
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
