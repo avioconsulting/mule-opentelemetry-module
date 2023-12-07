@@ -304,6 +304,34 @@ To disable span generation for all processors in a specific namespace, set the `
 <opentelemetry:mule-component namespace="os" name="*" />
 ----
 
+===== Span Attributes
+
+====== HTTP Attributes
+
+HTTP Server and Client spans capture attributes marked with *Required* as a requirement level in OpenTelemetry  https://github.com/open-telemetry/opentelemetry-specification/blob/v1.20.0/specification/trace/semantic_conventions/http.md[Semantic Convention v1.20.0 (Experimental)]. Some of the recommended attributes may also be included, depending on what information is available in runtime.
+
+Some of the attribute conventions from v1.21.0 were marked as deprecated and
+OpenTelemetry Semantic Convention https://opentelemetry.io/docs/specs/semconv/http/http-spans/[v1.23.1] marked HTTP conventions as *Stable*.
+
+As per the https://opentelemetry.io/docs/specs/semconv/http/http-spans/[guidelines] in the specification, this module continues to emit attributes as per https://github.com/open-telemetry/opentelemetry-specification/blob/v1.20.0/specification/trace/semantic_conventions/http.md[v1.20.0]. This behavior can be changed by setting an environment variable `OTEL_SEMCONV_STABILITY_OPT_IN`. Here is a description of the valid values from specification -
+[quote]
+----
+SHOULD introduce an environment variable `OTEL_SEMCONV_STABILITY_OPT_IN`
+   in the existing major version which is a comma-separated list of values.
+   The only values defined so far are:
+   - `http` - emit the new, stable HTTP and networking conventions,
+     and stop emitting the old experimental HTTP and networking conventions
+     that the instrumentation emitted previously.
+   - `http/dup` - emit both the old and the stable HTTP and networking conventions,
+     allowing for a seamless transition.
+   - The default behavior (in the absence of one of these values) is to continue
+     emitting whatever version of the old experimental HTTP and networking conventions
+     the instrumentation was emitting previously.
+   - Note: `http/dup` has higher precedence than `http` in case both values are present
+----
+
+WARNING: This environment variable is provided in current major version to allow time to migrate to stable attributes. It will be dropped in next major version.
+
 ==== Custom Tags
 In addition to all the trace attributes captured by the module, it is possible to add custom tags to the current trace using an *operation* `opentelemetry:add-custom-tags`.
 

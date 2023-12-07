@@ -1,6 +1,8 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemconvStability;
+import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import org.mule.extension.http.api.HttpRequestAttributes;
@@ -24,7 +26,6 @@ import java.util.Map;
 
 import static io.opentelemetry.semconv.SemanticAttributes.*;
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 
 public class HttpProcessorComponent extends AbstractProcessorComponent {
 
@@ -93,11 +94,9 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     // include the HTTP Response attributes.
     HttpResponseAttributes attributes = responseAttributes.getValue();
     Map<String, String> tags = new HashMap<>();
-    tags.put(HTTP_STATUS_CODE.getKey(), Integer.toString(attributes.getStatusCode()));
+    addAttribute(tags, Integer.toString(attributes.getStatusCode()), HTTP_STATUS_CODE, HTTP_RESPONSE_STATUS_CODE);
+    addAttribute(tags, attributes.getHeaders().get("content-length"), HTTP_RESPONSE_CONTENT_LENGTH, null);
     endTraceComponent.withStatsCode(getSpanStatus(false, attributes.getStatusCode()));
-    tags.put(
-        HTTP_RESPONSE_CONTENT_LENGTH.getKey(),
-        attributes.getHeaders().get("content-length"));
     if (endTraceComponent.getTags() != null)
       tags.putAll(endTraceComponent.getTags());
     return endTraceComponent.withTags(tags);
@@ -148,13 +147,6 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     Map<String, String> tags = new HashMap<>();
     String path = componentWrapper.getParameters().get("path");
     Map<String, String> connectionParameters = componentWrapper.getConfigConnectionParameters();
-    if (!connectionParameters.isEmpty()) {
-      tags.put(HTTP_SCHEME.getKey(), connectionParameters.getOrDefault("protocol", "").toLowerCase());
-      tags.put(HTTP_HOST.getKey(), connectionParameters.getOrDefault("host", "").concat(":")
-          .concat(connectionParameters.getOrDefault("port", "")));
-      tags.put(NET_PEER_NAME.getKey(), connectionParameters.getOrDefault("host", ""));
-      tags.put(NET_PEER_PORT.getKey(), connectionParameters.getOrDefault("port", ""));
-    }
     Map<String, String> configParameters = componentWrapper.getConfigParameters();
     if (!configParameters.isEmpty()) {
       if (configParameters.containsKey("basePath")
@@ -163,8 +155,29 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
       }
     }
     tags.put(HTTP_ROUTE.getKey(), path);
-    tags.put(HTTP_METHOD.getKey(), componentWrapper.getParameters().get("method"));
+    if (!connectionParameters.isEmpty()) {
+      addRequestConnectionAttributes(tags, connectionParameters);
+    }
+    addAttribute(tags, componentWrapper.getParameters().get("method"), HTTP_METHOD, HTTP_REQUEST_METHOD);
     return tags;
+  }
+
+  private void addRequestConnectionAttributes(Map<String, String> tags, Map<String, String> connectionParameters) {
+    String protocol = connectionParameters.getOrDefault("protocol", "").toLowerCase();
+    String serverPortAddress = connectionParameters.getOrDefault("host", "").concat(":")
+        .concat(connectionParameters.getOrDefault("port", ""));
+
+    String urlFull = String.format("%s://%s%s", protocol, serverPortAddress, tags.get(HTTP_ROUTE.getKey()));
+    addAttribute(tags, urlFull, HTTP_URL, URL_FULL);
+    addAttribute(tags, protocol, HTTP_SCHEME, URL_SCHEME);
+    addAttribute(tags, connectionParameters.getOrDefault("host", ""), NET_PEER_NAME, SERVER_ADDRESS);
+    addAttribute(tags, connectionParameters.getOrDefault("host", ""), NET_PEER_PORT, SERVER_PORT);
+
+    if (SemconvStability.emitOldHttpSemconv()) {
+      // Retained for backward-compatibility, this attribute was removed by Otel
+      // 1.13.0 Semconv
+      tags.put(HTTP_HOST.getKey(), serverPortAddress);
+    }
   }
 
   @Override
@@ -202,7 +215,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
           statusCode = TypedValue.unwrap(httpStatus).toString();
         }
         TraceComponent traceComponent = getTraceComponentBuilderFor(notification);
-        traceComponent.withTags(singletonMap(HTTP_STATUS_CODE.getKey(), statusCode));
+        addAttribute(traceComponent.getTags(), statusCode, HTTP_STATUS_CODE, HTTP_RESPONSE_STATUS_CODE);
         traceComponent.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
         return traceComponent;
       }
@@ -213,19 +226,45 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     return null;
   }
 
+  private <T> void addAttribute(Map<String, String> tags, String value, AttributeKey<T> oldAttribute,
+      AttributeKey<T> stableAttribute) {
+    if (SemconvStability.emitOldHttpSemconv()) {
+      tags.put(oldAttribute.getKey(), value);
+    }
+    if (SemconvStability.emitStableHttpSemconv() && stableAttribute != null) {
+      tags.put(stableAttribute.getKey(), value);
+    }
+  }
+
   private Map<String, String> attributesToTags(HttpRequestAttributes attributes) {
     Map<String, String> tags = new HashMap<>();
-    tags.put(HTTP_HOST.getKey(), attributes.getHeaders().get("host"));
-    tags.put(HTTP_USER_AGENT.getKey(), attributes.getHeaders().get("user-agent"));
-    tags.put(HTTP_METHOD.getKey(), attributes.getMethod());
-    tags.put(HTTP_SCHEME.getKey(), attributes.getScheme());
+    String hostHeader = attributes.getHeaders().get("host");
+    String[] hostParts = hostHeader.split(":");
+    String host = hostParts[0];
+    String hostPort = hostParts.length > 1 ? hostParts[1] : null;
+
+    addAttribute(tags, attributes.getScheme(), HTTP_SCHEME, URL_SCHEME);
+    addAttribute(tags, attributes.getHeaders().get("user-agent"), HTTP_USER_AGENT, USER_AGENT_ORIGINAL);
+    addAttribute(tags, attributes.getMethod(), HTTP_METHOD, HTTP_REQUEST_METHOD);
     tags.put(HTTP_ROUTE.getKey(), attributes.getListenerPath());
-    tags.put(HTTP_TARGET.getKey(), attributes.getRequestPath());
-    tags.put(
-        HTTP_FLAVOR.getKey(),
-        attributes.getVersion().substring(attributes.getVersion().lastIndexOf("/") + 1));
-    // TODO: Support additional request headers to be added in
-    // http.request.header.<key>=<header-value> attribute.
+
+    if (SemconvStability.emitOldHttpSemconv()) {
+      tags.put(HTTP_HOST.getKey(), attributes.getHeaders().get("host"));
+      tags.put(HTTP_TARGET.getKey(), attributes.getRequestPath());
+      tags.put(
+          HTTP_FLAVOR.getKey(),
+          attributes.getVersion().substring(attributes.getVersion().lastIndexOf("/") + 1));
+    }
+    if (SemconvStability.emitStableHttpSemconv()) {
+      tags.put(SERVER_ADDRESS.getKey(), host);
+      if (hostPort != null)
+        tags.put(SERVER_PORT.getKey(), hostPort);
+      tags.put(URL_PATH.getKey(), attributes.getRequestPath());
+      if (attributes.getQueryString() != null
+          && !attributes.getQueryString().isEmpty()) {
+        tags.put(URL_QUERY.getKey(), attributes.getQueryString());
+      }
+    }
     return tags;
   }
 
