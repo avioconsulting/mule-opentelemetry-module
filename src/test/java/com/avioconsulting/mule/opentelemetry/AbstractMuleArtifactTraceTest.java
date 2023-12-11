@@ -6,8 +6,11 @@ import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.Del
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporterProvider;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
+import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -23,6 +26,7 @@ import org.mule.tck.probe.PollingProber;
 import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.Map;
@@ -127,6 +131,11 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
     sendRequest(correlationId, path, expectedStatus, Collections.emptyMap());
   }
 
+  protected void sendRequest(String method, String correlationId, String path, int expectedStatus, HttpEntity body)
+      throws IOException, URISyntaxException {
+    sendRequest(method, correlationId, path, expectedStatus, Collections.emptyMap(), Collections.emptyMap(), body);
+  }
+
   protected void sendRequest(String correlationId, String path, int expectedStatus, Map<String, String> headers)
       throws IOException, URISyntaxException {
     sendRequest(correlationId, path, expectedStatus, headers, Collections.emptyMap());
@@ -135,18 +144,32 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
   protected void sendRequest(String correlationId, String path, int expectedStatus, Map<String, String> headers,
       Map<String, String> queryParams)
       throws IOException, URISyntaxException {
-    HttpGet getRequest = new HttpGet();
+    sendRequest("get", correlationId, path, expectedStatus, headers, queryParams, null);
+  }
+
+  protected void sendRequest(String method, String correlationId, String path, int expectedStatus,
+      Map<String, String> headers,
+      Map<String, String> queryParams, HttpEntity body) throws URISyntaxException, IOException {
+    HttpUriRequest request;
     URIBuilder uriBuilder = new URIBuilder(String.format("http://localhost:%s/" + path, serverPort.getValue()));
     queryParams.forEach(uriBuilder::addParameter);
-    getRequest.setURI(uriBuilder.build());
-    getRequest.addHeader("X-CORRELATION-ID", correlationId);
-    headers.forEach(getRequest::addHeader);
+    URI uri = uriBuilder.build();
+    if ("post".equals(method)) {
+      request = new HttpPost(uri);
+      if (body != null)
+        ((HttpPost) request).setEntity(body);
+    } else {
+      request = new HttpGet(uri);
+    }
+    request.addHeader("X-CORRELATION-ID", correlationId);
+    headers.forEach(request::addHeader);
     try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-      try (CloseableHttpResponse response = httpClient.execute(getRequest)) {
+      try (CloseableHttpResponse response = httpClient.execute(request)) {
         if (expectedStatus != -1) {
           assertThat(response.getStatusLine().getStatusCode()).isEqualTo(expectedStatus);
         }
       }
     }
+
   }
 }

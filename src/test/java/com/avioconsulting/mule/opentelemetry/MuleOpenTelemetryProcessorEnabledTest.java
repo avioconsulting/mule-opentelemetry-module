@@ -29,7 +29,7 @@ public class MuleOpenTelemetryProcessorEnabledTest extends AbstractMuleArtifactT
             .containsOnly(tuple("logger:Logger", "INTERNAL"),
                 tuple("set-payload:Set Payload", "INTERNAL"),
                 tuple("logger:Logger", "INTERNAL"),
-                tuple("/test", "SERVER")));
+                tuple("GET /test", "SERVER")));
   }
 
   /**
@@ -48,7 +48,7 @@ public class MuleOpenTelemetryProcessorEnabledTest extends AbstractMuleArtifactT
             .hasSize(2)
             .extracting("spanName", "spanKind")
             .containsOnly(tuple("set-payload:Set Payload", "INTERNAL"),
-                tuple("/otel-processor-flow", "SERVER")));
+                tuple("GET /otel-processor-flow", "SERVER")));
   }
 
   @Test
@@ -67,9 +67,9 @@ public class MuleOpenTelemetryProcessorEnabledTest extends AbstractMuleArtifactT
               assertThat(span)
                   .as("Span for http:listener source flow")
                   .extracting("spanName", "spanKind", "traceId")
-                  .containsOnly("/test/remote/flow-ref", "SERVER", head.getTraceId());
+                  .containsOnly("GET /test/remote/flow-ref", "SERVER", head.getTraceId());
             }));
-    Span sourceServer = getSpan("SERVER", "/test/remote/flow-ref");
+    Span sourceServer = getSpan("SERVER", "GET /test/remote/flow-ref");
 
     Span flowRefTargetServer = getSpan("INTERNAL", "flow-ref:mule-opentelemetry-app-flow-ref-target");
     Span targetServer = getSpan("SERVER", "mule-opentelemetry-app-flow-ref-target");

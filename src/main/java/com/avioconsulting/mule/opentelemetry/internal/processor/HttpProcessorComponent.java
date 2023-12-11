@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
+import com.avioconsulting.mule.opentelemetry.internal.processor.util.HttpSpanUtil;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import org.mule.extension.http.api.HttpRequestAttributes;
@@ -179,7 +180,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     return TraceComponent.named(notification.getResourceIdentifier())
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
-        .withSpanName(attributes.getListenerPath()) // In case of wildcard, it may be to generic. Eg. /api/*
+        .withSpanName(HttpSpanUtil.spanName(tags, attributes.getListenerPath()))
         .withContext(traceContextHandler.getTraceContext(attributes.getHeaders(), ContextMapGetter.INSTANCE));
   }
 

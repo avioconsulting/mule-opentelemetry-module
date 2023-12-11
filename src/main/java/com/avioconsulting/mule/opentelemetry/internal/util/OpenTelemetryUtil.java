@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry.internal;
+package com.avioconsulting.mule.opentelemetry.internal.util;
 
 import java.util.Map;
 import java.util.Objects;

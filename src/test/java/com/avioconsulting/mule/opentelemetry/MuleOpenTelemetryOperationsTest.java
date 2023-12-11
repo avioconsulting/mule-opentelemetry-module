@@ -27,7 +27,7 @@ public class MuleOpenTelemetryOperationsTest extends AbstractMuleArtifactTraceTe
         .hasSize(1)
         .element(0)
         .extracting("spanName", "spanKind", "spanStatus")
-        .containsOnly("/tags", "SERVER", "UNSET"));
+        .containsOnly("GET /tags", "SERVER", "UNSET"));
     assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
         .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
