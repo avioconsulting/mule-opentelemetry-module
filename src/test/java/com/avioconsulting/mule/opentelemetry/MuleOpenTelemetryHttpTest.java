@@ -183,8 +183,9 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .anySatisfy(span -> {
           assertThat(span)
               .as("Span for http:request")
-              .extracting("spanName", "spanKind", "traceId")
-              .containsOnly("/remote/invalid", "CLIENT", head.getTraceId());
+              .extracting("spanName", "spanKind", "traceId", "spanStatus", "spanStatusDescription")
+              .containsOnly("/remote/invalid", "CLIENT", head.getTraceId(), "ERROR",
+                  "HTTP GET on resource 'http://0.0.0.0:9080/remote/invalid' failed: Connection refused.");
         }));
 
   }

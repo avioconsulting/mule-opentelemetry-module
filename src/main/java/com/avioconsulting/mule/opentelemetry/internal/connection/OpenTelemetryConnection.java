@@ -357,7 +357,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   public void setSpanStatus(TraceComponent traceComponent, Span span) {
     if (traceComponent.getStatusCode() != null
         && !StatusCode.UNSET.equals(traceComponent.getStatusCode())) {
-      span.setStatus(traceComponent.getStatusCode());
+      span.setStatus(traceComponent.getStatusCode(), traceComponent.getErrorMessage());
     }
   }
 
