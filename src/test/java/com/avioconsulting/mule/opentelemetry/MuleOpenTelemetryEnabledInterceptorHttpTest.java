@@ -43,7 +43,21 @@ public class MuleOpenTelemetryEnabledInterceptorHttpTest extends AbstractMuleArt
             as(InstanceOfAssertFactories.type(TypedValue.class)))
         .extracting("value", as(InstanceOfAssertFactories.map(String.class, String.class)))
         .containsEntry(TransactionStore.TRACE_TRANSACTION_ID, "test-correlation-id")
-        .containsKey("traceparent");
+        .containsKey("traceparent")
+        .containsKey(TransactionStore.SPAN_ID);
+  }
+  @Test
+  public void testInterceptorFlowVariableHTTPInjection() throws Exception {
+    CoreEvent event = flowRunner("mule-opentelemetry-app-2-interceptor-test-http")
+        .withSourceCorrelationId("test-correlation-id").run();
+    assertThat(event.getVariables())
+        .containsKey(TransactionStore.TRACE_CONTEXT_MAP_KEY)
+        .extractingByKey(TransactionStore.TRACE_CONTEXT_MAP_KEY,
+            as(InstanceOfAssertFactories.type(TypedValue.class)))
+        .extracting("value", as(InstanceOfAssertFactories.map(String.class, String.class)))
+        .containsEntry(TransactionStore.TRACE_TRANSACTION_ID, "test-correlation-id")
+        .containsKey("traceparent")
+        .containsKey(TransactionStore.SPAN_ID);
   }
 
   @Test

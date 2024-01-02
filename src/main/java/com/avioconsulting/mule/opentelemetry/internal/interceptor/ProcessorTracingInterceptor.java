@@ -20,6 +20,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+import static com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore.TRACE_CONTEXT_MAP_KEY;
+import static com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore.TRACE_PREV_CONTEXT_MAP_KEY;
+
 /**
  * Interceptor to set tracing context information in flow a variable
  * named {@link TransactionStore#TRACE_CONTEXT_MAP_KEY}.
@@ -59,6 +62,9 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
     if (muleNotificationProcessor.hasConnection()) {
       ProcessorComponent processorComponent = muleNotificationProcessor
           .getProcessorComponent(location.getComponentIdentifier().getIdentifier());
+      if(event.getVariables().containsKey(TransactionStore.TRACE_CONTEXT_MAP_KEY)){
+        event.addVariable(TRACE_PREV_CONTEXT_MAP_KEY, event.getVariables().get(TransactionStore.TRACE_CONTEXT_MAP_KEY));
+      }
       if (processorComponent == null) {
         // when spanAllProcessor is false, and it's the first generic processor
         String transactionId = muleNotificationProcessor.getOpenTelemetryConnection().getTransactionStore()
@@ -141,6 +147,13 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
         LOGGER.trace("Variables around the interceptor for {} - {}", location.getLocation(),
             event.getVariables().toString());
       }
+    }
+    if(event.getVariables().containsKey(TransactionStore.TRACE_CONTEXT_MAP_KEY)){
+      event.removeVariable(TRACE_CONTEXT_MAP_KEY);
+    }
+    if(event.getVariables().containsKey(TRACE_PREV_CONTEXT_MAP_KEY)){
+      event.addVariable(TRACE_CONTEXT_MAP_KEY, event.getVariables().get(TRACE_PREV_CONTEXT_MAP_KEY));
+      event.removeVariable(TRACE_CONTEXT_MAP_KEY);
     }
     return action.proceed();
   }

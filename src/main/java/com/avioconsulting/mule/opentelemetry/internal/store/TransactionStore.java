@@ -16,7 +16,9 @@ public interface TransactionStore {
 
   String TRACE_TRANSACTION_ID = "TRACE_TRANSACTION_ID";
   String TRACE_CONTEXT_MAP_KEY = "OTEL_TRACE_CONTEXT";
+  String TRACE_PREV_CONTEXT_MAP_KEY = "OTEL_PREV_TRACE_CONTEXT";
   String TRACE_ID = "traceId";
+  String SPAN_ID = "spanId";
 
   /**
    * A default implementation to get a mule correlation id as a local transaction
@@ -73,7 +75,7 @@ public interface TransactionStore {
    *            {@link ComponentLocation}
    * @return {@link Context}
    */
-  Context getTransactionContext(String transactionId, ComponentLocation componentLocation);
+  TransactionContext getTransactionContext(String transactionId, ComponentLocation componentLocation);
 
   /**
    * Get the Trace Id associated the transaction

@@ -8,10 +8,7 @@ import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfig
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.metrics.MetricsInstaller;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
-import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
-import com.avioconsulting.mule.opentelemetry.internal.store.SpanMeta;
-import com.avioconsulting.mule.opentelemetry.internal.store.TransactionMeta;
-import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
+import com.avioconsulting.mule.opentelemetry.internal.store.*;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.events.GlobalEventEmitterProvider;
@@ -40,6 +37,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore.*;
 
 public class OpenTelemetryConnection implements TraceContextHandler {
 
@@ -247,12 +246,13 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    * @return Map<String, String>
    */
   public Map<String, String> getTraceContext(String transactionId, ComponentLocation componentLocation) {
-    Context transactionContext = getTransactionStore().getTransactionContext(transactionId,
+    TransactionContext transactionContext = getTransactionStore().getTransactionContext(transactionId,
         componentLocation);
     Map<String, String> traceContext = new HashMap<>(10);
-    traceContext.put(TransactionStore.TRACE_TRANSACTION_ID, transactionId);
-    traceContext.put(TransactionStore.TRACE_ID, getTransactionStore().getTraceIdForTransaction(transactionId));
-    injectTraceContext(transactionContext, traceContext,
+    traceContext.put(TRACE_TRANSACTION_ID, transactionId);
+    traceContext.put(TRACE_ID, getTransactionStore().getTraceIdForTransaction(transactionId));
+    traceContext.put(SPAN_ID, transactionContext.getSpanId());
+    injectTraceContext(transactionContext.getContext(), traceContext,
         HashMapTextMapSetter.INSTANCE);
     logger.debug("Created trace context '{}' for TRACE_TRANSACTION_ID={}, Component Location '{}'", traceContext,
         transactionId,
