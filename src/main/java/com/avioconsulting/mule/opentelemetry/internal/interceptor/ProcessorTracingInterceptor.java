@@ -1,7 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
-import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
@@ -34,7 +33,6 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessorTracingInterceptor.class);
   private final MuleNotificationProcessor muleNotificationProcessor;
   private final ConfigurationComponentLocator configurationComponentLocator;
-  private OpenTelemetryConnection openTelemetryConnection;
 
   /**
    * Interceptor.
@@ -58,17 +56,15 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
     // Using an instance of MuleNotificationProcessor here.
     // If the tracing is disabled, the module configuration will not initialize
     // connection supplier.
-    if (muleNotificationProcessor.getConnectionSupplier() != null) {
-      if (openTelemetryConnection == null) {
-        openTelemetryConnection = muleNotificationProcessor.getConnectionSupplier().get();
-      }
+    if (muleNotificationProcessor.hasConnection()) {
       ProcessorComponent processorComponent = muleNotificationProcessor
           .getProcessorComponent(location.getComponentIdentifier().getIdentifier());
       if (processorComponent == null) {
         // when spanAllProcessor is false, and it's the first generic processor
-        String transactionId = openTelemetryConnection.getTransactionStore().transactionIdFor(event);
+        String transactionId = muleNotificationProcessor.getOpenTelemetryConnection().getTransactionStore()
+            .transactionIdFor(event);
         event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY,
-            openTelemetryConnection.getTraceContext(transactionId));
+            muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId));
       } else {
         Component component = configurationComponentLocator
             .find(Location.builderFromStringRepresentation(
@@ -95,10 +91,12 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
         }
         LOGGER.trace("Creating Span in the interceptor for {} at {}",
             location.getComponentIdentifier().getIdentifier(), location.getLocation());
-        openTelemetryConnection.addProcessorSpan(traceComponent, location.getRootContainerName());
-        String transactionId = openTelemetryConnection.getTransactionStore().transactionIdFor(event);
+        muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(traceComponent,
+            location.getRootContainerName());
+        String transactionId = muleNotificationProcessor.getOpenTelemetryConnection().getTransactionStore()
+            .transactionIdFor(event);
         event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY,
-            openTelemetryConnection.getTraceContext(transactionId,
+            muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId,
                 location));
       }
       if (LOGGER.isTraceEnabled()) {

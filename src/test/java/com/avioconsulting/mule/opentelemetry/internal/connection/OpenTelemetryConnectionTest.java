@@ -4,13 +4,14 @@ import com.avioconsulting.mule.opentelemetry.api.config.ExporterConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.config.OpenTelemetryResource;
 import com.avioconsulting.mule.opentelemetry.api.config.SpanProcessorConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.OpenTelemetryExporter;
+import com.avioconsulting.mule.opentelemetry.internal.AbstractInternalTest;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfiguration;
 import org.junit.Test;
 
 import static org.mockito.Mockito.*;
 
-public class OpenTelemetryConnectionTest {
+public class OpenTelemetryConnectionTest extends AbstractInternalTest {
 
   @Test
   public void getInstance() {

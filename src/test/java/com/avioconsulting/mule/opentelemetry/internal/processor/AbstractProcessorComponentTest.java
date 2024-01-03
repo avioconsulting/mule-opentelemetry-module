@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import com.avioconsulting.mule.opentelemetry.internal.AbstractInternalTest;
 import org.mockito.Mockito;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
@@ -16,7 +17,7 @@ import java.util.Map;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public abstract class AbstractProcessorComponentTest {
+public abstract class AbstractProcessorComponentTest extends AbstractInternalTest {
 
   protected ComponentIdentifier getMockedIdentifier(String namespace, String name) {
     ComponentIdentifier identifier = mock(ComponentIdentifier.class);

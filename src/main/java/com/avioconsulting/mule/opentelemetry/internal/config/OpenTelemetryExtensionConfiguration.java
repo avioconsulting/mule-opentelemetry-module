@@ -162,9 +162,8 @@ public class OpenTelemetryExtensionConfiguration implements Startable, Stoppable
       return;
     }
     logger.info("Initiating otel config - '{}'", getConfigName());
-    muleNotificationProcessor.init(
-        () -> OpenTelemetryConnection
-            .getInstance(new OpenTelemetryConfigWrapper(this)),
+    muleNotificationProcessor.init(OpenTelemetryConnection
+        .getInstance(new OpenTelemetryConfigWrapper(this)),
         getTraceLevelConfiguration());
     notificationListenerRegistry.registerListener(
         new MuleMessageProcessorNotificationListener(muleNotificationProcessor));

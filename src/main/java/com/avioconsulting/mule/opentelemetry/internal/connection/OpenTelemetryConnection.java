@@ -60,7 +60,6 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   private boolean turnOffTracing = false;
 
   private OpenTelemetryConnection(OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
-
     Properties properties = getModuleProperties();
     String instrumentationVersion = properties.getProperty("module.version", INSTRUMENTATION_VERSION);
     String instrumentationName = properties.getProperty("module.artifactId", INSTRUMENTATION_NAME);
@@ -123,6 +122,10 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     if (openTelemetryConnection == null) {
       openTelemetryConnection = new OpenTelemetryConnection(openTelemetryConfigWrapper);
     }
+    return openTelemetryConnection;
+  }
+
+  public static synchronized OpenTelemetryConnection getInstance() {
     return openTelemetryConnection;
   }
 
