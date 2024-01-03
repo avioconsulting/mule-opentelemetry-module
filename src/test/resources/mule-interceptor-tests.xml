@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	  xmlns="http://www.mulesoft.org/schema/mule/core"
+	  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd">
+
+	<import file="global-common.xml"/>
+
+	<flow name="mule-opentelemetry-app-2-interceptor-test" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
+		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />
+		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
+	</flow>
+
+	<!-- Flow under test is calling a sub-flow and a flow using flow-refs -->
+	<flow name="mule-opentelemetry-app-2-interceptor-test-http" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
+		<flow-ref name="http-request-sub-flow"/>
+		<flow-ref name="http-request-flow"/>
+	</flow>
+
+	<sub-flow name="http-request-sub-flow">
+		<http:request method="GET" doc:name="Request from sub-flow" config-ref="SELF_HTTP_Request_configuration" path="/test-remote-request-2"/>
+	</sub-flow>
+
+	<flow name="http-request-flow">
+		<http:request method="GET" doc:name="Request from flow" config-ref="SELF_HTTP_Request_configuration" path="/test-remote-request-1"/>
+	</flow>
+
+	<flow name="mule-opentelemetry-app-requester-remote-1" >
+		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test-remote-request-1"/>
+		<logger level="INFO" doc:name="Logger"/>
+	</flow>
+	<flow name="mule-opentelemetry-app-requester-remote-2" >
+		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test-remote-request-2"/>
+		<logger level="INFO" doc:name="Logger"/>
+	</flow>
+</mule>

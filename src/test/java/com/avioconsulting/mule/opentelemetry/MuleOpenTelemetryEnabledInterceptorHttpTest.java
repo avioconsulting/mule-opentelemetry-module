@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry;
 
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Rule;
@@ -10,6 +11,7 @@ import org.mule.tck.junit4.rule.DynamicPort;
 
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class MuleOpenTelemetryEnabledInterceptorHttpTest extends AbstractMuleArtifactTraceTest {
 
@@ -18,7 +20,7 @@ public class MuleOpenTelemetryEnabledInterceptorHttpTest extends AbstractMuleArt
 
   @Override
   protected String getConfigFile() {
-    return "mule-opentelemetry-http.xml";
+    return "mule-interceptor-tests.xml";
   }
 
   @Override
@@ -42,5 +44,26 @@ public class MuleOpenTelemetryEnabledInterceptorHttpTest extends AbstractMuleArt
         .extracting("value", as(InstanceOfAssertFactories.map(String.class, String.class)))
         .containsEntry(TransactionStore.TRACE_TRANSACTION_ID, "test-correlation-id")
         .containsKey("traceparent");
+  }
+
+  @Test
+  public void testInterceptorFlowVariableHttpInjection() throws Exception {
+    CoreEvent event = flowRunner("mule-opentelemetry-app-2-interceptor-test-http")
+        .withSourceCorrelationId("test-correlation-id").run();
+
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:request flow ref")
+              .extracting("spanName", "spanKind")
+              .containsOnly("/test-remote-request-1", "CLIENT");
+        }));
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:request sub-flow ref")
+              .extracting("spanName", "spanKind")
+              .containsOnly("/test-remote-request-2", "CLIENT");
+        }));
   }
 }

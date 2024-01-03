@@ -5,6 +5,7 @@ import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryCo
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
+import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.Location;
@@ -69,25 +70,36 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
         event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY,
             openTelemetryConnection.getTraceContext(transactionId));
       } else {
-        Optional<TraceComponent> traceComponent = configurationComponentLocator
+        Component component = configurationComponentLocator
             .find(Location.builderFromStringRepresentation(
                 location.getLocation()).build())
-            .map(c -> processorComponent.getStartTraceComponent(c, event.getMessage(),
-                event.getCorrelationId()));
-        if (!traceComponent.isPresent()) {
+            // sub-flows are not beans by definitions,
+            // so any processors within sub-flows won't be found by location
+            // lookup by identifiers and then match the location to find it
+            .orElseGet(() -> configurationComponentLocator
+                .find(location.getComponentIdentifier().getIdentifier()).stream()
+                .filter(c -> c.getLocation().getLocation().equals(location.getLocation())).findFirst()
+                .orElse(null));
+
+        if (component == null) {
+          LOGGER.warn("Could not locate a component for {} at {}",
+              location.getComponentIdentifier().getIdentifier(), location.getLocation());
+          return;
+        }
+        TraceComponent traceComponent = processorComponent.getStartTraceComponent(component, event.getMessage(),
+            event.getCorrelationId());
+        if (traceComponent == null) {
           LOGGER.warn("Could not build a trace component for {} at {}",
               location.getComponentIdentifier().getIdentifier(), location.getLocation());
           return;
         }
-        traceComponent.ifPresent(tc -> {
-          LOGGER.trace("Creating Span in the interceptor for {} at {}",
-              location.getComponentIdentifier().getIdentifier(), location.getLocation());
-          openTelemetryConnection.addProcessorSpan(tc, location.getRootContainerName());
-          String transactionId = openTelemetryConnection.getTransactionStore().transactionIdFor(event);
-          event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY,
-              openTelemetryConnection.getTraceContext(transactionId,
-                  location));
-        });
+        LOGGER.trace("Creating Span in the interceptor for {} at {}",
+            location.getComponentIdentifier().getIdentifier(), location.getLocation());
+        openTelemetryConnection.addProcessorSpan(traceComponent, location.getRootContainerName());
+        String transactionId = openTelemetryConnection.getTransactionStore().transactionIdFor(event);
+        event.addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY,
+            openTelemetryConnection.getTraceContext(transactionId,
+                location));
       }
       if (LOGGER.isTraceEnabled()) {
         LOGGER.trace("Intercepted with logic '{}'", location);
