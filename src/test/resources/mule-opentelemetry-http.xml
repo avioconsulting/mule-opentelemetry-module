@@ -103,6 +103,11 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 {
 	"traceparent" : vars.OTEL_TRACE_CONTEXT.traceparent as String
 }]]]></http:headers>
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"param1" : "Value"
+}]]]></http:query-params>
 		</http:request>
 	</flow>
 	<flow name="mule-opentelemetry-app-2-context-propagation-target" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
@@ -117,6 +122,15 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 	</flow>
 	<flow name="mule-opentelemetry-app-2-remote-target" >
 		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test/remote/target"/>
+		<set-payload value="From Remote target" doc:name="Set Payload"/>
+	</flow>
+	<flow name="mule-opentelemetry-app-requester-uri-param-remote" >
+		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test-remote-param/{docId}"/>
+		<http:request method="GET" doc:name="Request" config-ref="SELF_HTTP_Request_configuration" path="/test/remote/target-param/123"/>
+		<logger level="INFO" doc:name="Logger"/>
+	</flow>
+	<flow name="mule-opentelemetry-app-2-remote-uri-param-target" >
+		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test/remote/target-param/{paramId}"/>
 		<set-payload value="From Remote target" doc:name="Set Payload"/>
 	</flow>
 </mule>

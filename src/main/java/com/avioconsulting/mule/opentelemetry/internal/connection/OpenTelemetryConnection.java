@@ -7,6 +7,7 @@ import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryUtil;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.metrics.MetricsInstaller;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemconvStability;
 import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
 import com.avioconsulting.mule.opentelemetry.internal.store.SpanMeta;
@@ -106,6 +107,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         .build();
     setupCustomMetrics(openTelemetryConfigWrapper);
     transactionStore = InMemoryTransactionStore.getInstance();
+    SemconvStability.init();
   }
 
   private void setupCustomMetrics(OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
