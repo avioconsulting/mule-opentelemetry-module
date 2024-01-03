@@ -34,12 +34,13 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
     MessageProcessorNotification notification = MessageProcessorNotification.createFrom(event, componentLocation,
         component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
-
+    when(connection.isTurnOffMetrics()).thenReturn(true);
     MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
-    notificationProcessor.init(() -> connection, false);
+    notificationProcessor.init(connection, new TraceLevelConfiguration(false, Collections.emptyList()));
     notificationProcessor.handleProcessorStartEvent(notification);
 
-    verifyZeroInteractions(connection);
+    verify(connection).isTurnOffMetrics();
+    verifyNoMoreInteractions(connection);
   }
 
   @Test
@@ -55,17 +56,18 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
     MessageProcessorNotification notification = MessageProcessorNotification.createFrom(event, componentLocation,
         component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
-
+    when(connection.isTurnOffMetrics()).thenReturn(true);
     MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
 
     List<MuleComponent> skippedProcessors = new ArrayList<>();
     skippedProcessors.add(new MuleComponent("mule", "logger"));
     TraceLevelConfiguration traceLevelConfiguration = new TraceLevelConfiguration(true, skippedProcessors);
 
-    notificationProcessor.init(() -> connection, traceLevelConfiguration);
+    notificationProcessor.init(connection, traceLevelConfiguration);
     notificationProcessor.handleProcessorStartEvent(notification);
 
-    verifyZeroInteractions(connection);
+    verify(connection).isTurnOffMetrics();
+    verifyNoMoreInteractions(connection);
   }
 
   @Test
@@ -80,17 +82,18 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
     MessageProcessorNotification notification = MessageProcessorNotification.createFrom(event, componentLocation,
         component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
-
+    when(connection.isTurnOffMetrics()).thenReturn(true);
     MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
 
     List<MuleComponent> skippedProcessors = new ArrayList<>();
     skippedProcessors.add(new MuleComponent("mule", "*"));
     TraceLevelConfiguration traceLevelConfiguration = new TraceLevelConfiguration(true, skippedProcessors);
 
-    notificationProcessor.init(() -> connection, traceLevelConfiguration);
+    notificationProcessor.init(connection, traceLevelConfiguration);
     notificationProcessor.handleProcessorStartEvent(notification);
 
-    verifyZeroInteractions(connection);
+    verify(connection).isTurnOffMetrics();
+    verifyNoMoreInteractions(connection);
   }
 
   @Test
@@ -106,12 +109,12 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
     MessageProcessorNotification notification = MessageProcessorNotification.createFrom(event, componentLocation,
         component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
-
+    when(connection.isTurnOffMetrics()).thenReturn(true);
     MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
-    notificationProcessor.init(() -> connection, false);
+    notificationProcessor.init(connection, new TraceLevelConfiguration(false, Collections.emptyList()));
     notificationProcessor.handleProcessorEndEvent(notification);
-
-    verifyZeroInteractions(connection);
+    verify(connection).isTurnOffMetrics();
+    verifyNoMoreInteractions(connection);
   }
 
 }

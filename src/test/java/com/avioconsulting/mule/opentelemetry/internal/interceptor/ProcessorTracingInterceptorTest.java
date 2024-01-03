@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 
+import com.avioconsulting.mule.opentelemetry.internal.AbstractInternalTest;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
@@ -18,7 +19,7 @@ import java.util.concurrent.CompletableFuture;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-public class ProcessorTracingInterceptorTest {
+public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
 
   @Test
   public void injectContextInVars_NonProcessorComponent() {
@@ -37,7 +38,9 @@ public class ProcessorTracingInterceptorTest {
     when(connection.getTraceContext("random-id"))
         .thenReturn(traceparentMap);
     MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
-    when(muleNotificationProcessor.getConnectionSupplier()).thenReturn(() -> connection);
+    when(muleNotificationProcessor.getOpenTelemetryConnection()).thenReturn(connection);
+    when(muleNotificationProcessor.hasConnection()).thenReturn(true);
+
     ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
     ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
         configurationComponentLocator);

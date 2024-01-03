@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk;
 
+import com.avioconsulting.mule.opentelemetry.internal.AbstractInternalTest;
 import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;
 import io.opentelemetry.sdk.resources.Resource;
 import org.junit.Test;
@@ -10,7 +11,7 @@ import java.util.Properties;
 import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class MuleResourceProviderTest {
+public class MuleResourceProviderTest extends AbstractInternalTest {
 
   @Test
   public void createResource() {

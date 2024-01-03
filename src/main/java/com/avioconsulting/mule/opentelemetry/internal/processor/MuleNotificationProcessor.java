@@ -82,7 +82,11 @@ public class MuleNotificationProcessor {
   }
 
   public boolean hasConnection() {
-    return connectionSupplier != null;
+    return openTelemetryConnection != null;
+  }
+
+  public OpenTelemetryConnection getOpenTelemetryConnection() {
+    return openTelemetryConnection;
   }
 
   public Supplier<OpenTelemetryConnection> getConnectionSupplier() {
@@ -93,24 +97,15 @@ public class MuleNotificationProcessor {
     return traceLevelConfiguration;
   }
 
-  public void init(Supplier<OpenTelemetryConnection> connectionSupplier, boolean spanAllProcessors) {
-    init(connectionSupplier, new TraceLevelConfiguration(spanAllProcessors, Collections.emptyList()));
-  }
-
-  public void init(Supplier<OpenTelemetryConnection> connectionSupplier,
+  public void init(OpenTelemetryConnection connection,
       TraceLevelConfiguration traceLevelConfiguration) {
-    this.connectionSupplier = connectionSupplier;
+    this.openTelemetryConnection = connection;
     this.spanAllProcessors = Boolean.parseBoolean(System.getProperty(MULE_OTEL_SPAN_PROCESSORS_ENABLE_PROPERTY_NAME,
         Boolean.toString(traceLevelConfiguration.isSpanAllProcessors())));
     this.traceLevelConfiguration = traceLevelConfiguration;
     processorComponentService = ProcessorComponentService.getInstance();
-  }
-
-  private void init() {
-    if (openTelemetryConnection == null) {
-      openTelemetryConnection = connectionSupplier.get();
-    }
-    muleMetricsProcessor = openTelemetryConnection.isTurnOffMetrics() ? MuleMetricsProcessor.noop
+    muleMetricsProcessor = (openTelemetryConnection == null || openTelemetryConnection.isTurnOffMetrics())
+        ? MuleMetricsProcessor.noop
         : new DefaultMuleMetricsProcessor(openTelemetryConnection, meteredComponentLocations);
   }
 
@@ -129,7 +124,6 @@ public class MuleNotificationProcessor {
             "Handling '{}:{}' processor start event",
             notification.getResourceIdentifier(),
             notification.getComponent().getIdentifier());
-        init();
         TraceComponent traceComponent = processorComponent.getStartTraceComponent(notification)
             .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()));
         openTelemetryConnection.addProcessorSpan(traceComponent,
@@ -186,7 +180,6 @@ public class MuleNotificationProcessor {
             "Handling '{}:{}' processor end event ",
             notification.getResourceIdentifier(),
             notification.getComponent().getIdentifier());
-        init();
         TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification)
             .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()));
         SpanMeta spanMeta = openTelemetryConnection.endProcessorSpan(traceComponent,
@@ -205,7 +198,6 @@ public class MuleNotificationProcessor {
   public void handleFlowStartEvent(PipelineMessageNotification notification) {
     try {
       logger.trace("Handling '{}' flow start event", notification.getResourceIdentifier());
-      init();
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceStartTraceComponent(notification, openTelemetryConnection)
           .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()));
@@ -223,7 +215,6 @@ public class MuleNotificationProcessor {
   public void handleFlowEndEvent(PipelineMessageNotification notification) {
     try {
       logger.trace("Handling '{}' flow end event", notification.getResourceIdentifier());
-      init();
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceEndTraceComponent(notification, openTelemetryConnection)
           .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()));

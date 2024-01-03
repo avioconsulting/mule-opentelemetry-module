@@ -1,11 +1,16 @@
 package com.avioconsulting.mule.opentelemetry.internal.config;
 
+import com.avioconsulting.mule.opentelemetry.api.config.ExporterConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
+import com.avioconsulting.mule.opentelemetry.api.config.exporter.OpenTelemetryExporter;
 import com.avioconsulting.mule.opentelemetry.api.config.metrics.CustomMetricInstrumentDefinition;
+import com.avioconsulting.mule.opentelemetry.internal.AbstractInternalTest;
+import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MetricEventNotificationListener;
 import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MuleMessageProcessorNotificationListener;
 import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MulePipelineMessageNotificationListener;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -18,15 +23,14 @@ import org.mule.runtime.api.notification.NotificationListenerRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class OpenTelemetryExtensionConfigurationTest {
+public class OpenTelemetryExtensionConfigurationTest extends AbstractInternalTest {
 
   @Mock
   NotificationListenerRegistry notificationListenerRegistry;
@@ -34,8 +38,19 @@ public class OpenTelemetryExtensionConfigurationTest {
   MuleNotificationProcessor muleNotificationProcessor;
   @Mock
   TraceLevelConfiguration traceLevelConfiguration;
+
+  @Mock
+  OpenTelemetryExporter exporter;
+  @Mock
+  ExporterConfiguration exporterConfiguration;
   @InjectMocks
   OpenTelemetryExtensionConfiguration extensionConfiguration;
+
+  @Before
+  public void setUp() throws Exception {
+    extensionConfiguration.setExporterConfiguration(exporterConfiguration);
+    extensionConfiguration.setTurnOffMetrics(true);
+  }
 
   @Test
   public void getMetricInstrumentDefinitionMap_OtelKeysForbidden() {
@@ -132,11 +147,14 @@ public class OpenTelemetryExtensionConfigurationTest {
   @Test
   public void verifyStartActivities() throws MuleException {
     assertThat(extensionConfiguration.notificationListenerRegistry).isNotNull();
+    MuleNotificationProcessor spy = spy(muleNotificationProcessor);
+    extensionConfiguration.muleNotificationProcessor = spy;
+    doNothing().when(spy).init(any(OpenTelemetryConnection.class), any(TraceLevelConfiguration.class));
     extensionConfiguration.start();
     verify(notificationListenerRegistry).registerListener(any(MuleMessageProcessorNotificationListener.class));
     verify(notificationListenerRegistry).registerListener(any(MulePipelineMessageNotificationListener.class));
     verify(notificationListenerRegistry).registerListener(any(MetricEventNotificationListener.class),
         any(Predicate.class));
-    verify(muleNotificationProcessor).init(any(Supplier.class), any(TraceLevelConfiguration.class));
+    verify(spy).init(any(OpenTelemetryConnection.class), any(TraceLevelConfiguration.class));
   }
 }

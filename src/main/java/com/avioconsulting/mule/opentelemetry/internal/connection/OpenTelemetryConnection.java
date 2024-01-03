@@ -109,7 +109,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   }
 
   private void setupCustomMetrics(OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
-    if (openTelemetryConfigWrapper == null)
+    if (openTelemetryConfigWrapper == null || openTelemetryConfigWrapper.isTurnOffMetrics())
       return;
     Map<String, CustomMetricInstrumentHolder<?>> instruments = new HashMap<>();
     for (CustomMetricInstrumentDefinition customMetricInstrumentDefinition : openTelemetryConfigWrapper
@@ -178,6 +178,10 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         MetricsInstaller.install(openTelemetryConnection);
       }
     }
+    return openTelemetryConnection;
+  }
+
+  public static synchronized OpenTelemetryConnection getInstance() {
     return openTelemetryConnection;
   }
 

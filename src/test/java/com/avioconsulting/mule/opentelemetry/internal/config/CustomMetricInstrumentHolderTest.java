@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.config;
 
 import com.avioconsulting.mule.opentelemetry.api.config.metrics.CustomMetricInstrumentDefinition;
+import com.avioconsulting.mule.opentelemetry.internal.AbstractInternalTest;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.metrics.LongCounter;
 import org.assertj.core.api.Assertions;
@@ -8,7 +9,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-public class CustomMetricInstrumentHolderTest {
+public class CustomMetricInstrumentHolderTest extends AbstractInternalTest {
 
   @Test
   public void verifyHolder() {

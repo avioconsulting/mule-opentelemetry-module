@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.jmh;
 import com.avioconsulting.mule.opentelemetry.api.config.ExporterConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.config.OpenTelemetryResource;
 import com.avioconsulting.mule.opentelemetry.api.config.SpanProcessorConfiguration;
+import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.LoggingExporter;
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.OpenTelemetryExporter;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
@@ -67,7 +68,7 @@ public class ProcessorTracingInterceptorTest extends AbstractJMHTest {
     ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
     MuleNotificationProcessor muleNotificationProcessor = new MuleNotificationProcessor(
         configurationComponentLocator);
-    muleNotificationProcessor.init(() -> connection, true);
+    muleNotificationProcessor.init(connection, new TraceLevelConfiguration(true, Collections.emptyList()));
     interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor, configurationComponentLocator);
     event = new TestInterceptionEvent(TEST_1_TRANSACTION_ID);
   }

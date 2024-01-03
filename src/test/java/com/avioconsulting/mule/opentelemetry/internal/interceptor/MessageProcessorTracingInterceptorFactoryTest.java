@@ -2,6 +2,8 @@ package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 
 import com.avioconsulting.mule.opentelemetry.api.config.MuleComponent;
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
+import com.avioconsulting.mule.opentelemetry.internal.AbstractInternalTest;
+import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,7 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class MessageProcessorTracingInterceptorFactoryTest {
+public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInternalTest {
 
   @Mock
   MuleNotificationProcessor muleNotificationProcessor;
@@ -161,7 +163,8 @@ public class MessageProcessorTracingInterceptorFactoryTest {
     when(location.getParts()).thenReturn(Arrays.asList(part1));
 
     MuleNotificationProcessor muleNotificationProcessor1 = new MuleNotificationProcessor(null);
-    muleNotificationProcessor1.init(() -> null, new TraceLevelConfiguration(true, Collections.emptyList(),
+    OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
+    muleNotificationProcessor1.init(connection, new TraceLevelConfiguration(true, Collections.emptyList(),
         Collections.singletonList(new MuleComponent("http", "*")), Collections.emptyList()));
 
     assertThat(
@@ -257,8 +260,9 @@ public class MessageProcessorTracingInterceptorFactoryTest {
         .map(s -> new MuleComponent(s, "*")).collect(Collectors.toList());
 
     MuleNotificationProcessor muleNotificationProcessor1 = new MuleNotificationProcessor(null);
-    muleNotificationProcessor1.init(null, new TraceLevelConfiguration(true, Collections.emptyList(),
-        Collections.singletonList(new MuleComponent("mule", "logger")), Collections.emptyList()));
+    muleNotificationProcessor1.init((OpenTelemetryConnection) null,
+        new TraceLevelConfiguration(true, Collections.emptyList(),
+            Collections.singletonList(new MuleComponent("mule", "logger")), Collections.emptyList()));
     assertThat(
         new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor1, configurationComponentLocator)
             .getInterceptExclusions())
@@ -281,8 +285,9 @@ public class MessageProcessorTracingInterceptorFactoryTest {
   @Test
   public void getInterceptInclusionsWithTraceLevelConfig() {
     MuleNotificationProcessor muleNotificationProcessor1 = new MuleNotificationProcessor(null);
-    muleNotificationProcessor1.init(null, new TraceLevelConfiguration(true, Collections.emptyList(),
-        Collections.emptyList(), Collections.singletonList(new MuleComponent("mule", "logger"))));
+    muleNotificationProcessor1.init((OpenTelemetryConnection) null,
+        new TraceLevelConfiguration(true, Collections.emptyList(),
+            Collections.emptyList(), Collections.singletonList(new MuleComponent("mule", "logger"))));
     assertThat(
         new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor1, configurationComponentLocator)
             .getInterceptInclusions())
