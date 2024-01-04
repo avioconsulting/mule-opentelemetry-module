@@ -25,7 +25,13 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 	</sub-flow>
 
 	<flow name="http-request-flow">
-		<http:request method="GET" doc:name="Request from flow" config-ref="SELF_HTTP_Request_configuration" path="/test-remote-request-1"/>
+		<http:request method="GET" doc:name="Request from flow" config-ref="SELF_HTTP_Request_configuration" path="/test-remote-request-1">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"traceparent" : vars.OTEL_TRACE_CONTEXT.traceparent as String
+}]]]></http:headers>
+		</http:request>
 	</flow>
 
 	<flow name="mule-opentelemetry-app-requester-remote-1" >
@@ -35,5 +41,16 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 	<flow name="mule-opentelemetry-app-requester-remote-2" >
 		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test-remote-request-2"/>
 		<logger level="INFO" doc:name="Logger"/>
+	</flow>
+
+
+	<flow name="intercept-flow-variable-reset" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
+		<logger doc:name="before-flow-ref" message="Before Flow ref"/>
+		<flow-ref name="flow-ref-target-flow"/>
+		<logger doc:name="after-flow-ref" message="After Flow ref"/>
+	</flow>
+
+	<flow name="flow-ref-target-flow">
+		<logger doc:name="target-logger" message="Target Logger"/>
 	</flow>
 </mule>
