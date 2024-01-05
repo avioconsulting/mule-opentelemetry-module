@@ -1,21 +1,26 @@
 package com.avioconsulting.mule.opentelemetry.internal.store;
 
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
+import static com.avioconsulting.mule.opentelemetry.internal.processor.util.HttpSpanUtil.*;
+
 public class FlowSpan implements Serializable {
   private final String flowName;
+  private String rootSpanName;
   private final Span span;
   private final String transactionId;
   private final Map<String, ProcessorSpan> childSpans = new ConcurrentHashMap<>();
   private Map<String, String> tags = new HashMap<>();
+  private String apikitConfigName;
 
   public FlowSpan(String flowName, Span span, String transactionId) {
     this.flowName = flowName;
@@ -29,6 +34,10 @@ public class FlowSpan implements Serializable {
 
   public String getFlowName() {
     return flowName;
+  }
+
+  public String getApikitConfigName() {
+    return apikitConfigName;
   }
 
   /**
@@ -52,11 +61,33 @@ public class FlowSpan implements Serializable {
       ProcessorSpan parentSpan = childSpans.getOrDefault(containerName, ps);
       spanBuilder.setParent(parentSpan.getContext());
     }
+    extractAPIKitConfigName(traceComponent);
+    resetSpanNameIfNeeded(traceComponent);
     Span span = spanBuilder.startSpan();
     ProcessorSpan ps = new ProcessorSpan(span, traceComponent.getLocation(), transactionId,
         traceComponent.getStartTime(), flowName).setTags(traceComponent.getTags());
     childSpans.put(traceComponent.getLocation(), ps);
     return ps;
+  }
+
+  private void resetSpanNameIfNeeded(TraceComponent traceComponent) {
+    if (!PropertiesUtil.isUseAPIKitSpanNames())
+      return;
+    if (apikitConfigName != null && traceComponent.getName().endsWith(":" + apikitConfigName)) {
+      if (rootSpanName.endsWith("/*")) { // Wildcard listener for HTTP APIKit Router
+        String spanName = apiKitRoutePath(traceComponent.getTags(), getRootSpanName());
+        getSpan().updateName(spanName);
+      }
+    }
+  }
+
+  private void extractAPIKitConfigName(TraceComponent traceComponent) {
+    if (apikitConfigName == null
+        && "apikit"
+            .equals(traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_NAMESPACE.getKey()))
+        && "router".equals(traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_NAME.getKey()))) {
+      apikitConfigName = traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF.getKey());
+    }
   }
 
   public SpanMeta endProcessorSpan(String location, Consumer<ProcessorSpan> spanUpdater, Instant endTime) {
@@ -81,6 +112,15 @@ public class FlowSpan implements Serializable {
 
   public FlowSpan setTags(Map<String, String> tags) {
     this.tags = tags;
+    return this;
+  }
+
+  public String getRootSpanName() {
+    return rootSpanName;
+  }
+
+  public FlowSpan setRootSpanName(String rootSpanName) {
+    this.rootSpanName = rootSpanName;
     return this;
   }
 }

@@ -1,0 +1,30 @@
+#%RAML 1.0
+title: Order Experience API
+version: v1
+baseUri: /{version}
+
+types:
+  order: !include ./types/order.raml
+  orderSummary: !include ./types/orderSummary.raml
+
+/orders:
+  post:
+    description: Create New Order
+    body:
+      application/json:
+        type: order
+    responses:
+      201:
+        body:
+          application/json:
+            type: orderSummary
+  /{orderId}:
+    get:
+      description: Get Order Details
+      responses:
+        200:
+          body:
+            application/json:
+              type: order
+        404:
+    
