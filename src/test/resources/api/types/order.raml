@@ -1,0 +1,13 @@
+#%RAML 1.0 DataType
+displayName: Order
+properties:
+  customerId:
+    type: !include ./uuid.raml
+  orderItems:
+    type: array
+    items:
+      type: !include ./orderItem.raml
+    minItems: 1
+  shipmentAddressId:
+    type: !include ./uuid.raml
+

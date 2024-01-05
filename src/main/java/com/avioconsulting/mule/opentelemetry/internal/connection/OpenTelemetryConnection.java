@@ -3,12 +3,14 @@ package com.avioconsulting.mule.opentelemetry.internal.connection;
 import com.avioconsulting.mule.opentelemetry.api.config.metrics.CustomMetricInstrumentDefinition;
 import com.avioconsulting.mule.opentelemetry.internal.config.CustomMetricInstrumentHolder;
 import com.avioconsulting.mule.opentelemetry.api.config.metrics.MetricsInstrumentType;
-import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryUtil;
+import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.metrics.MetricsInstaller;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.store.*;
+import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
+
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.events.GlobalEventEmitterProvider;
@@ -105,6 +107,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         .build();
     setupCustomMetrics(openTelemetryConfigWrapper);
     transactionStore = InMemoryTransactionStore.getInstance();
+    PropertiesUtil.init();
   }
 
   private void setupCustomMetrics(OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
@@ -361,7 +364,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   public void setSpanStatus(TraceComponent traceComponent, Span span) {
     if (traceComponent.getStatusCode() != null
         && !StatusCode.UNSET.equals(traceComponent.getStatusCode())) {
-      span.setStatus(traceComponent.getStatusCode());
+      span.setStatus(traceComponent.getStatusCode(), traceComponent.getErrorMessage());
     }
   }
 

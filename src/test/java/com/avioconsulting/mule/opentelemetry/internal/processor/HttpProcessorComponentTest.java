@@ -188,7 +188,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
 
     assertThat(sourceTraceComponent)
         .isNotNull()
-        .extracting("name", "spanName").containsExactly("test-flow", "/test");
+        .extracting("name", "spanName").containsExactly("test-flow", "GET /test");
     assertThat(sourceTraceComponent.getTags())
         .hasSize(7)
         .containsEntry("http.method", "GET")

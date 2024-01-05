@@ -55,7 +55,9 @@ public class InMemoryTransactionStore implements TransactionStore {
       transactionMap.put(
           transactionId,
           new Transaction(traceComponent.getTransactionId(), span.getSpanContext().getTraceId(), rootFlowName,
-              new FlowSpan(rootFlowName, span, transactionId).setTags(traceComponent.getTags()),
+              new FlowSpan(rootFlowName, span, transactionId)
+                  .setTags(traceComponent.getTags())
+                  .setRootSpanName(traceComponent.getSpanName()),
               traceComponent.getStartTime()));
     }
   }

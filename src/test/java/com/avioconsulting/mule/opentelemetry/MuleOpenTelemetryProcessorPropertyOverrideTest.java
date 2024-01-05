@@ -36,7 +36,7 @@ public class MuleOpenTelemetryProcessorPropertyOverrideTest extends AbstractMule
             .as("Spans for listener and processors")
             .hasSize(1)
             .extracting("spanName", "spanKind")
-            .containsOnly(tuple("/test", "SERVER")));
+            .containsOnly(tuple("GET /test", "SERVER")));
   }
 
   /**
@@ -60,9 +60,9 @@ public class MuleOpenTelemetryProcessorPropertyOverrideTest extends AbstractMule
               assertThat(span)
                   .as("Span for http:listener source flow")
                   .extracting("spanName", "spanKind", "traceId")
-                  .containsOnly("/test/remote/flow-ref", "SERVER", head.getTraceId());
+                  .containsOnly("GET /test/remote/flow-ref", "SERVER", head.getTraceId());
             }));
-    DelegatedLoggingSpanTestExporter.Span sourceServer = getSpan("SERVER", "/test/remote/flow-ref");
+    DelegatedLoggingSpanTestExporter.Span sourceServer = getSpan("SERVER", "GET /test/remote/flow-ref");
 
     DelegatedLoggingSpanTestExporter.Span flowRefTargetServer = getSpan("INTERNAL",
         "flow-ref:mule-opentelemetry-app-flow-ref-target");

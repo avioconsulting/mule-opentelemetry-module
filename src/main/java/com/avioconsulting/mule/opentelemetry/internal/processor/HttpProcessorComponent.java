@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
+import com.avioconsulting.mule.opentelemetry.internal.processor.util.HttpSpanUtil;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import org.mule.extension.http.api.HttpRequestAttributes;
@@ -81,6 +82,12 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         .orElse(notification.getEvent().getMessage());
     TypedValue<HttpResponseAttributes> responseAttributes = responseMessage.getAttributes();
 
+    // Sometimes errors such as HTTP:CONNECTIVITY can cause failure before the HTTP
+    // is established
+    // in such cases error object will be there but not the HTTP Response attributes
+    notification.getEvent().getError()
+        .ifPresent(error -> endTraceComponent
+            .withStatsCode(getSpanStatus(false, 500)));
     if (responseAttributes.getValue() == null
         || !(responseAttributes.getValue() instanceof HttpResponseAttributes)) {
       // When HTTP Requester executes successfully (eg. 200), notification event DOES
@@ -179,7 +186,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     return TraceComponent.named(notification.getResourceIdentifier())
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
-        .withSpanName(attributes.getListenerPath()) // In case of wildcard, it may be to generic. Eg. /api/*
+        .withSpanName(HttpSpanUtil.spanName(tags, attributes.getListenerPath()))
         .withContext(traceContextHandler.getTraceContext(attributes.getHeaders(), ContextMapGetter.INSTANCE));
   }
 
