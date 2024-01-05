@@ -126,4 +126,7 @@ public final class SemanticAttributes {
    * Key to capture Error types
    */
   public static final AttributeKey<String> ERROR_TYPE = AttributeKey.stringKey("error.type");
+
+  public static final AttributeKey<String> MULE_APP_SCOPE_SUBFLOW_NAME = AttributeKey
+      .stringKey("mule.app.scope.subflow.name");
 }

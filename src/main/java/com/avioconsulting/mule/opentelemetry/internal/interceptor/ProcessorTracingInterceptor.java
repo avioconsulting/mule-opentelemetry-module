@@ -4,7 +4,10 @@ import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
+import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
+import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.Component;
+import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.Location;
@@ -16,12 +19,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.concurrent.ThreadSafe;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
 import static com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore.TRACE_CONTEXT_MAP_KEY;
 import static com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore.TRACE_PREV_CONTEXT_MAP_KEY;
+import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.findLocation;
+import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.isFlowRef;
 
 /**
  * Interceptor to set tracing context information in flow a variable
@@ -99,11 +106,41 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
             location.getComponentIdentifier().getIdentifier(), location.getLocation());
         muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(traceComponent,
             location.getRootContainerName());
-        String transactionId = muleNotificationProcessor.getOpenTelemetryConnection().getTransactionStore()
+        final String transactionId = muleNotificationProcessor.getOpenTelemetryConnection()
+            .getTransactionStore()
             .transactionIdFor(event);
-        event.addVariable(TRACE_CONTEXT_MAP_KEY,
-            muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId,
-                location));
+        if (isFlowRef(location)) {
+          Optional<ComponentLocation> subFlowLocation = findLocation(
+              traceComponent.getTags().get("mule.app.processor.flowRef.name"),
+              configurationComponentLocator)
+                  .filter(ComponentsUtil::isSubFlow);
+          if (subFlowLocation.isPresent()) {
+            ComponentLocation subFlowComp = subFlowLocation.get();
+            TraceComponent subflowTrace = TraceComponent.named(subFlowComp.getLocation())
+                .withTransactionId(traceComponent.getTransactionId())
+                .withLocation(subFlowComp.getLocation())
+                .withSpanName(subFlowComp.getLocation())
+                .withSpanKind(SpanKind.INTERNAL)
+                .withTags(Collections.singletonMap(MULE_APP_SCOPE_SUBFLOW_NAME.getKey(),
+                    subFlowComp.getLocation()))
+                .withStatsCode(traceComponent.getStatusCode())
+                .withStartTime(traceComponent.getStartTime())
+                .withContext(traceComponent.getContext());
+            muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(subflowTrace,
+                traceComponent.getLocation());
+            event.addVariable(TRACE_CONTEXT_MAP_KEY,
+                muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId,
+                    subFlowComp));
+          } else {
+            event.addVariable(TRACE_CONTEXT_MAP_KEY,
+                muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId,
+                    location));
+          }
+        } else {
+          event.addVariable(TRACE_CONTEXT_MAP_KEY,
+              muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId,
+                  location));
+        }
       }
       if (LOGGER.isTraceEnabled()) {
         LOGGER.trace("Intercepted with logic '{}'", location);
