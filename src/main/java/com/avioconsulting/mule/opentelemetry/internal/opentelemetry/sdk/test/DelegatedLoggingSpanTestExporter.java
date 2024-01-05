@@ -30,6 +30,7 @@ public class DelegatedLoggingSpanTestExporter implements SpanExporter {
       span.setSpanKind(spanData.getKind().toString());
       span.setTraceId(spanData.getTraceId());
       span.setSpanStatus(spanData.getStatus().getStatusCode().name());
+      span.setSpanStatusDescription(spanData.getStatus().getDescription());
       span.setInstrumentationName(spanData.getInstrumentationScopeInfo().getName());
       span.setInstrumentationVersion(spanData.getInstrumentationScopeInfo().getVersion());
       Map<String, Object> attributes = new HashMap<>();
@@ -70,6 +71,7 @@ public class DelegatedLoggingSpanTestExporter implements SpanExporter {
 
     private SpanContext parentSpanContext;
     private SpanContext spanContext;
+    private String spanStatusDescription;
 
     public String getInstrumentationName() {
       return instrumentationName;
@@ -93,6 +95,15 @@ public class DelegatedLoggingSpanTestExporter implements SpanExporter {
 
     public void setSpanStatus(String spanStatus) {
       this.spanStatus = spanStatus;
+    }
+
+    public String getSpanStatusDescription() {
+      return spanStatusDescription;
+    }
+
+    public Span setSpanStatusDescription(String spanStatusDescription) {
+      this.spanStatusDescription = spanStatusDescription;
+      return this;
     }
 
     public void setSpanName(String spanName) {
@@ -161,6 +172,7 @@ public class DelegatedLoggingSpanTestExporter implements SpanExporter {
           ", spanId='" + spanId + '\'' +
           ", spanKind='" + spanKind + '\'' +
           ", spanStatus='" + spanStatus + '\'' +
+          ", spanStatusDescription='" + spanStatusDescription + '\'' +
           ", attributes=" + attributes +
           ", parentSpanContext=" + parentSpanContext +
           ", spanContext=" + spanContext +
