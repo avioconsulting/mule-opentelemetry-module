@@ -8,6 +8,7 @@ import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfig
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.store.TransactionContext;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
@@ -56,13 +57,13 @@ public class InMemoryTransactionStoreTest extends AbstractJMHTest {
 
   @Benchmark
   public void getTransactionContext(Blackhole blackhole) {
-    Context transactionContext = connection.getTransactionStore().getTransactionContext("test-1", null);
+    TransactionContext transactionContext = connection.getTransactionStore().getTransactionContext("test-1", null);
     blackhole.consume(transactionContext);
   }
 
   @Benchmark
   public void getTransactionComponentContext(Blackhole blackhole) {
-    Context transactionContext = connection.getTransactionStore().getTransactionContext("test-1",
+    TransactionContext transactionContext = connection.getTransactionStore().getTransactionContext("test-1",
         COMPONENT_LOCATION);
     blackhole.consume(transactionContext);
   }
