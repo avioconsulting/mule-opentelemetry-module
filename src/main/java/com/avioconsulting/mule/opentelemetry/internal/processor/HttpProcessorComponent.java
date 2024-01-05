@@ -81,6 +81,12 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         .orElse(notification.getEvent().getMessage());
     TypedValue<HttpResponseAttributes> responseAttributes = responseMessage.getAttributes();
 
+    // Sometimes errors such as HTTP:CONNECTIVITY can cause failure before the HTTP
+    // is established
+    // in such cases error object will be there but not the HTTP Response attributes
+    notification.getEvent().getError()
+        .ifPresent(error -> endTraceComponent
+            .withStatsCode(getSpanStatus(false, 500)));
     if (responseAttributes.getValue() == null
         || !(responseAttributes.getValue() instanceof HttpResponseAttributes)) {
       // When HTTP Requester executes successfully (eg. 200), notification event DOES
