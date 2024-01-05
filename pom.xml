@@ -463,6 +463,21 @@
             <version>4.1.0</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.mule.modules</groupId>
+            <artifactId>mule-apikit-module</artifactId>
+            <version>1.8.4</version>
+            <classifier>mule-plugin</classifier>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <!-- Adding apikit module without xml-apis causes
+            java.lang.NoClassDefFoundError: org/w3c/dom/ElementTraversal -->
+            <groupId>xml-apis</groupId>
+            <artifactId>xml-apis</artifactId>
+            <version>1.4.01</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <profiles>

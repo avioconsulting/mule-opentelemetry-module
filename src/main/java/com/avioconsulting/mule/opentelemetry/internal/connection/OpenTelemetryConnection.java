@@ -1,6 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.connection;
 
-import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryUtil;
+import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
@@ -8,6 +8,7 @@ import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionS
 import com.avioconsulting.mule.opentelemetry.internal.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionMeta;
 import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
+import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.events.GlobalEventEmitterProvider;
@@ -90,6 +91,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     openTelemetry = builder.build().getOpenTelemetrySdk();
     tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
     transactionStore = InMemoryTransactionStore.getInstance();
+    PropertiesUtil.init();
   }
 
   public boolean isTurnOffTracing() {
