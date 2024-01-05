@@ -5,7 +5,7 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
-import io.opentelemetry.context.Context;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -78,13 +78,13 @@ public class InMemoryTransactionStore implements TransactionStore {
     return transactionMap.get(transactionId);
   }
 
-  private Context getTransactionContext(Transaction transaction) {
-    return transaction == null ? Context.current()
-        : transaction.getRootFlowSpan().getSpan().storeInContext(Context.current());
+  private TransactionContext getTransactionContext(Transaction transaction) {
+    return transaction == null ? TransactionContext.current()
+        : TransactionContext.of(transaction.getRootFlowSpan().getSpan());
   }
 
   @Override
-  public Context getTransactionContext(String transactionId, ComponentLocation componentLocation) {
+  public TransactionContext getTransactionContext(String transactionId, ComponentLocation componentLocation) {
     Transaction transaction = getTransaction(transactionId);
     if (componentLocation == null)
       return getTransactionContext(transaction);
@@ -92,7 +92,7 @@ public class InMemoryTransactionStore implements TransactionStore {
     if (transaction != null
         && ((processorSpan = transaction.getRootFlowSpan()
             .findSpan(componentLocation.getLocation())) != null)) {
-      return processorSpan.getSpan().storeInContext(Context.current());
+      return TransactionContext.of(processorSpan.getSpan());
     } else {
       return getTransactionContext(transaction);
     }
