@@ -4,11 +4,10 @@ import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
-import com.avioconsulting.mule.opentelemetry.internal.store.SpanMeta;
-import com.avioconsulting.mule.opentelemetry.internal.store.TransactionMeta;
+import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
+import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
-import org.mule.runtime.api.notification.ExtensionNotification;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.slf4j.Logger;
@@ -18,6 +17,10 @@ import javax.inject.Inject;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Supplier;
+
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
+import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.findLocation;
+import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.isFlowRef;
 
 /**
  * Notification Processor bean. This is injected through registry-bootstrap into
@@ -177,6 +180,26 @@ public class MuleNotificationProcessor {
             .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()));
         openTelemetryConnection.endProcessorSpan(traceComponent,
             notification.getEvent().getError().orElse(null));
+
+        if (isFlowRef(notification.getComponent().getLocation())) {
+          findLocation(traceComponent.getTags().get("mule.app.processor.flowRef.name"),
+              configurationComponentLocator)
+                  .filter(ComponentsUtil::isSubFlow)
+                  .ifPresent(subFlowComp -> {
+                    TraceComponent subflowTrace = TraceComponent.named(subFlowComp.getLocation())
+                        .withTransactionId(traceComponent.getTransactionId())
+                        .withLocation(subFlowComp.getLocation())
+                        .withSpanName(subFlowComp.getLocation())
+                        .withSpanKind(SpanKind.INTERNAL)
+                        .withTags(Collections.singletonMap(MULE_APP_SCOPE_SUBFLOW_NAME.getKey(),
+                            subFlowComp.getLocation()))
+                        .withStatsCode(traceComponent.getStatusCode())
+                        .withEndTime(traceComponent.getEndTime())
+                        .withContext(traceComponent.getContext());
+                    openTelemetryConnection.endProcessorSpan(subflowTrace,
+                        notification.getEvent().getError().orElse(null));
+                  });
+        }
       }
     } catch (Exception ex) {
       logger.error("Error in handling processor end event", ex);

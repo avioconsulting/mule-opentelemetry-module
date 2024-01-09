@@ -53,4 +53,14 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 	<flow name="flow-ref-target-flow">
 		<logger doc:name="target-logger" message="Target Logger"/>
 	</flow>
+
+	<flow name="intercept-subflow-flowref-context-propagation" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
+		<logger doc:name="before-flow-ref" message="Before Flow ref"/>
+		<flow-ref name="flow-ref-target-subflow"/>
+		<logger doc:name="after-flow-ref" message="After Flow ref"/>
+	</flow>
+
+	<sub-flow name="flow-ref-target-subflow">
+		<logger doc:name="target-logger" message="Target Logger"/>
+	</sub-flow>
 </mule>
