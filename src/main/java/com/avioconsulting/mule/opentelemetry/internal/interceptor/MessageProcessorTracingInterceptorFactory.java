@@ -9,6 +9,7 @@ import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.interception.ProcessorInterceptor;
 import org.mule.runtime.api.interception.ProcessorInterceptorFactory;
+import org.mule.runtime.extension.api.stereotype.SubFlowStereotype;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.FLOW;
+import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.SCOPE;
 
 /**
  * ProcessorInterceptorFactory can intercept processors. This is injected
@@ -118,14 +122,11 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
     if (interceptorEnabled &&
         muleNotificationProcessor.hasConnection()) {
       String interceptPath = String.format("%s/processors/0", location.getRootContainerName());
-      Optional<TypedComponentIdentifier> flowAsContainer = location.getParts().get(0).getPartIdentifier()
-          .filter(c -> TypedComponentIdentifier.ComponentType.FLOW.equals(c.getType()));
-
       // Intercept the first processor of the flow OR
       // included processor/namespaces OR
       // any processor/namespaces that are not excluded
       ComponentIdentifier identifier = location.getComponentIdentifier().getIdentifier();
-      boolean firstProcessor = flowAsContainer.isPresent()
+      boolean firstProcessor = isFlowTypeContainer(location)
           && interceptPath.equalsIgnoreCase(location.getLocation());
       boolean interceptConfigured = interceptInclusions.stream()
           .anyMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
@@ -155,5 +156,12 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
       LOGGER.debug("Will Intercept '{}'?: {}", location, intercept);
     }
     return intercept;
+  }
+
+  private boolean isFlowTypeContainer(ComponentLocation componentLocation) {
+    return componentLocation.getParts().get(0).getPartIdentifier()
+        .filter(c -> FLOW.equals(c.getType())
+            || (SCOPE.equals(c.getType())))
+        .isPresent();
   }
 }

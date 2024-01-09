@@ -240,6 +240,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(location.getLocation()).thenReturn("test-location");
     when(location.getRootContainerName()).thenReturn("test-flow-name");
     ComponentIdentifier ci = mock(ComponentIdentifier.class);
+    when(ci.getName()).thenReturn("something");
     TypedComponentIdentifier tci = mock(TypedComponentIdentifier.class);
     when(tci.getIdentifier()).thenReturn(ci);
     when(location.getComponentIdentifier()).thenReturn(tci);
