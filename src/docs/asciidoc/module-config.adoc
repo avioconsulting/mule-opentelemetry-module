@@ -389,10 +389,11 @@ NOTE: OpenTelemetry Trace Context is extracted/injected using configured Propaga
 
 To help with the context propagation, module allows to inject context into flow variables. This context includes following trace attributes -
 
-- TRACE_TRANSACTION_ID - An internal transaction id within Mule Context
-- traceId - Trace id of the current request
-- spanId - Span Id for the component used for creating context
-- OpenTelemetry Trace attributes such as traceparent, tracestate
+- *TRACE_TRANSACTION_ID* - An internal transaction id within Mule Context
+- *traceId* - Trace id of the current request
+- *traceIdLongLowPart* - Long value of the Trace Id Low part
+- *spanId* - Span Id for the component used for creating context
+- OpenTelemetry Trace attributes such as *traceparent*, *tracestate*
 
 Context can be injected in two ways, as described below.
 
@@ -525,8 +526,10 @@ Most commonly used attributes include -
 
 - Trace Id
 * Loggers can access the current trace id with `vars.OTEL_TRACE_CONTEXT.traceId`
+* Some APM backends (eg. DataDog) may require the Long trace Id instead of the 32-hex-character trace Id value. In that case, `vars.OTEL_TRACE_CONTEXT.traceIdLongLowPart` (since v1.6.0) can be used.
 - Span Id
 * Introduced with v1.5.0, Loggers can access the flow container span id with `vars.OTEL_TRACE_CONTEXT.spanId`
+* Some APM backends (eg. DataDog) may require the Long span Id instead of the 16-hex-character span Id value. In that case, `vars.OTEL_TRACE_CONTEXT.spanIdLong` (since v1.6.0) can be used.
 - Service name
 * Usually a static value, name of the application which can be injected through application properties such as `${domain}`
 - Deployment Environment
