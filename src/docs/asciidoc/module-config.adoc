@@ -387,6 +387,16 @@ NOTE: OpenTelemetry Trace Context is extracted/injected using configured Propaga
 
 ===== Context Injection
 
+To help with the context propagation, module allows to inject context into flow variables. This context includes following trace attributes -
+
+- *TRACE_TRANSACTION_ID* - An internal transaction id within Mule Context
+- *traceId* - Trace id of the current request
+- *traceIdLongLowPart* - Long value of the Trace Id Low part
+- *spanId* - Span Id for the component used for creating context
+- OpenTelemetry Trace attributes such as *traceparent*, *tracestate*
+
+Context can be injected in two ways, as described below.
+
 ====== Auto Injection to Flow Variables
 Extension uses a processor interceptor. OpenTelemetry's tracing context will be automatically added to a flow variable before the first processor is invoked.
 It is always injected under a key **OTEL_TRACE_CONTEXT**.
@@ -403,6 +413,8 @@ When the flow execution starts, OpenTelemetry context is injected into flow vari
 
 WARNING: This context relates to the main flow span and if used for propagation to external services then span rendering may not look accurate.See processor interceptor below.
 
+NOTE: OTEL_TRACE_CONTEXT.spanId will be of the flow container span.
+
 Following examples show a **W3C Trace Context** extracted from incoming http request and injected into flow variables:
 
 image::auto-context-flow-injection.png[600,600,title="Context Injection - First Processor",align="center"]
@@ -415,7 +427,9 @@ image::auto-context-flow-injection-2.png[600,600,title="Context Injection - Firs
 
 For the context propagation accuracy, certain processors are intercepted to inject current span's context into the flow variable.
 
-By default, any processors in `ee,mule,validations,aggregators,json,oauth,scripting,tracing,oauth2-provider,xml,wss,spring,java,avio-logger` namespaces are excluded from this context injection, with one exception.
+NOTE: *OTEL_TRACE_CONTEXT.spanId* will be of the span of the intercepted component.
+
+By default, any processors in the `ee,mule,validations,aggregators,json,oauth,scripting,tracing,oauth2-provider,xml,wss,spring,java,avio-logger` namespaces are excluded from this context injection, with one exception.
 
 There is one exception in `mule` namespace - `flow-ref`. All `flow-ref` 's are intercepted for context injection. Module's flow processing is capable of extracting this flow-ref context to create accurate parent-child span relationship between calling and referenced flows.
 
@@ -432,7 +446,9 @@ image::processor-interceptor-configuration.png[600, 600, title="Trace Level - Pr
 ====== Manual Injection
 If needed, `<opentelemetry:get-trace-context />` operation can be used to manually inject trace context into flow.
 
-**NOTE:** `target` must be used to set operation output to a flow variable.
+NOTE: `target` must be used to set operation output to a flow variable.
+
+NOTE: *OTEL_TRACE_CONTEXT.spanId* will be of the flow container span.
 
 WARNING: Similar to link:module-config.adoc#_first_processor_interceptor[First Processor Interceptor], tis context relates to the main flow span and if used for propagation to external services then span rendering may not look accurate.
 
@@ -500,6 +516,68 @@ Once you have configured the module in your application, there may be a need to 
 - Set `turnOffTracing="true"` on global config. You may use a property placeholder for the value.
 - Alternately, you can set the `mule.otel.tracing.disabled` system property to `true`.
 - To re-enable the tracing, just reset the property to `false` (default value).
+
+=== Logs Correlation
+
+When APM backends are used to capture Logs as well as Traces, they might support log and trace correlation.
+Depending on the APM, some specific attributes maybe needed in the log records to correlate them to the corresponding traces.
+
+Most commonly used attributes include -
+
+- Trace Id
+* Loggers can access the current trace id with `vars.OTEL_TRACE_CONTEXT.traceId`
+* Some APM backends (eg. DataDog) may require the Long trace Id instead of the 32-hex-character trace Id value. In that case, `vars.OTEL_TRACE_CONTEXT.traceIdLongLowPart` (since v1.6.0) can be used.
+- Span Id
+* Introduced with v1.5.0, Loggers can access the flow container span id with `vars.OTEL_TRACE_CONTEXT.spanId`
+* Some APM backends (eg. DataDog) may require the Long span Id instead of the 16-hex-character span Id value. In that case, `vars.OTEL_TRACE_CONTEXT.spanIdLong` (since v1.6.0) can be used.
+- Service name
+* Usually a static value, name of the application which can be injected through application properties such as `${domain}`
+- Deployment Environment
+* Usually a static value, name of the environment which can be injected through application properties such as `${mule.env}`
+
+==== Using Mule Tracing Module
+To add trace ID and span ID, you may add a mule tracing module to target the Mule application.
+
+[source,xml]
+----
+    <dependency>
+        <groupId>org.mule.modules</groupId>
+        <artifactId>mule-tracing-module</artifactId>
+        <version>1.0.0</version>
+        <classifier>mule-plugin</classifier>
+    </dependency>
+----
+
+In the first APIKit flow, add tracing module operations  -
+
+[source,xml]
+----
+    <tracing:set-logging-variable doc:name="Set Trace Id"
+        variableName="#['trace_id']"
+        value="#[vars.OTEL_TRACE_CONTEXT.traceId]"/>
+    <tracing:set-logging-variable doc:name="Set Span Id"
+        variableName="#['span_id']"
+        value="#[vars.OTEL_TRACE_CONTEXT.spanId default '']" />
+----
+
+==== Use Log4J JSON Layout
+
+When logging with Log4J, JSONLayout can be used to structure the log records with additional attributes.
+
+.Example JSONLayout writing to CONSOLE
+[source, xml]
+----
+    <!-- Console JSON layout that can be used to see full JSON format that will be sent for log aggregation in a real environment -->
+    <console name = "CONSOLE_JSON" target = "SYSTEM_OUT">
+        <JSONLayout includeTimeMillis="true" compact="false" eventEol="true" objectMessageAsJsonObject="true" properties="true" stacktraceAsString="true">
+            <KeyValuePair key="trace_id" value="${ctx:trace_id}"/>
+            <KeyValuePair key="span_id" value="${ctx:span_id}"/>
+            <KeyValuePair key="service.name" value="$${sys:domain}"/>
+            <KeyValuePair key="deployment.environment" value="$${env:mule.env}"/>
+            <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ}" />
+        </JSONLayout>
+    </console>
+----
 
 === Generated Documentation
 

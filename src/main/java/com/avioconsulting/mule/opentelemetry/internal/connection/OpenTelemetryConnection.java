@@ -35,6 +35,8 @@ import static com.avioconsulting.mule.opentelemetry.internal.store.TransactionSt
 
 public class OpenTelemetryConnection implements TraceContextHandler {
 
+  public static final String TRACE_ID_LONG_LOW_PART = "traceIdLongLowPart";
+  public static final String SPAN_ID_LONG = "spanIdLong";
   private final Logger logger = LoggerFactory.getLogger(OpenTelemetryConnection.class);
 
   /**
@@ -197,8 +199,10 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         componentLocation);
     Map<String, String> traceContext = new HashMap<>(10);
     traceContext.put(TRACE_TRANSACTION_ID, transactionId);
-    traceContext.put(TRACE_ID, getTransactionStore().getTraceIdForTransaction(transactionId));
+    traceContext.put(TRACE_ID, transactionContext.getTraceId());
+    traceContext.put(TRACE_ID_LONG_LOW_PART, transactionContext.getTraceIdLongLowPart());
     traceContext.put(SPAN_ID, transactionContext.getSpanId());
+    traceContext.put(SPAN_ID_LONG, transactionContext.getSpanIdLong());
     injectTraceContext(transactionContext.getContext(), traceContext,
         HashMapTextMapSetter.INSTANCE);
     logger.debug("Created trace context '{}' for TRACE_TRANSACTION_ID={}, Component Location '{}'", traceContext,
