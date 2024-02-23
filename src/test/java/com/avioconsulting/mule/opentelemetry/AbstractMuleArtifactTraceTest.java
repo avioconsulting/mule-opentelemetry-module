@@ -1,8 +1,8 @@
 package com.avioconsulting.mule.opentelemetry;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider;
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporterProvider;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -34,7 +34,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ArtifactClassLoaderRunnerConfig(exportPluginClasses = { OpenTelemetryConnection.class,
-    DelegatedLoggingSpanExporterProvider.class }, applicationSharedRuntimeLibs = {
+    DelegatedLoggingSpanTestExporterProvider.class }, applicationSharedRuntimeLibs = {
         "org.apache.derby:derby" })
 public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {
 
@@ -51,16 +51,16 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
     Awaitility.setDefaultPollInterval(2, SECONDS);
     Awaitility.setDefaultTimeout(10, SECONDS);
 
-    // Reduce the time between batch export. Speeds up tese completion.
+    // Reduce the time between batch export. Speeds up the completion.
     System.setProperty("otel.bsp.schedule.delay", "100");
   }
 
   @After
   public void clearSpansQueue() {
-    Awaitility.await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue).as(
+    Awaitility.await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue).as(
         "Cleaning span queue with @Before. If It is expected to be empty, override clearSpansQueue from abstract test.")
         .isNotEmpty());
-    DelegatedLoggingSpanExporter.spanQueue.clear();
+    DelegatedLoggingSpanTestExporter.spanQueue.clear();
   }
 
   @Override

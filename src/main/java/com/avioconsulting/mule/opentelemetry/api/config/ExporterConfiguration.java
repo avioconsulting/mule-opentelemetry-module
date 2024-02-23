@@ -25,6 +25,11 @@ public class ExporterConfiguration {
   @Expression(ExpressionSupport.NOT_SUPPORTED)
   private OpenTelemetryExporter exporter;
 
+  public ExporterConfiguration setExporter(OpenTelemetryExporter exporter) {
+    this.exporter = exporter;
+    return this;
+  }
+
   public OpenTelemetryExporter getExporter() {
     return exporter;
   }

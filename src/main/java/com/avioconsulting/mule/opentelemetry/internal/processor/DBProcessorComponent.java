@@ -8,7 +8,7 @@ import org.mule.runtime.api.metadata.TypedValue;
 
 import java.util.*;
 
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.*;
+import static io.opentelemetry.semconv.SemanticAttributes.*;
 
 public class DBProcessorComponent extends AbstractProcessorComponent {
 

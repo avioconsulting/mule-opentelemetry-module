@@ -4,8 +4,11 @@ import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
+import com.avioconsulting.mule.opentelemetry.internal.store.SpanMeta;
+import com.avioconsulting.mule.opentelemetry.internal.store.TransactionMeta;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.notification.ExtensionNotification;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.slf4j.Logger;
@@ -33,7 +36,8 @@ public class MuleNotificationProcessor {
   private OpenTelemetryConnection openTelemetryConnection;
 
   ConfigurationComponentLocator configurationComponentLocator;
-  private final List<String> interceptEnabledComponents = new ArrayList<>();
+  private final List<String> interceptSpannedComponents = new ArrayList<>();
+  private final List<String> meteredComponentLocations = new ArrayList<>();
   private ProcessorComponentService processorComponentService;
   private final ProcessorComponent flowProcessorComponent;
 
@@ -41,7 +45,6 @@ public class MuleNotificationProcessor {
    * This {@link GenericProcessorComponent} will be used for processors that do
    * not have a specific processor like {@link HttpProcessorComponent}.
    */
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType") // Avoid to creation object per notification instance
   private final ProcessorComponent genericProcessorComponent;
 
   @Inject
@@ -53,8 +56,25 @@ public class MuleNotificationProcessor {
         .withConfigurationComponentLocator(configurationComponentLocator);
   }
 
-  public void addInterceptEnabledComponents(String location) {
-    interceptEnabledComponents.add(location);
+  /**
+   * Locations that are intercepted for span creation. These will be excluded from
+   * span creation from notifications.
+   * 
+   * @param location
+   *            {@link String} value of target processor
+   */
+  public void addInterceptSpannedComponents(String location) {
+    interceptSpannedComponents.add(location);
+  }
+
+  /**
+   * Locations that are intercepted and eligible for capturing metrics.
+   * 
+   * @param location
+   *            {@link String} value of target processor
+   */
+  public void addMeteredComponentLocation(String location) {
+    meteredComponentLocations.add(location);
   }
 
   public boolean hasConnection() {
@@ -90,7 +110,7 @@ public class MuleNotificationProcessor {
 
   public void handleProcessorStartEvent(MessageProcessorNotification notification) {
     String location = notification.getComponent().getLocation().getLocation();
-    if (interceptEnabledComponents.contains(location)) {
+    if (interceptSpannedComponents.contains(location)) {
       logger.trace(
           "Component {} will be processed by interceptor, skipping notification processing to create span",
           location);
@@ -152,6 +172,7 @@ public class MuleNotificationProcessor {
   }
 
   public void handleProcessorEndEvent(MessageProcessorNotification notification) {
+    String location = notification.getComponent().getLocation().getLocation();
     try {
       ProcessorComponent processorComponent = getProcessorComponent(notification);
       if (processorComponent != null) {

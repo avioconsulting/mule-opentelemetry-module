@@ -17,7 +17,7 @@ public class TraceComponent {
   private SpanKind spanKind;
   private String errorMessage;
   private StatusCode statusCode;
-  private Instant startTime;
+  private Instant startTime = Instant.now();
   private Instant endTime;
 
   private TraceComponent(String name) {

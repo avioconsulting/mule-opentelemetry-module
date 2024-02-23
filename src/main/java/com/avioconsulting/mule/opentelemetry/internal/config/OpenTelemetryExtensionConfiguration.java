@@ -7,8 +7,8 @@ import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryOperations;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnectionProvider;
-import com.avioconsulting.mule.opentelemetry.internal.listeners.MuleMessageProcessorNotificationListener;
-import com.avioconsulting.mule.opentelemetry.internal.listeners.MulePipelineMessageNotificationListener;
+import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MuleMessageProcessorNotificationListener;
+import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MulePipelineMessageNotificationListener;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.lifecycle.Startable;
@@ -33,7 +33,7 @@ import javax.inject.Inject;
 @Operations(OpenTelemetryOperations.class)
 @ConnectionProviders(OpenTelemetryConnectionProvider.class)
 @Configuration
-public class OpenTelemetryExtensionConfiguration implements Startable, Stoppable {
+public class OpenTelemetryExtensionConfiguration implements Startable, Stoppable, OpenTelemetryConfiguration {
 
   public static final String PROP_MULE_OTEL_TRACING_DISABLED = "mule.otel.tracing.disabled";
   private final Logger logger = LoggerFactory.getLogger(OpenTelemetryExtensionConfiguration.class);
@@ -78,22 +78,54 @@ public class OpenTelemetryExtensionConfiguration implements Startable, Stoppable
         .parseBoolean(System.getProperty(PROP_MULE_OTEL_TRACING_DISABLED)) : turnOffTracing;
   }
 
-  public TraceLevelConfiguration getTraceLevelConfiguration() {
-    return traceLevelConfiguration;
+  public OpenTelemetryExtensionConfiguration setTurnOffTracing(boolean turnOffTracing) {
+    this.turnOffTracing = turnOffTracing;
+    return this;
   }
 
-  public ExporterConfiguration getExporterConfiguration() {
-    return exporterConfiguration;
-  }
-
-  public SpanProcessorConfiguration getSpanProcessorConfiguration() {
-    return spanProcessorConfiguration;
-  }
-
+  @Override
   public OpenTelemetryResource getResource() {
     return resource;
   }
 
+  public OpenTelemetryExtensionConfiguration setResource(OpenTelemetryResource resource) {
+    this.resource = resource;
+    return this;
+  }
+
+  @Override
+  public ExporterConfiguration getExporterConfiguration() {
+    return exporterConfiguration;
+  }
+
+  public OpenTelemetryExtensionConfiguration setExporterConfiguration(ExporterConfiguration exporterConfiguration) {
+    this.exporterConfiguration = exporterConfiguration;
+    return this;
+  }
+
+  @Override
+  public TraceLevelConfiguration getTraceLevelConfiguration() {
+    return traceLevelConfiguration;
+  }
+
+  public OpenTelemetryExtensionConfiguration setTraceLevelConfiguration(
+      TraceLevelConfiguration traceLevelConfiguration) {
+    this.traceLevelConfiguration = traceLevelConfiguration;
+    return this;
+  }
+
+  @Override
+  public SpanProcessorConfiguration getSpanProcessorConfiguration() {
+    return spanProcessorConfiguration;
+  }
+
+  public OpenTelemetryExtensionConfiguration setSpanProcessorConfiguration(
+      SpanProcessorConfiguration spanProcessorConfiguration) {
+    this.spanProcessorConfiguration = spanProcessorConfiguration;
+    return this;
+  }
+
+  @Override
   public String getConfigName() {
     return configName;
   }
@@ -132,8 +164,7 @@ public class OpenTelemetryExtensionConfiguration implements Startable, Stoppable
     logger.info("Initiating otel config - '{}'", getConfigName());
     muleNotificationProcessor.init(
         () -> OpenTelemetryConnection
-            .getInstance(new OpenTelemetryConfigWrapper(getResource(),
-                getExporterConfiguration().getExporter(), getSpanProcessorConfiguration())),
+            .getInstance(new OpenTelemetryConfigWrapper(this)),
         getTraceLevelConfiguration());
     notificationListenerRegistry.registerListener(
         new MuleMessageProcessorNotificationListener(muleNotificationProcessor));

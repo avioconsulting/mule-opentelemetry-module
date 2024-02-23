@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.opentelemetry.semconv.trace.attributes.SemanticAttributes.*;
+import static io.opentelemetry.semconv.SemanticAttributes.*;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 

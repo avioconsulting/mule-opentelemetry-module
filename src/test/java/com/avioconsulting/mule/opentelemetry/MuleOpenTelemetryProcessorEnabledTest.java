@@ -1,7 +1,7 @@
 package com.avioconsulting.mule.opentelemetry;
 
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider;
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider.Span;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter.Span;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -22,7 +22,7 @@ public class MuleOpenTelemetryProcessorEnabledTest extends AbstractMuleArtifactT
   public void testProcessorTracing() throws Exception {
     sendRequest(UUID.randomUUID().toString(), "test", 200);
     await().untilAsserted(
-        () -> assertThat(DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter.spanQueue)
+        () -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
             .as("Spans for listener and processors")
             .hasSize(4)
             .extracting("spanName", "spanKind")
@@ -43,7 +43,7 @@ public class MuleOpenTelemetryProcessorEnabledTest extends AbstractMuleArtifactT
   public void testProcessorSkipping() throws Exception {
     sendRequest(UUID.randomUUID().toString(), "otel-processor-flow", 200);
     await().untilAsserted(
-        () -> assertThat(DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter.spanQueue)
+        () -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
             .as("Spans for listener and processors")
             .hasSize(2)
             .extracting("spanName", "spanKind")
@@ -55,13 +55,13 @@ public class MuleOpenTelemetryProcessorEnabledTest extends AbstractMuleArtifactT
   public void testFlowRefParentTraces() throws Exception {
     sendRequest(CORRELATION_ID, "/test/remote/flow-ref", 200);
     await().untilAsserted(
-        () -> assertThat(DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter.spanQueue)
+        () -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
             .isNotEmpty());
-    Span head = DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter.spanQueue
+    Span head = DelegatedLoggingSpanTestExporter.spanQueue
         .peek();
 
     await().untilAsserted(
-        () -> assertThat(DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter.spanQueue)
+        () -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
             .hasSize(8)
             .anySatisfy(span -> {
               assertThat(span)
@@ -100,7 +100,7 @@ public class MuleOpenTelemetryProcessorEnabledTest extends AbstractMuleArtifactT
   }
 
   private static Span getSpan(String INTERNAL, String spanName) {
-    return DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter.spanQueue
+    return DelegatedLoggingSpanTestExporter.spanQueue
         .stream()
         .filter(s -> s.getSpanKind().equals(INTERNAL) && s.getSpanName().equals(spanName))
         .findFirst().get();

@@ -5,26 +5,36 @@ import com.avioconsulting.mule.opentelemetry.api.config.SpanProcessorConfigurati
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.OpenTelemetryExporter;
 
 public class OpenTelemetryConfigWrapper {
-  private final OpenTelemetryResource resource;
-  private final OpenTelemetryExporter exporter;
-  private SpanProcessorConfiguration spanProcessorConfiguration;
 
-  public OpenTelemetryConfigWrapper(OpenTelemetryResource resource, OpenTelemetryExporter exporter,
-      SpanProcessorConfiguration spanProcessorConfiguration) {
-    this.resource = resource;
-    this.exporter = exporter;
-    this.spanProcessorConfiguration = spanProcessorConfiguration;
+  private OpenTelemetryConfiguration openTelemetryConfiguration;
+
+  public OpenTelemetryConfigWrapper(OpenTelemetryConfiguration openTelemetryConfiguration) {
+    this.openTelemetryConfiguration = openTelemetryConfiguration;
   }
 
   public OpenTelemetryResource getResource() {
-    return resource;
+    return openTelemetryConfiguration.getResource();
   }
 
   public OpenTelemetryExporter getExporter() {
-    return exporter;
+    return openTelemetryConfiguration.getExporterConfiguration().getExporter();
   }
 
   public SpanProcessorConfiguration getSpanProcessorConfiguration() {
-    return spanProcessorConfiguration;
+    return openTelemetryConfiguration.getSpanProcessorConfiguration();
+  }
+
+  public boolean isTurnOffTracing() {
+    return openTelemetryConfiguration.isTurnOffTracing();
+  }
+
+  public OpenTelemetryConfiguration getOpenTelemetryConfiguration() {
+    return openTelemetryConfiguration;
+  }
+
+  public OpenTelemetryConfigWrapper setOpenTelemetryConfiguration(
+      OpenTelemetryConfiguration openTelemetryConfiguration) {
+    this.openTelemetryConfiguration = openTelemetryConfiguration;
+    return this;
   }
 }

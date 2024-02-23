@@ -462,10 +462,10 @@ These notifications can be subscribed to by "listeners" either programmatically 
 configuration file.
 
 .Example of subscribing to notifications programmatically
-[source%nowrap%linenums, java]
+[source%nowrap%linenums,java]
 ----
-import com.avioconsulting.mule.opentelemetry.internal.listeners.MuleMessageProcessorNotificationListener;
-import com.avioconsulting.mule.opentelemetry.internal.listeners.MulePipelineMessageNotificationListener;
+import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MuleMessageProcessorNotificationListener;
+import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MulePipelineMessageNotificationListener;
 import org.mule.runtime.api.notification.NotificationListenerRegistry;
 import javax.inject.Inject;
 
@@ -483,15 +483,15 @@ public class RegisterNotificationListeners
 ----
 
 .Example of subscribing to notifications using the `<notification>` element
-[source%nowrap%linenums, xml]
+[source%nowrap%linenums,xml]
 ----
 <object doc:name="Object"
         name="_mulePipelineNotificationListener"
-        class="com.avioconsulting.mule.opentelemetry.internal.listeners.MulePipelineMessageNotificationListener" />
+        class="com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MulePipelineMessageNotificationListener" />
 
 <object doc:name="Object"
         name="_muleMessageProcessorNotificationListener"
-        class="com.avioconsulting.mule.opentelemetry.internal.listeners.MulePipelineMessageNotificationListener" />
+        class="com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MulePipelineMessageNotificationListener" />
 
 <notifications>
     <notification event="PIPELINE-MESSAGE"/>

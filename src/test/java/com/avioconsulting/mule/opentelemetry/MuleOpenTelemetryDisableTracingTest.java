@@ -1,6 +1,6 @@
 package com.avioconsulting.mule.opentelemetry;
 
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
 import org.junit.After;
 import org.junit.Test;
 
@@ -15,12 +15,14 @@ public class MuleOpenTelemetryDisableTracingTest extends AbstractMuleArtifactTra
   protected void doSetUpBeforeMuleContextCreation() throws Exception {
     super.doSetUpBeforeMuleContextCreation();
     System.setProperty("mule.otel.tracing.disabled", "true");
+    System.setProperty("mule.otel.metrics.disabled", "true");
   }
 
   @Override
   protected void doTearDownAfterMuleContextDispose() throws Exception {
     super.doTearDownAfterMuleContextDispose();
     System.clearProperty("mule.otel.tracing.disabled");
+    System.clearProperty("mule.otel.metrics.disabled");
   }
 
   @Override
@@ -35,10 +37,10 @@ public class MuleOpenTelemetryDisableTracingTest extends AbstractMuleArtifactTra
   }
 
   @Test
-  public void tracingDisabledBySystemProperty() throws Exception {
+  public void telemetryDisabledBySystemProperty() throws Exception {
     sendRequest(UUID.randomUUID().toString(), "test", 200);
     await().untilAsserted(
-        () -> assertThat(DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter.spanQueue)
+        () -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
             .as("Spans for listener and processors")
             .hasSize(0));
   }

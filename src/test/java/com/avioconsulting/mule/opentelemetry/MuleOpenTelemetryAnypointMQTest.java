@@ -1,7 +1,6 @@
 package com.avioconsulting.mule.opentelemetry;
 
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider;
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.DelegatedLoggingSpanExporterProvider.DelegatedLoggingSpanExporter;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import junitparams.JUnitParamsRunner;
 import org.junit.*;
@@ -64,7 +63,7 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
     return "anypoint-mq-flows.xml";
   }
 
-  private void assertSpan(DelegatedLoggingSpanExporterProvider.Span span, String docName, String spanKind) {
+  private void assertSpan(DelegatedLoggingSpanTestExporter.Span span, String docName, String spanKind) {
 
     assertThat(span.getAttributes())
         .containsEntry("messaging.system", "anypointmq")
@@ -105,9 +104,9 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
     sendRequest(UUID.randomUUID().toString(), "/test/amq/publish", 200,
         Collections.singletonMap("traceparent", "00-56e7765c3b2a673b0394a9fe7b2b7253-7658fdea51c1ec71-01"));
 
-    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanExporter.spanQueue)
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .hasSizeGreaterThanOrEqualTo(3));
-    assertThat(DelegatedLoggingSpanExporter.spanQueue)
+    assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .anySatisfy(span -> assertSpan(span, "Publish", "PRODUCER"))
         .anySatisfy(span -> assertSpan(span, "Publish", "SERVER"));
   }
@@ -121,7 +120,7 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
                     .withHeader("content-type", "application/json")));
     runFlow("anypoint-mq-consume-operation");
     await().untilAsserted(() -> {
-      assertThat(DelegatedLoggingSpanExporter.spanQueue)
+      assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
           .hasSizeGreaterThanOrEqualTo(2)
           .anySatisfy(span -> assertSpan(span, "Consume", "CONSUMER"));
     });
@@ -131,7 +130,7 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
   public void testSubscriberTrace() throws Exception {
     runFlow("anypoint-mq-flowsFlow");
     await().untilAsserted(() -> {
-      assertThat(DelegatedLoggingSpanExporter.spanQueue)
+      assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
           .hasSizeGreaterThanOrEqualTo(2)
           .filteredOn(span -> span.getSpanKind().equals("CONSUMER"))
           .allSatisfy(span -> assertSpan(span, "Subscriber", "CONSUMER"));
