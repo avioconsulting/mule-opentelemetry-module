@@ -1,6 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes;
+import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 
 import java.util.Collections;
 import java.util.List;

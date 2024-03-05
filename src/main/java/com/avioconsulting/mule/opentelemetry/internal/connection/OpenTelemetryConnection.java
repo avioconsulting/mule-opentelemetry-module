@@ -1,15 +1,23 @@
 package com.avioconsulting.mule.opentelemetry.internal.connection;
 
-import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
+import com.avioconsulting.mule.opentelemetry.api.AppIdentifier;
+import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigProvider;
+import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsProvider;
+import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
+import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
+import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
+import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.api.traces.TransactionContext;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes;
-import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
-import com.avioconsulting.mule.opentelemetry.internal.store.*;
+import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
+import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
-
+import com.avioconsulting.mule.opentelemetry.internal.util.ServiceProviderUtil;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.events.GlobalEventEmitterProvider;
+import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.StatusCode;
@@ -27,27 +35,31 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore.*;
+import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.*;
 
 public class OpenTelemetryConnection implements TraceContextHandler {
 
   public static final String TRACE_ID_LONG_LOW_PART = "traceIdLongLowPart";
   public static final String SPAN_ID_LONG = "spanIdLong";
+  private final OpenTelemetryMetricsProviderCollection metricsProviders = ServiceProviderUtil
+      .load(OpenTelemetryMetricsProvider.class.getClassLoader(), OpenTelemetryMetricsProvider.class,
+          new OpenTelemetryMetricsProviderCollection());
   private final Logger logger = LoggerFactory.getLogger(OpenTelemetryConnection.class);
+  private OpenTelemetryMetricsConfigProvider metricsProvider;
+  private AppIdentifier appIdentifier;
 
   /**
    * Instrumentation version must be picked from the module's artifact version.
    * This is a fallback for any dev testing.
    */
   private static final String INSTRUMENTATION_VERSION = "0.0.1-DEV";
-  /**
-   * Instrumentation Name must be picked from the module's artifact id.
-   * This is a fallback for any dev testing.
-   */
 
   /**
    * Collect all otel specific system properties and cache them in a map.
@@ -87,17 +99,33 @@ public class OpenTelemetryConnection implements TraceContextHandler {
       builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
       logger.debug("Creating OpenTelemetryConnection with properties: [" + configMap + "]");
       turnOffTracing = openTelemetryConfigWrapper.isTurnOffTracing();
+      appIdentifier = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getAppIdentifier();
+      metricsProvider = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getMetricsConfigProvider();
     }
     builder.setServiceClassLoader(AutoConfiguredOpenTelemetrySdkBuilder.class.getClassLoader());
     builder.setResultAsGlobal();
+    if (metricsProvider != null)
+      metricsProvider.initialise(appIdentifier);
     openTelemetry = builder.build().getOpenTelemetrySdk();
+    if (metricsProvider != null) {
+      metricsProvider.start();
+      metricsProviders.initialize(metricsProvider, openTelemetry);
+    }
     tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
     transactionStore = InMemoryTransactionStore.getInstance();
     PropertiesUtil.init();
   }
 
+  public AppIdentifier getAppIdentifier() {
+    return appIdentifier;
+  }
+
   public boolean isTurnOffTracing() {
     return turnOffTracing;
+  }
+
+  public OpenTelemetryMetricsProviderCollection getMetricsProviders() {
+    return metricsProviders;
   }
 
   /**
@@ -116,6 +144,10 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    * Reset Global OpenTelemetry instances.
    */
   public static void resetForTest() {
+    if (openTelemetryConnection != null && openTelemetryConnection.metricsProvider != null) {
+      openTelemetryConnection.metricsProvider.stop();
+      openTelemetryConnection.getMetricsProviders().stop();
+    }
     GlobalOpenTelemetry.resetForTest();
     GlobalEventEmitterProvider.resetForTest();
     openTelemetryConnection = null;
@@ -227,6 +259,10 @@ public class OpenTelemetryConnection implements TraceContextHandler {
 
   }
 
+  public Meter get(String instrumentationScopeName) {
+    return openTelemetry.meterBuilder(instrumentationScopeName).build();
+  }
+
   public static enum HashMapTextMapSetter implements TextMapSetter<Map<String, String>> {
     INSTANCE;
 
@@ -265,13 +301,13 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     return getTransactionStore().endProcessorSpan(
         traceComponent.getTransactionId(),
         traceComponent.getLocation(),
-        processorSpan -> {
+        span -> {
           if (error != null) {
-            processorSpan.getSpan().recordException(error.getCause());
+            span.recordException(error.getCause());
           }
-          setSpanStatus(traceComponent, processorSpan.getSpan());
+          setSpanStatus(traceComponent, span);
           if (traceComponent.getTags() != null)
-            traceComponent.getTags().forEach(processorSpan.getSpan()::setAttribute);
+            traceComponent.getTags().forEach(span::setAttribute);
         },
         traceComponent.getEndTime());
   }

@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry.internal.store;
+package com.avioconsulting.mule.opentelemetry.api.store;
 
 import io.opentelemetry.context.Context;
 

@@ -1,15 +1,16 @@
-package com.avioconsulting.mule.opentelemetry.internal.store;
+package com.avioconsulting.mule.opentelemetry.api.store;
 
-import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.api.traces.TransactionContext;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.context.Context;
+import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.event.Event;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.function.Consumer;
-
-import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.event.Event;
 
 /** Transaction store for managing service transactions. */
 public interface TransactionStore {
@@ -57,6 +58,7 @@ public interface TransactionStore {
    *            A unique transaction id within the context of an application. Eg.
    *            Correlation id.
    * @param tagPrefix
+   *            String
    * @param tags
    *            {@link Map} of {@link String} Keys and {@link String} Values
    *            containing the tags.
@@ -136,9 +138,13 @@ public interface TransactionStore {
    * {@link #endTransaction(String, String, Consumer)}
    *
    * @param transactionId
+   *            {@link String}
    * @param rootFlowName
+   *            {@link String} associated with transaction
    * @param spanUpdater
+   *            {@link Consumer} to allow updating transaction span before ending.
    * @param endTime
+   *            {@link Instant}
    */
   TransactionMeta endTransaction(
       String transactionId, String rootFlowName, Consumer<Span> spanUpdater, Instant endTime);
@@ -149,6 +155,7 @@ public interface TransactionStore {
    * @param containerName
    *            {@link String} such as Flow name that contains requested location
    * @param traceComponent
+   *            {@link TraceComponent} for span
    * @param spanBuilder
    *            {@link SpanBuilder}
    */
@@ -187,12 +194,14 @@ public interface TransactionStore {
    * </code>
    *
    * @param transactionId
+   *            {@link String}
    * @param location
+   *            {@link String} of the span
    * @param spanUpdater
    *            {@link Consumer} to allow updating Span before ending.
    */
   default SpanMeta endProcessorSpan(
-      String transactionId, String location, Consumer<ProcessorSpan> spanUpdater) {
+      String transactionId, String location, Consumer<Span> spanUpdater) {
     return endProcessorSpan(transactionId, location, spanUpdater, null);
   }
 
@@ -202,11 +211,15 @@ public interface TransactionStore {
    * String, Consumer)}.
    *
    * @param transactionId
+   *            {@link String}
    * @param location
+   *            {@link String} of the span
    * @param spanUpdater
+   *            {@link Consumer} to allow updating Span before ending.
    * @param endTime
+   *            {@link Instant} of span end
    * @return SpanMeta
    */
   SpanMeta endProcessorSpan(
-      String transactionId, String location, Consumer<ProcessorSpan> spanUpdater, Instant endTime);
+      String transactionId, String location, Consumer<Span> spanUpdater, Instant endTime);
 }

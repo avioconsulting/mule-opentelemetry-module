@@ -2,6 +2,9 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
+import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
+import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
@@ -15,10 +18,12 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Supplier;
 
-import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.findLocation;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.isFlowRef;
 
@@ -77,7 +82,9 @@ public class MuleNotificationProcessor {
    *            {@link String} value of target processor
    */
   public void addMeteredComponentLocation(String location) {
-    meteredComponentLocations.add(location);
+    if (openTelemetryConnection != null) {
+      openTelemetryConnection.getMetricsProviders().addMeteredComponent(location);
+    }
   }
 
   public boolean hasConnection() {
@@ -178,7 +185,7 @@ public class MuleNotificationProcessor {
             notification.getComponent().getIdentifier());
         TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification)
             .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()));
-        openTelemetryConnection.endProcessorSpan(traceComponent,
+        SpanMeta spanMeta = openTelemetryConnection.endProcessorSpan(traceComponent,
             notification.getEvent().getError().orElse(null));
 
         if (isFlowRef(notification.getComponent().getLocation())) {
@@ -196,9 +203,20 @@ public class MuleNotificationProcessor {
                         .withStatsCode(traceComponent.getStatusCode())
                         .withEndTime(traceComponent.getEndTime())
                         .withContext(traceComponent.getContext());
-                    openTelemetryConnection.endProcessorSpan(subflowTrace,
+                    SpanMeta subFlow = openTelemetryConnection.endProcessorSpan(subflowTrace,
                         notification.getEvent().getError().orElse(null));
+                    if (subFlow != null) {
+                      openTelemetryConnection.getMetricsProviders().captureProcessorMetrics(
+                          notification.getComponent(),
+                          notification.getEvent().getError().orElse(null), location,
+                          spanMeta);
+                    }
                   });
+        }
+
+        if (spanMeta != null) {
+          openTelemetryConnection.getMetricsProviders().captureProcessorMetrics(notification.getComponent(),
+              notification.getEvent().getError().orElse(null), location, spanMeta);
         }
       }
     } catch (Exception ex) {
@@ -230,7 +248,12 @@ public class MuleNotificationProcessor {
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceEndTraceComponent(notification, openTelemetryConnection)
           .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()));
-      openTelemetryConnection.endTransaction(traceComponent, notification.getException());
+      TransactionMeta transactionMeta = openTelemetryConnection.endTransaction(traceComponent,
+          notification.getException());
+      openTelemetryConnection.getMetricsProviders().captureFlowMetrics(transactionMeta,
+          notification.getResourceIdentifier(),
+          notification.getException());
+
     } catch (Exception ex) {
       logger.error(
           "Error in handling " + notification.getResourceIdentifier() + " flow end event",
@@ -238,5 +261,13 @@ public class MuleNotificationProcessor {
       throw ex;
     }
   }
+  //
+  // public void captureCustomMetric(ExtensionNotification extensionNotification)
+  // {
+  // MetricEventNotification<Long> metric = (MetricEventNotification<Long>)
+  // extensionNotification.getData()
+  // .getValue();
+  // muleMetricsProcessor.captureCustomMetric(metric);
+  // }
 
 }

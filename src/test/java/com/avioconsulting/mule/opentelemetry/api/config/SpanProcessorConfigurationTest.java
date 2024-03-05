@@ -1,8 +1,10 @@
 package com.avioconsulting.mule.opentelemetry.api.config;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.*;
+import static org.junit.Assert.*;
 
 public class SpanProcessorConfigurationTest {
 

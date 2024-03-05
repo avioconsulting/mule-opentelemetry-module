@@ -1,11 +1,12 @@
 package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 
-import java.util.Map;
-import java.util.Optional;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.interception.InterceptionEvent;
 import org.mule.runtime.api.interception.ProcessorParameterValue;
 import org.mule.runtime.api.interception.SourceInterceptor;
+
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Doesn't let you modify the event before sending to flow but can let you

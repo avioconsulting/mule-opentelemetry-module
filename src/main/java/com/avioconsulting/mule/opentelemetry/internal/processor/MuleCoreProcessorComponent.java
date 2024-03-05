@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.metadata.TypedValue;

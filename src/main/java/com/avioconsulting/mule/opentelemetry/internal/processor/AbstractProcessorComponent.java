@@ -1,9 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
-
-import java.util.*;
-
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import org.mule.runtime.api.component.Component;
@@ -18,8 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.util.*;
 
-import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
 
 public abstract class AbstractProcessorComponent implements ProcessorComponent {
 

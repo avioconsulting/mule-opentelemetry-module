@@ -5,7 +5,7 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.sdk.resources.Resource;
 
-import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
 
 /**
  * Creates an OpenTelemetry {@link Resource} that adds Mule Runtime specific

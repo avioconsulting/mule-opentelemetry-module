@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry.internal.processor;
+package com.avioconsulting.mule.opentelemetry.api.traces;
 
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;

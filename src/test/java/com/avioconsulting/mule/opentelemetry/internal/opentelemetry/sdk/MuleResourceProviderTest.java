@@ -8,7 +8,7 @@ import org.mockito.Mockito;
 
 import java.util.Properties;
 
-import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MuleResourceProviderTest extends AbstractInternalTest {

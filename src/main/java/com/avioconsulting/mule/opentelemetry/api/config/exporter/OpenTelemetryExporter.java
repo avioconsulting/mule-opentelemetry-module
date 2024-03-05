@@ -8,4 +8,5 @@ public interface OpenTelemetryExporter {
   String OTEL_LOGS_EXPORTER_KEY = "otel.logs.exporter";
 
   Map<String, String> getExporterProperties();
+
 }

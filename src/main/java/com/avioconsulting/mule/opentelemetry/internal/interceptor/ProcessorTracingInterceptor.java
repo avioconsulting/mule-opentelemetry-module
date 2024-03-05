@@ -1,13 +1,12 @@
 package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
+import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
-import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
-import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.Component;
-import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.Location;
@@ -24,9 +23,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
-import static com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore.TRACE_CONTEXT_MAP_KEY;
-import static com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore.TRACE_PREV_CONTEXT_MAP_KEY;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
+import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.TRACE_CONTEXT_MAP_KEY;
+import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.TRACE_PREV_CONTEXT_MAP_KEY;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.findLocation;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.isFlowRef;
 

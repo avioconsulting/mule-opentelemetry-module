@@ -11,7 +11,7 @@ import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtens
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.interceptor.ProcessorTracingInterceptor;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
-import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;

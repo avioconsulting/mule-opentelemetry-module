@@ -1,7 +1,7 @@
 package com.avioconsulting.mule.opentelemetry;
 
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
-import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
+import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Rule;
 import org.junit.Test;

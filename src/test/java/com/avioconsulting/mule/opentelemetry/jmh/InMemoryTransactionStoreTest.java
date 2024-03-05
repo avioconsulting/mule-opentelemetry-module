@@ -1,19 +1,17 @@
 package com.avioconsulting.mule.opentelemetry.jmh;
 
 import com.avioconsulting.mule.opentelemetry.api.config.OpenTelemetryResource;
-import com.avioconsulting.mule.opentelemetry.api.config.SpanProcessorConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.LoggingExporter;
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.OpenTelemetryExporter;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
-import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
-import com.avioconsulting.mule.opentelemetry.internal.store.TransactionContext;
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.api.traces.TransactionContext;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.context.Context;
 import org.mule.runtime.dsl.api.component.config.DefaultComponentLocation;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
