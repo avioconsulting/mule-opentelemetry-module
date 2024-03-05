@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.mulesoft.extension.mq.api.attributes.AnypointMQMessageAttributes;
 import io.opentelemetry.api.trace.SpanKind;
@@ -11,7 +12,7 @@ import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import java.util.*;
 
-import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_PROCESSOR_NAME;
 import static io.opentelemetry.semconv.SemanticAttributes.*;
 import static io.opentelemetry.semconv.SemanticAttributes.MessagingOperationValues.PROCESS;
 import static io.opentelemetry.semconv.SemanticAttributes.MessagingOperationValues.RECEIVE;

@@ -55,8 +55,6 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
     Awaitility.setDefaultPollInterval(2, SECONDS);
     Awaitility.setDefaultTimeout(10, SECONDS);
 
-    // Reduce the time between batch export. Speeds up the completion.
-    System.setProperty("otel.bsp.schedule.delay", "100");
   }
 
   @After
@@ -72,6 +70,9 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
     OpenTelemetryConnection.resetForTest();
     super.doSetUpBeforeMuleContextCreation();
     System.setProperty(TEST_TIMEOUT_SYSTEM_PROPERTY, "120_000_000");
+
+    // Reduce the time between batch export. Speeds up the completion.
+    System.setProperty("otel.bsp.schedule.delay", "100");
   }
 
   protected void withOtelEndpoint() {

@@ -61,6 +61,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
 
     notificationProcessor.init(connection, traceLevelConfiguration);
     notificationProcessor.handleProcessorStartEvent(notification);
+
     verifyNoMoreInteractions(connection);
   }
 

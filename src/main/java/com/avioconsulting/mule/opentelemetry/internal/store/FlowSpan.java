@@ -1,17 +1,20 @@
 package com.avioconsulting.mule.opentelemetry.internal.store;
 
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes;
-import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
+import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
+
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-import static com.avioconsulting.mule.opentelemetry.internal.processor.util.HttpSpanUtil.*;
+import static com.avioconsulting.mule.opentelemetry.internal.processor.util.HttpSpanUtil.apiKitRoutePath;
 
 public class FlowSpan implements Serializable {
   private final String flowName;
@@ -90,12 +93,12 @@ public class FlowSpan implements Serializable {
     }
   }
 
-  public SpanMeta endProcessorSpan(String location, Consumer<ProcessorSpan> spanUpdater, Instant endTime) {
+  public SpanMeta endProcessorSpan(String location, Consumer<Span> spanUpdater, Instant endTime) {
     if (childSpans.containsKey(location)) {
       ProcessorSpan removed = childSpans.remove(location);
       removed.setEndTime(endTime);
       if (spanUpdater != null)
-        spanUpdater.accept(removed);
+        spanUpdater.accept(removed.getSpan());
       removed.getSpan().end(endTime);
       return removed;
     }

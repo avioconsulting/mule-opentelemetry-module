@@ -1,6 +1,6 @@
-package com.avioconsulting.mule.opentelemetry.internal.store;
+package com.avioconsulting.mule.opentelemetry.api.traces;
 
-import com.avioconsulting.mule.opentelemetry.internal.util.EncodingUtil;
+import com.avioconsulting.mule.opentelemetry.api.util.EncodingUtil;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanId;
 import io.opentelemetry.api.trace.TraceId;

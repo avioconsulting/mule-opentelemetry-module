@@ -1,6 +1,5 @@
 package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test;
 
-import io.opentelemetry.exporter.logging.LoggingSpanExporter;
 import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;
 import io.opentelemetry.sdk.autoconfigure.spi.traces.ConfigurableSpanExporterProvider;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
@@ -9,7 +8,7 @@ import io.opentelemetry.sdk.trace.export.SpanExporter;
  * Used during tests. This is not configured in module service loader provider,
  * so cannot be used by module.
  *
- * This delegates spans to {@link LoggingSpanExporter} and also stores them
+ * This stores them
  * in {@link DelegatedLoggingSpanTestExporter#spanQueue} for tests to access and
  * verify.
  */

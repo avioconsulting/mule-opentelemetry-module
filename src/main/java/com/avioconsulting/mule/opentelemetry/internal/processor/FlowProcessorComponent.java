@@ -1,9 +1,10 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
+import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
-import com.avioconsulting.mule.opentelemetry.internal.store.TransactionStore;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
 import org.mule.runtime.api.component.Component;
@@ -12,12 +13,12 @@ import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import java.util.*;
-
-import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes.*;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
 
 public class FlowProcessorComponent extends AbstractProcessorComponent {
   @Override

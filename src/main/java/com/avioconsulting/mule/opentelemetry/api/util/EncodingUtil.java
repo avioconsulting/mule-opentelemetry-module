@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry.internal.util;
+package com.avioconsulting.mule.opentelemetry.api.util;
 
 import static java.lang.Long.parseUnsignedLong;
 import static java.lang.Long.toUnsignedString;

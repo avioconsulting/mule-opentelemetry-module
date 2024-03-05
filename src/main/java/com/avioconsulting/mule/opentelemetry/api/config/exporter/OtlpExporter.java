@@ -9,7 +9,10 @@ import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Example;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -19,6 +22,7 @@ public class OtlpExporter extends AbstractExporter {
   public static final String OTEL_EXPORTER_OTLP_PROTOCOL = "otel.exporter.otlp.protocol";
   public static final String OTEL_EXPORTER_OTLP_ENDPOINT = "otel.exporter.otlp.endpoint";
   public static final String OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "otel.exporter.otlp.traces.endpoint";
+  public static final String OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = "otel.exporter.otlp.metrics.endpoint";
   public static final String OTEL_EXPORTER_OTLP_COMPRESSION = "otel.exporter.otlp.compression";
   public static final String OTEL_EXPORTER_OTLP_HEADERS = "otel.exporter.otlp.headers";
   @Parameter
@@ -89,17 +93,19 @@ public class OtlpExporter extends AbstractExporter {
   public Map<String, String> getExporterProperties() {
     Map<String, String> config = super.getExporterProperties();
     config.put(OTEL_TRACES_EXPORTER_KEY, OTLP);
+    config.put(OTEL_METRICS_EXPORTER_KEY, OTLP);
     config.put(OTEL_EXPORTER_OTLP_PROTOCOL, protocol.getValue());
     config.put(OTEL_EXPORTER_OTLP_ENDPOINT, getCollectorEndpoint());
     // Set Traces endpoint when using HTTP/Protobuf only
     if (protocol.equals(Protocol.HTTP_PROTOBUF)) {
       config.put(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, getSignalEndpoint("traces"));
+      config.put(OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, getSignalEndpoint("metrics"));
     }
     if (!OtlpRequestCompression.NONE.equals(requestCompression)) {
       config.put(OTEL_EXPORTER_OTLP_COMPRESSION, requestCompression.getValue());
     }
     config.put(OTEL_EXPORTER_OTLP_HEADERS, KeyValuePair.commaSeparatedList(getHeaders()));
-    return Collections.unmodifiableMap(config);
+    return config;
   }
 
   private String getSignalEndpoint(String signal) {

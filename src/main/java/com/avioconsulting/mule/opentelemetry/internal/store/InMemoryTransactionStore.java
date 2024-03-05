@@ -1,23 +1,26 @@
 package com.avioconsulting.mule.opentelemetry.internal.store;
 
-import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
+import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
+import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.api.traces.TransactionContext;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
+import org.mule.runtime.api.component.location.ComponentLocation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-import org.mule.runtime.api.component.location.ComponentLocation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * In-memory {@link TransactionStore}. This implementation uses
- * in-memory {@link java.util.Map} to
+ * in-memory {@link Map} to
  * store transactions and related processor spans. Transactions are kept in
  * memory until they end.
  */
@@ -164,7 +167,7 @@ public class InMemoryTransactionStore implements TransactionStore {
 
   @Override
   public SpanMeta endProcessorSpan(
-      String transactionId, String location, Consumer<ProcessorSpan> spanUpdater, Instant endTime) {
+      String transactionId, String location, Consumer<Span> spanUpdater, Instant endTime) {
     LOGGER.trace(
         "Ending Processor span of transaction {} for location '{}'",
         transactionId,

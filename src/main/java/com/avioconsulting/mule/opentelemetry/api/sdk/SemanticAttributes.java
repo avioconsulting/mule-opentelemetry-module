@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk;
+package com.avioconsulting.mule.opentelemetry.api.sdk;
 
 import io.opentelemetry.api.common.AttributeKey;
 

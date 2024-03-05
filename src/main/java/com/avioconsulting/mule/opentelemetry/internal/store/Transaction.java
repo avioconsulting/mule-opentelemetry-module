@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.store;
 
+import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
 import io.opentelemetry.api.trace.Span;
 
 import java.time.Instant;

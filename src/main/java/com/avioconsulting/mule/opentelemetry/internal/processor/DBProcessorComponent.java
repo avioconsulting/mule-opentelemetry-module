@@ -1,6 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes;
+import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;

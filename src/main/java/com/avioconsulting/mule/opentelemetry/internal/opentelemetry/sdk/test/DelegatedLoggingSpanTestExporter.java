@@ -1,6 +1,5 @@
 package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test;
 
-import io.opentelemetry.exporter.logging.LoggingSpanExporter;
 import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import io.opentelemetry.sdk.trace.data.SpanData;
@@ -12,7 +11,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class DelegatedLoggingSpanTestExporter implements SpanExporter {
-  private static final LoggingSpanExporter exporter = LoggingSpanExporter.create();
   public static final Queue<Span> spanQueue = new ConcurrentLinkedQueue<>();
   private final ConfigProperties config;
   private static final Logger logger = Logger.getLogger(DelegatedLoggingSpanTestExporter.class.getName());
@@ -41,13 +39,13 @@ public class DelegatedLoggingSpanTestExporter implements SpanExporter {
       logger.log(Level.INFO, span.toString());
       return span;
     }).forEach(spanQueue::add);
-    return exporter.export(spans);
+    return CompletableResultCode.ofSuccess();
   }
 
   @Override
   public CompletableResultCode flush() {
     spanQueue.clear();
-    return exporter.flush();
+    return CompletableResultCode.ofSuccess();
   }
 
   @Override

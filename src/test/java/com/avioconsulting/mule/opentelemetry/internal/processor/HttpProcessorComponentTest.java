@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import io.opentelemetry.api.trace.SpanKind;
 import org.junit.Test;

@@ -8,8 +8,6 @@ import org.mule.runtime.extension.api.annotation.param.display.Summary;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.avioconsulting.mule.opentelemetry.api.config.exporter.OpenTelemetryExporter.*;
-
 public abstract class AbstractExporter implements OpenTelemetryExporter {
 
   @Parameter
@@ -35,4 +33,5 @@ public abstract class AbstractExporter implements OpenTelemetryExporter {
     config.putAll(getConfigProperties());
     return config;
   }
+
 }

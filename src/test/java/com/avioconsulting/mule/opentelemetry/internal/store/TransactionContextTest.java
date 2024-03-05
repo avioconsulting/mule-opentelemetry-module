@@ -1,12 +1,12 @@
 package com.avioconsulting.mule.opentelemetry.internal.store;
 
+import com.avioconsulting.mule.opentelemetry.api.traces.TransactionContext;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.context.Context;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
