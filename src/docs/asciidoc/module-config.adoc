@@ -5,14 +5,16 @@ To use this extension, add following dependency to your mule application project
 [source,xml]
 ----
     <dependency>
-      <groupId>com.avioconsulting</groupId>
+      <groupId>com.avioconsulting.mule</groupId>
       <artifactId>mule-opentelemetry-module</artifactId>
       <version>${mule-opentelemetry-module-version}</version> //<1>
       <classifier>mule-plugin</classifier>
     </dependency>
 ----
 
-<1> The latest version of the module as published on https://search.maven.org/search?q=g:com.avioconsulting%20a:mule-opentelemetry-module[Maven Central].
+<1> The latest version of the module as published on https://search.maven.org/search?q=g:com.avioconsulting.mule%20a:mule-opentelemetry-module[Maven Central].
+
+WARNING: Dependency group id for 1.x is `com.avioconsulting`, while for 2.x is `com.avioconsulting.mule`.
 
 NOTE: This module supports OpenTelemetry *Traces*. Logs are _not_ supported, yet.
 
@@ -196,7 +198,7 @@ The required Zipkin exporter dependencies must be configured as an https://docs.
     <configuration>
         <additionalPluginDependencies>
             <plugin>
-                <groupId>com.avioconsulting</groupId>
+                <groupId>com.avioconsulting.mule</groupId>
                 <artifactId>mule-opentelemetry-module</artifactId>
                 <additionalDependencies>
                 <!--
