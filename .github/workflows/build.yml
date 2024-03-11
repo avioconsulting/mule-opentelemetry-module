@@ -9,7 +9,7 @@ on:
       - 'fix/**'
   pull_request:
     branches:
-      - 'main'
+      - '1.3.x'
 
 jobs:
   Build-Maven:
@@ -29,10 +29,11 @@ jobs:
     with:
       app-version: ${{ needs.Build-Maven.outputs.app-version }}
       publish-maven-central: true
+      main-branch: 1.3.x
     #   java-distribution: adopt-hotspot
     #   java-version: 8
     #   maven-args: -X
-    #   main-branch: main
+
 
   Post-Release-Maven:
     needs: [Build-Maven, Release-Maven]
@@ -40,6 +41,7 @@ jobs:
     secrets: inherit
     with:
       app-version: ${{ needs.Build-Maven.outputs.app-version }}
+      main-branch: 1.3.x
     #   java-distribution: adopt-hotspot
     #   java-version: 8
     #   maven-args: -X
