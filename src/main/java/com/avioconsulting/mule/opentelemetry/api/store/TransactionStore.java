@@ -30,7 +30,7 @@ public interface TransactionStore {
    * @return {@link String} transaction id
    */
   default String transactionIdFor(Event muleEvent) {
-    return muleEvent.getCorrelationId();
+    return muleEvent.getContext().getId();
   }
 
   /**

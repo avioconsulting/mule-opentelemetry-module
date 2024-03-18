@@ -4,6 +4,7 @@ import com.avioconsulting.mule.opentelemetry.api.config.MuleComponent;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.interception.ProcessorInterceptor;
@@ -14,11 +15,11 @@ import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.FLOW;
-import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.SCOPE;
+import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.*;
 
 /**
  * ProcessorInterceptorFactory can intercept processors. This is injected
@@ -36,7 +37,8 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
   public static final String MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME = "mule.otel.interceptor.processor.enable";
   private final boolean interceptorEnabled = Boolean
       .parseBoolean(System.getProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME, "true"));
-
+  private final List<TypedComponentIdentifier.ComponentType> interceptableComponentTypes = Arrays.asList(SCOPE, ROUTE,
+      ROUTER);
   /**
    * {@link MuleNotificationProcessor} instance for getting opentelemetry
    * connection supplier by processor.
@@ -135,6 +137,8 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
                       || "*".equalsIgnoreCase(mc.getName())));
       intercept = firstProcessor
           || interceptConfigured;
+      // ||
+      // interceptableComponentTypes.contains(location.getComponentIdentifier().getType());
 
       if (intercept) {
         // This factory executes during application initialization.

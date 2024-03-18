@@ -8,6 +8,7 @@ import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.Location;
+import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.metadata.TypedValue;
@@ -19,6 +20,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
+import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.getEventTransactionId;
 
 public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
@@ -95,7 +97,7 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   }
 
   protected String getTransactionId(EnrichedServerNotification notification) {
-    return notification.getEvent().getCorrelationId();
+    return getEventTransactionId(notification.getEvent());
   }
 
   protected Map<String, String> getProcessorCommonTags(Component component) {
@@ -134,33 +136,30 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   @Override
   public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
-    return getStartTraceComponent(notification.getComponent(), notification.getEvent().getMessage(),
-        getTransactionId(notification));
+    return getStartTraceComponent(notification.getComponent(), notification.getEvent());
   }
 
   /**
    * Create a start trace component without the notification object. This is
    * mostly consumed by interceptors.
-   * 
+   *
    * @param component
    *            {@link Component}
-   * @param message
+   * @param event
    *            {@link Message}
-   * @param correlationId
-   *            {@link String}
    * @return TraceComponent
    */
-  public TraceComponent getStartTraceComponent(Component component, Message message, String correlationId) {
+  public TraceComponent getStartTraceComponent(Component component, Event event) {
     Map<String, String> tags = new HashMap<>(getProcessorCommonTags(component));
-    tags.put(MULE_CORRELATION_ID.getKey(), correlationId);
+    tags.put(MULE_CORRELATION_ID.getKey(), event.getCorrelationId());
     tags.putAll(getAttributes(component,
-        message.getAttributes()));
+        event.getMessage().getAttributes()));
     return TraceComponent.named(component.getLocation().getLocation())
         .withLocation(component.getLocation().getLocation())
         .withSpanName(getDefaultSpanName(tags))
         .withTags(tags)
         .withSpanKind(getSpanKind())
-        .withTransactionId(correlationId);
+        .withTransactionId(getEventTransactionId(event));
   }
 
   protected void addTagIfPresent(Map<String, String> sourceMap, String sourceKey, Map<String, String> targetMap,

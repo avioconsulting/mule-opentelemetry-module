@@ -6,17 +6,23 @@ import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import static com.avioconsulting.mule.opentelemetry.internal.processor.util.HttpSpanUtil.apiKitRoutePath;
 
 public class FlowSpan implements Serializable {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(FlowSpan.class);
+
   private final String flowName;
   private String rootSpanName;
   private final Span span;
@@ -94,8 +100,15 @@ public class FlowSpan implements Serializable {
   }
 
   public SpanMeta endProcessorSpan(String location, Consumer<Span> spanUpdater, Instant endTime) {
+    LOGGER.info("Ending Span at location {} for flow {} trace transaction {} context {}", location,
+        this.getRootSpanName(),
+        this.transactionId, this.getSpan().getSpanContext().toString());
     if (childSpans.containsKey(location)) {
-      ProcessorSpan removed = childSpans.remove(location);
+      ProcessorSpan removed = Objects.requireNonNull(childSpans.remove(location),
+          "Missing child span at location " + location + " for flow " + getRootSpanName()
+              + " trace transaction " + transactionId + " context "
+              + getSpan().getSpanContext().toString());
+
       removed.setEndTime(endTime);
       if (spanUpdater != null)
         spanUpdater.accept(removed.getSpan());

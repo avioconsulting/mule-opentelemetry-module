@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
+import com.avioconsulting.mule.opentelemetry.test.util.TestInterceptionEvent;
 import io.opentelemetry.api.trace.SpanKind;
 import org.junit.Test;
 import org.mule.extension.http.api.HttpRequestAttributes;
@@ -59,7 +60,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
   public void onErrorWithNoAttributes_getEndTraceComponent() {
     Event event = mock(Event.class);
     when(event.getCorrelationId()).thenReturn("testCorrelationId");
-
+    when(event.getContext()).thenReturn(new TestInterceptionEvent.TestEventContext());
     Error error = getError(null);
     when(event.getError()).thenReturn(Optional.of(error));
 
@@ -83,7 +84,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
   public void onErrorWithNonResponseAttributes_getEndTraceComponent() {
     Event event = mock(Event.class);
     when(event.getCorrelationId()).thenReturn("testCorrelationId");
-
+    when(event.getContext()).thenReturn(new TestInterceptionEvent.TestEventContext());
     Error error = getError(mock(HttpRequestAttributes.class));
     when(event.getError()).thenReturn(Optional.of(error));
 
@@ -106,7 +107,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
   public void onSuccessWithResponseAttributes_getStartTraceComponent() {
     Event event = mock(Event.class);
     when(event.getCorrelationId()).thenReturn("testCorrelationId");
-
+    when(event.getContext()).thenReturn(new TestInterceptionEvent.TestEventContext());
     HttpResponseAttributes responseAttributes = mock(HttpResponseAttributes.class);
     when(responseAttributes.getStatusCode()).thenReturn(200);
     Map<String, String> headerMap = Collections.singletonMap("content-length", "10");
@@ -151,9 +152,9 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
   public void onSuccessWithResponseAttributes_getSourceStartTraceComponent() {
     Event event = mock(Event.class);
     when(event.getCorrelationId()).thenReturn("testCorrelationId");
-    EventContext eventContext = mock(EventContext.class);
     ComponentLocation originatingLocation = getComponentLocation("http", "listener");
-    when(eventContext.getOriginatingLocation()).thenReturn(originatingLocation);
+    TestInterceptionEvent.TestEventContext eventContext = new TestInterceptionEvent.TestEventContext()
+        .setOriginatingLocation(originatingLocation);
     when(event.getContext()).thenReturn(eventContext);
 
     HttpRequestAttributes requestAttributes = mock(HttpRequestAttributes.class);

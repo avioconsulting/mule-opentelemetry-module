@@ -9,6 +9,7 @@ import org.mule.extension.http.api.HttpRequestAttributes;
 import org.mule.extension.http.api.HttpResponseAttributes;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.metadata.MediaType;
@@ -123,12 +124,12 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  public TraceComponent getStartTraceComponent(Component component, Message message, String correlationId) {
+  public TraceComponent getStartTraceComponent(Component component, Event event) {
 
-    TraceComponent traceComponent = super.getStartTraceComponent(component, message, correlationId);
+    TraceComponent traceComponent = super.getStartTraceComponent(component, event);
 
     Map<String, String> requesterTags = getAttributes(component,
-        message.getAttributes());
+        event.getMessage().getAttributes());
     requesterTags.putAll(traceComponent.getTags());
 
     return TraceComponent.named(component.getLocation().getRootContainerName())

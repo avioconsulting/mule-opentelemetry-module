@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.test.util;
 
+import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.el.BindingContext;
 import org.mule.runtime.api.event.EventContext;
 import org.mule.runtime.api.interception.InterceptionEvent;
@@ -10,6 +11,7 @@ import org.mule.runtime.api.metadata.DataType;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.security.Authentication;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -19,9 +21,16 @@ public class TestInterceptionEvent implements InterceptionEvent {
   Message message;
   String correlationId;
   Map<String, TypedValue<?>> variables = new HashMap<>();
+  private EventContext eventContext;
 
   public TestInterceptionEvent(String correlationId) {
     this.correlationId = correlationId;
+    eventContext = new TestEventContext(correlationId, correlationId);
+  }
+
+  public TestInterceptionEvent(String correlationId, String id) {
+    this.correlationId = correlationId;
+    eventContext = new TestEventContext(id, correlationId);
   }
 
   @Override
@@ -85,11 +94,59 @@ public class TestInterceptionEvent implements InterceptionEvent {
 
   @Override
   public EventContext getContext() {
-    return null;
+    return eventContext;
   }
 
   @Override
   public BindingContext asBindingContext() {
     return null;
+  }
+
+  public static class TestEventContext implements EventContext {
+
+    private String id;
+    private String correlationId;
+    private Instant receivedTime;
+    private ComponentLocation originatingLocation;
+
+    public TestEventContext(String id, String correlationId) {
+      this.id = id;
+      this.correlationId = correlationId;
+    }
+
+    public TestEventContext() {
+      this.id = "default-context-id";
+      this.correlationId = "default-correlation-id";
+    }
+
+    @Override
+    public String getId() {
+      return id;
+    }
+
+    @Override
+    public String getCorrelationId() {
+      return correlationId;
+    }
+
+    @Override
+    public Instant getReceivedTime() {
+      return receivedTime;
+    }
+
+    @Override
+    public ComponentLocation getOriginatingLocation() {
+      return originatingLocation;
+    }
+
+    public TestEventContext setReceivedTime(Instant receivedTime) {
+      this.receivedTime = receivedTime;
+      return this;
+    }
+
+    public TestEventContext setOriginatingLocation(ComponentLocation originatingLocation) {
+      this.originatingLocation = originatingLocation;
+      return this;
+    }
   }
 }

@@ -227,7 +227,9 @@ public class MuleNotificationProcessor {
 
   public void handleFlowStartEvent(PipelineMessageNotification notification) {
     try {
-      logger.trace("Handling '{}' flow start event", notification.getResourceIdentifier());
+      logger.info("Handling '{}' flow start event context id {} correlation id {} ",
+          notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
+          notification.getEvent().getCorrelationId());
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceStartTraceComponent(notification, openTelemetryConnection)
           .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()));
@@ -244,7 +246,9 @@ public class MuleNotificationProcessor {
 
   public void handleFlowEndEvent(PipelineMessageNotification notification) {
     try {
-      logger.trace("Handling '{}' flow end event", notification.getResourceIdentifier());
+      logger.info("Handling '{}' flow end event context id {} correlation id {} ",
+          notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
+          notification.getEvent().getCorrelationId());
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceEndTraceComponent(notification, openTelemetryConnection)
           .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()));

@@ -14,6 +14,8 @@ import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.Location;
+import org.mule.runtime.api.event.Event;
+import org.mule.runtime.api.event.EventContext;
 import org.mule.runtime.api.interception.InterceptionAction;
 import org.mule.runtime.api.interception.InterceptionEvent;
 import org.mule.runtime.api.message.Message;
@@ -56,6 +58,9 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
         configurationComponentLocator);
 
     InterceptionEvent interceptionEvent = mock(InterceptionEvent.class);
+    EventContext eventContext = mock(EventContext.class);
+    when(eventContext.getId()).thenReturn("random-id");
+    when(interceptionEvent.getContext()).thenReturn(eventContext);
     interceptor.before(location, Collections.emptyMap(), interceptionEvent);
     verify(interceptionEvent).addVariable(TransactionStore.TRACE_CONTEXT_MAP_KEY, traceparentMap);
   }
@@ -201,7 +206,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(configurationComponentLocator.find(any(Location.class))).thenReturn(Optional.of(component));
 
     // Trace component not found
-    when(processorComponent.getStartTraceComponent(any(Component.class), any(Message.class), any(String.class)))
+    when(processorComponent.getStartTraceComponent(any(Component.class), any(Event.class)))
         .thenReturn(null);
 
     ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
@@ -252,7 +257,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
 
     // Trace component not found
     TraceComponent traceComponent = TraceComponent.named("test");
-    when(processorComponent.getStartTraceComponent(any(), any(), anyString())).thenReturn(traceComponent);
+    when(processorComponent.getStartTraceComponent(any(), any())).thenReturn(traceComponent);
 
     MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
     when(muleNotificationProcessor.getOpenTelemetryConnection()).thenReturn(connection);
