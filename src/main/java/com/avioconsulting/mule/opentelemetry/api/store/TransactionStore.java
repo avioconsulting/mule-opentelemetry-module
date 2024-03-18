@@ -77,31 +77,7 @@ public interface TransactionStore {
    *            {@link ComponentLocation}
    * @return {@link Context}
    */
-  TransactionContext getTransactionContext(String transactionId, ComponentLocation componentLocation);
-
-  /**
-   * Get the Trace Id associated the transaction
-   *
-   * @param transactionId
-   *            A unique transaction id within the context of an application. Eg.
-   *            Correlation id.
-   * @return traceId
-   */
-  public String getTraceIdForTransaction(String transactionId);
-
-  /**
-   * End a transaction represented by provided transaction id and rootFlowName, if
-   * exists.
-   *
-   * @param transactionId
-   *            A unique transaction id within the context of an application. Eg.
-   *            Correlation id.
-   * @param rootFlowName
-   *            Name of the flow requesting to start transaction.
-   */
-  default void endTransaction(final String transactionId, final String rootFlowName) {
-    endTransaction(transactionId, rootFlowName, null);
-  }
+  TransactionContext getTransactionContext(String transactionId, String componentLocation);
 
   /**
    * End a transaction represented by provided transaction id and rootFlowName, if
@@ -112,42 +88,21 @@ public interface TransactionStore {
    *
    * <p>
    * Here is an example of setting Error when processor execution fails. <code>
-   *     transactionStore.endTransaction(traceComponent.getTransactionId(), traceComponent.getName(), rootSpan -> {
-   *                 if(notification.getException() != null) {
-   *                     rootSpan.setStatus(StatusCode.ERROR, notification.getException().getMessage());
-   *                     rootSpan.recordException(notification.getException());
-   *                 }
-   *             });
+   * transactionStore.endTransaction(traceComponent.getTransactionId(), traceComponent.getName(), rootSpan -> {
+   * if(notification.getException() != null) {
+   * rootSpan.setStatus(StatusCode.ERROR, notification.getException().getMessage());
+   * rootSpan.recordException(notification.getException());
+   * }
+   * });
    * </code>
    *
-   * @param transactionId
-   *            A unique transaction id within the context of an application. Eg.
-   *            Correlation id.
-   * @param rootFlowName
-   *            Name of the flow requesting to start transaction.
-   * @param spanUpdater
-   *            {@link Consumer} to allow updating Span before ending.
-   */
-  default void endTransaction(
-      String transactionId, String rootFlowName, Consumer<Span> spanUpdater) {
-    endTransaction(transactionId, rootFlowName, spanUpdater, null);
-  }
-
-  /**
-   * End a transaction at given end time. See
-   * {@link #endTransaction(String, String, Consumer)}
-   *
-   * @param transactionId
+   * @param traceComponent
    *            {@link String}
-   * @param rootFlowName
-   *            {@link String} associated with transaction
    * @param spanUpdater
    *            {@link Consumer} to allow updating transaction span before ending.
-   * @param endTime
-   *            {@link Instant}
    */
   TransactionMeta endTransaction(
-      String transactionId, String rootFlowName, Consumer<Span> spanUpdater, Instant endTime);
+      TraceComponent traceComponent, Consumer<Span> spanUpdater);
 
   /**
    * Add a new processor span under an existing transaction.
@@ -160,19 +115,6 @@ public interface TransactionStore {
    *            {@link SpanBuilder}
    */
   void addProcessorSpan(String containerName, TraceComponent traceComponent, SpanBuilder spanBuilder);
-
-  /**
-   * End an existing span under an existing transaction.
-   *
-   * @param transactionId
-   *            {@link String} to add end span for
-   * @param location
-   *            {@link String} of the processor
-   */
-  default void endProcessorSpan(String transactionId, String location) {
-    endProcessorSpan(transactionId, location, span -> {
-    });
-  }
 
   /**
    * End an existing span under an existing transaction. {@link Consumer}
@@ -195,25 +137,23 @@ public interface TransactionStore {
    *
    * @param transactionId
    *            {@link String}
-   * @param location
-   *            {@link String} of the span
+   * @param traceComponent
+   *            {@link TraceComponent}
    * @param spanUpdater
    *            {@link Consumer} to allow updating Span before ending.
    */
   default SpanMeta endProcessorSpan(
-      String transactionId, String location, Consumer<Span> spanUpdater) {
-    return endProcessorSpan(transactionId, location, spanUpdater, null);
+      String transactionId, TraceComponent traceComponent, Consumer<Span> spanUpdater) {
+    return endProcessorSpan(transactionId, traceComponent, spanUpdater, null);
   }
 
   /**
-   * This overloading allows to end a span at given time. See
-   * {@link #endProcessorSpan(String,
-   * String, Consumer)}.
+   * This overloading allows to end a span at given time.
    *
    * @param transactionId
    *            {@link String}
-   * @param location
-   *            {@link String} of the span
+   * @param traceComponent
+   *            {@link TraceComponent}
    * @param spanUpdater
    *            {@link Consumer} to allow updating Span before ending.
    * @param endTime
@@ -221,5 +161,5 @@ public interface TransactionStore {
    * @return SpanMeta
    */
   SpanMeta endProcessorSpan(
-      String transactionId, String location, Consumer<Span> spanUpdater, Instant endTime);
+      String transactionId, TraceComponent traceComponent, Consumer<Span> spanUpdater, Instant endTime);
 }

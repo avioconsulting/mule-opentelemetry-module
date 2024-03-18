@@ -62,7 +62,7 @@ public class InMemoryTransactionStoreTest extends AbstractJMHTest {
   @Benchmark
   public void getTransactionComponentContext(Blackhole blackhole) {
     TransactionContext transactionContext = connection.getTransactionStore().getTransactionContext("test-1",
-        COMPONENT_LOCATION);
+        COMPONENT_LOCATION.getLocation());
     blackhole.consume(transactionContext);
   }
 
@@ -75,7 +75,7 @@ public class InMemoryTransactionStoreTest extends AbstractJMHTest {
   @Benchmark
   public void getTraceContextComponent(Blackhole blackhole) {
     Map<String, String> transactionContext = connection.getTraceContext("test-1",
-        COMPONENT_LOCATION);
+        COMPONENT_LOCATION.getLocation());
     blackhole.consume(transactionContext);
   }
 }

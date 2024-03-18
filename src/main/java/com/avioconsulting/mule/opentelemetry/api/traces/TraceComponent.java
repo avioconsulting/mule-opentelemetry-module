@@ -19,6 +19,7 @@ public class TraceComponent {
   private StatusCode statusCode;
   private Instant startTime = Instant.now();
   private Instant endTime;
+  private String eventContextId;
 
   private TraceComponent(String name) {
     this.name = name;
@@ -68,6 +69,18 @@ public class TraceComponent {
     return this.endTime;
   }
 
+  public String getEventContextId() {
+    return eventContextId;
+  }
+
+  public String contextScopedPath(String path) {
+    return getEventContextId() + "/" + path;
+  }
+
+  public String contextScopedLocation() {
+    return getEventContextId() + "/" + getLocation();
+  }
+
   public TraceComponent withTags(Map<String, String> val) {
     tags = val;
     return this;
@@ -115,6 +128,11 @@ public class TraceComponent {
 
   public TraceComponent withEndTime(Instant endTime) {
     this.endTime = endTime;
+    return this;
+  }
+
+  public TraceComponent withEventContextId(String eventContextId) {
+    this.eventContextId = eventContextId;
     return this;
   }
 

@@ -159,7 +159,8 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
         .withSpanName(getDefaultSpanName(tags))
         .withTags(tags)
         .withSpanKind(getSpanKind())
-        .withTransactionId(getEventTransactionId(event));
+        .withTransactionId(getEventTransactionId(event))
+        .withEventContextId(event.getContext().getId());
   }
 
   protected void addTagIfPresent(Map<String, String> sourceMap, String sourceKey, Map<String, String> targetMap,

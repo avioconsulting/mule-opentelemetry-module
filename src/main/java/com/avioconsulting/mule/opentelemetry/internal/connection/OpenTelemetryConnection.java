@@ -207,7 +207,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    * @return Map<String, String>
    */
   public Map<String, String> getTraceContext(String transactionId) {
-    return getTraceContext(transactionId, (ComponentLocation) null);
+    return getTraceContext(transactionId, (String) null);
   }
 
   /**
@@ -226,7 +226,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    *            {@link ComponentLocation} to get context for
    * @return Map<String, String>
    */
-  public Map<String, String> getTraceContext(String transactionId, ComponentLocation componentLocation) {
+  public Map<String, String> getTraceContext(String transactionId, String componentLocation) {
     TransactionContext transactionContext = getTransactionStore().getTransactionContext(transactionId,
         componentLocation);
     Map<String, String> traceContext = new HashMap<>(10);
@@ -300,7 +300,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   public SpanMeta endProcessorSpan(final TraceComponent traceComponent, Error error) {
     return getTransactionStore().endProcessorSpan(
         traceComponent.getTransactionId(),
-        traceComponent.getLocation(),
+        traceComponent,
         span -> {
           if (error != null) {
             span.recordException(error.getCause());
@@ -333,16 +333,14 @@ public class OpenTelemetryConnection implements TraceContextHandler {
       return null;
     }
     return openTelemetryConnection.getTransactionStore().endTransaction(
-        traceComponent.getTransactionId(),
-        traceComponent.getName(),
+        traceComponent,
         rootSpan -> {
           traceComponent.getTags().forEach(rootSpan::setAttribute);
           openTelemetryConnection.setSpanStatus(traceComponent, rootSpan);
           if (exception != null) {
             rootSpan.recordException(exception);
           }
-        },
-        traceComponent.getEndTime());
+        });
   }
 
   public void setSpanStatus(TraceComponent traceComponent, Span span) {

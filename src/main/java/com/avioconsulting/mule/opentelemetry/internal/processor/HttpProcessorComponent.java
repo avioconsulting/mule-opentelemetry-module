@@ -137,7 +137,8 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         .withLocation(component.getLocation().getLocation())
         .withSpanName(requesterTags.get(HTTP_ROUTE.getKey()))
         .withTransactionId(traceComponent.getTransactionId())
-        .withSpanKind(getSpanKind());
+        .withSpanKind(getSpanKind())
+        .withEventContextId(traceComponent.getEventContextId());
   }
 
   @Override

@@ -250,13 +250,14 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(tci.getIdentifier()).thenReturn(ci);
     when(location.getComponentIdentifier()).thenReturn(tci);
 
-    when(connection.getTraceContext(eq("random-id"), eq(location)))
+    when(connection.getTraceContext("random-id", "test-event-id/test-location"))
         .thenReturn(traceparentMap);
 
     ProcessorComponent processorComponent = mock(ProcessorComponent.class);
 
     // Trace component not found
-    TraceComponent traceComponent = TraceComponent.named("test");
+    TraceComponent traceComponent = TraceComponent.named("test").withLocation("test-location")
+        .withEventContextId("test-event-id");
     when(processorComponent.getStartTraceComponent(any(), any())).thenReturn(traceComponent);
 
     MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);

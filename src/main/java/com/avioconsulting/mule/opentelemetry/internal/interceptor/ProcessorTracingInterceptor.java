@@ -122,21 +122,22 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
                     subFlowComp.getLocation()))
                 .withStatsCode(traceComponent.getStatusCode())
                 .withStartTime(traceComponent.getStartTime())
-                .withContext(traceComponent.getContext());
+                .withContext(traceComponent.getContext())
+                .withEventContextId(traceComponent.getEventContextId());
             muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(subflowTrace,
                 traceComponent.getLocation());
             event.addVariable(TRACE_CONTEXT_MAP_KEY,
                 muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId,
-                    subFlowComp));
+                    subflowTrace.contextScopedLocation()));
           } else {
             event.addVariable(TRACE_CONTEXT_MAP_KEY,
                 muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId,
-                    location));
+                    traceComponent.contextScopedLocation()));
           }
         } else {
           event.addVariable(TRACE_CONTEXT_MAP_KEY,
               muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId,
-                  location));
+                  traceComponent.contextScopedLocation()));
         }
       }
       if (LOGGER.isTraceEnabled()) {

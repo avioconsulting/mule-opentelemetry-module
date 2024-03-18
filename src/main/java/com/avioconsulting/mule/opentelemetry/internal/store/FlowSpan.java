@@ -64,10 +64,15 @@ public class FlowSpan implements Serializable {
    * @return Span
    */
   public SpanMeta addProcessorSpan(String containerName, TraceComponent traceComponent, SpanBuilder spanBuilder) {
+    LOGGER.trace("Adding Span at location {} for flow {} trace transaction {} context {}",
+        traceComponent.contextScopedLocation(),
+        this.getRootSpanName(),
+        this.transactionId, this.getSpan().getSpanContext().toString());
     if (containerName != null) {
+      String contextScopedContainer = traceComponent.contextScopedPath(containerName);
       ProcessorSpan ps = new ProcessorSpan(getSpan(), traceComponent.getLocation(), transactionId,
           traceComponent.getStartTime(), flowName).setTags(getTags());
-      ProcessorSpan parentSpan = childSpans.getOrDefault(containerName, ps);
+      ProcessorSpan parentSpan = childSpans.getOrDefault(contextScopedContainer, ps);
       spanBuilder.setParent(parentSpan.getContext());
     }
     extractAPIKitConfigName(traceComponent);
@@ -75,7 +80,7 @@ public class FlowSpan implements Serializable {
     Span span = spanBuilder.startSpan();
     ProcessorSpan ps = new ProcessorSpan(span, traceComponent.getLocation(), transactionId,
         traceComponent.getStartTime(), flowName).setTags(traceComponent.getTags());
-    childSpans.put(traceComponent.getLocation(), ps);
+    childSpans.put(traceComponent.contextScopedLocation(), ps);
     return ps;
   }
 
@@ -99,13 +104,15 @@ public class FlowSpan implements Serializable {
     }
   }
 
-  public SpanMeta endProcessorSpan(String location, Consumer<Span> spanUpdater, Instant endTime) {
-    LOGGER.info("Ending Span at location {} for flow {} trace transaction {} context {}", location,
+  public SpanMeta endProcessorSpan(TraceComponent traceComponent, Consumer<Span> spanUpdater, Instant endTime) {
+    LOGGER.info("Ending Span at location {} for flow {} trace transaction {} context {}",
+        traceComponent.contextScopedLocation(),
         this.getRootSpanName(),
         this.transactionId, this.getSpan().getSpanContext().toString());
-    if (childSpans.containsKey(location)) {
-      ProcessorSpan removed = Objects.requireNonNull(childSpans.remove(location),
-          "Missing child span at location " + location + " for flow " + getRootSpanName()
+    if (childSpans.containsKey(traceComponent.contextScopedLocation())) {
+      ProcessorSpan removed = Objects.requireNonNull(childSpans.remove(traceComponent.contextScopedLocation()),
+          "Missing child span at location " + traceComponent.contextScopedLocation() + " for flow "
+              + getRootSpanName()
               + " trace transaction " + transactionId + " context "
               + getSpan().getSpanContext().toString());
 
