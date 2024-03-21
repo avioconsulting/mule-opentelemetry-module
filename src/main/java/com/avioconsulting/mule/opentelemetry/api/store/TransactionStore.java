@@ -114,7 +114,7 @@ public interface TransactionStore {
    * @param spanBuilder
    *            {@link SpanBuilder}
    */
-  void addProcessorSpan(String containerName, TraceComponent traceComponent, SpanBuilder spanBuilder);
+  SpanMeta addProcessorSpan(String containerName, TraceComponent traceComponent, SpanBuilder spanBuilder);
 
   /**
    * End an existing span under an existing transaction. {@link Consumer}

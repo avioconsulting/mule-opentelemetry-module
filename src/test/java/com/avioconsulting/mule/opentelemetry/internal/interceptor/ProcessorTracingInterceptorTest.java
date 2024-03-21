@@ -18,7 +18,6 @@ import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.event.EventContext;
 import org.mule.runtime.api.interception.InterceptionAction;
 import org.mule.runtime.api.interception.InterceptionEvent;
-import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.metadata.TypedValue;
 
 import java.util.Collections;
@@ -256,7 +255,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     ProcessorComponent processorComponent = mock(ProcessorComponent.class);
 
     // Trace component not found
-    TraceComponent traceComponent = TraceComponent.named("test").withLocation("test-location")
+    TraceComponent traceComponent = TraceComponent.of("test").withLocation("test-location")
         .withEventContextId("test-event-id");
     when(processorComponent.getStartTraceComponent(any(), any())).thenReturn(traceComponent);
 

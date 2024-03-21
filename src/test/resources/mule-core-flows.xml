@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:tracing="http://www.mulesoft.org/schema/mule/tracing"
+	  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry"
+	  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd
+http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/tracing/current/mule-tracing.xsd">
+
+	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config"
+						  serviceName="api-app-1"
+						  spanAllProcessors="true">
+		<opentelemetry:resource-attributes >
+			<opentelemetry:attribute key="mule.env" value="Dev" />
+		</opentelemetry:resource-attributes>
+		<opentelemetry:exporter >
+			<opentelemetry:generic-exporter >
+				<opentelemetry:config-properties >
+					<opentelemetry:config-property key="otel.traces.exporter" value="delegatedLogging" />
+				</opentelemetry:config-properties>
+			</opentelemetry:generic-exporter>
+		</opentelemetry:exporter>
+	</opentelemetry:config>
+
+	<flow name="flow-controls:\get-value"  >
+		<logger level="INFO" doc:name="FirstLogger"  />
+		<choice doc:name="Choice-Control"  >
+			<when expression="#[random() * 10 &gt; 5]">
+				<logger level="INFO" doc:name="ChoiceWhen"  />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="ChoiceDefault"  />
+			</otherwise>
+		</choice>
+		<first-successful doc:name="First-Successful-Control"  >
+			<route >
+				<logger level="INFO" doc:name="FirstSuccess1"  />
+			</route>
+			<route >
+				<logger level="INFO" doc:name="FirstSuccess2"  />
+			</route>
+		</first-successful>
+		<round-robin doc:name="Round-Robin-Control"  >
+			<route >
+				<logger level="INFO" doc:name="RoundRobin1"  />
+			</route>
+			<route >
+				<logger level="INFO" doc:name="RoundRobin2"  />
+			</route>
+		</round-robin>
+		<scatter-gather doc:name="Scatter-Gather-Control"  >
+			<route >
+				<logger level="INFO" doc:name="ScatterGather1"  />
+			</route>
+			<route >
+				<logger level="INFO" doc:name="ScatterGather2"  />
+			</route>
+		</scatter-gather>
+	</flow>
+	<flow name="flow-controls:round-robin:\get-value"  >
+		<logger level="INFO" doc:name="FirstLogger"  />
+		<round-robin doc:name="Round-Robin-Control"  >
+			<route >
+				<logger level="INFO" doc:name="RoundRobin1"  />
+			</route>
+			<route >
+				<logger level="INFO" doc:name="RoundRobin2"  />
+			</route>
+		</round-robin>
+		<logger level="INFO" doc:name="LastLogger"  />
+	</flow>
+	<flow name="flow-controls:scatter-gather:\get-value"  >
+		<logger level="INFO" doc:name="FirstLogger"  />
+		<scatter-gather doc:name="Scatter-Gather-Control"  >
+			<route >
+				<logger level="INFO" doc:name="ScatterGather1.1"  />
+				<logger level="INFO" doc:name="ScatterGather1.2"  />
+			</route>
+			<route >
+				<logger level="INFO" doc:name="ScatterGather2.1"  />
+				<logger level="INFO" doc:name="ScatterGather2.2"  />
+			</route>
+			<route>
+				<logger level="INFO" doc:name="ScatterGather3.1"  />
+				<flow-ref name="flow-controls:scatter-gather:sub-flow" doc:name="flow-controls:scatter-gather:sub-flow"/>
+			</route>
+		</scatter-gather>
+		<logger level="INFO" doc:name="LastLogger"  />
+	</flow>
+
+
+	<sub-flow name="flow-controls:scatter-gather:sub-flow">
+		<logger level="INFO" doc:name="FirstLogger3"  />
+		<scatter-gather doc:name="sub-flow:Scatter-Gather-Control"  >
+			<route >
+				<logger level="INFO" doc:name="ScatterGather3.1.1"  />
+				<logger level="INFO" doc:name="ScatterGather3.1.2"  />
+			</route>
+			<route >
+				<logger level="INFO" doc:name="ScatterGather3.1.2.1"  />
+				<logger level="INFO" doc:name="ScatterGather3.1.2.2"  />
+			</route>
+		</scatter-gather>
+		<logger level="INFO" doc:name="LastLogger3"  />
+	</sub-flow>
+
+	<flow name="mule-core-flows-scope"  >
+		<foreach doc:name="For Each"  collection="#[1 to 5]">
+			<logger level="INFO" doc:name="ForEachLogger" />
+		</foreach>
+		<parallel-foreach doc:name="Parallel For Each"  collection="#[1 to 5]">
+			<logger level="INFO" doc:name="ParallelForEachLogger" />
+		</parallel-foreach>
+		<try doc:name="Try"  >
+			<logger level="INFO" doc:name="TryLogger" />
+		</try>
+		<until-successful maxRetries="5" doc:name="Until Successful"  >
+			<logger level="INFO" doc:name="UntilSuccessfulLogger"  />
+		</until-successful>
+		<async doc:name="Async"  >
+			<logger level="INFO" doc:name="AsyncLogger"  />
+		</async>
+	</flow>
+
+	<flow name="mule-core-flows-scope_foreach"  >
+		<logger level="INFO" doc:name="FirstLogger"  />
+		<foreach doc:name="For Each"  collection="#[1 to 5]">
+			<logger level="INFO" doc:name="ForEachLogger" />
+			<set-payload mimeType="text/plain" value="Greetings of the day!"/>
+		</foreach>
+		<logger level="INFO" doc:name="LastLogger"  />
+	</flow>
+	<flow name="flow-scope-with-correlation-id">
+		<logger doc:name="LogGreeting"  message="#['Get greeting message']"/>
+		<tracing:with-correlation-id doc:name="With CorrelationID"  correlationId="#[uuid()]">
+			<flow-ref doc:name="simple-subflow-logger"  name="simple-subflow-logger" />
+		</tracing:with-correlation-id>
+		<set-payload mimeType="text/plain" value="Greetings of the day!"/>
+	</flow>
+
+	<sub-flow name="simple-subflow-logger">
+		<logger level="INFO" message="#['Simple flow']" doc:name="SimpleLogger" />
+	</sub-flow>
+</mule>

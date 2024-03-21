@@ -132,9 +132,8 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         event.getMessage().getAttributes());
     requesterTags.putAll(traceComponent.getTags());
 
-    return TraceComponent.named(component.getLocation().getRootContainerName())
+    return TraceComponent.of(component.getLocation().getRootContainerName(), component.getLocation())
         .withTags(requesterTags)
-        .withLocation(component.getLocation().getLocation())
         .withSpanName(requesterTags.get(HTTP_ROUTE.getKey()))
         .withTransactionId(traceComponent.getTransactionId())
         .withSpanKind(getSpanKind())
@@ -186,7 +185,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     TypedValue<HttpRequestAttributes> attributesTypedValue = notification.getEvent().getMessage().getAttributes();
     HttpRequestAttributes attributes = attributesTypedValue.getValue();
     Map<String, String> tags = attributesToTags(attributes);
-    return TraceComponent.named(notification.getResourceIdentifier())
+    return TraceComponent.of(notification.getResourceIdentifier(), notification.getComponent().getLocation())
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
         .withSpanName(HttpSpanUtil.spanName(tags, attributes.getListenerPath()))

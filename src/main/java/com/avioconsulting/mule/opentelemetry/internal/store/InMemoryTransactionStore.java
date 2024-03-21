@@ -142,10 +142,10 @@ public class InMemoryTransactionStore implements TransactionStore {
   }
 
   @Override
-  public void addProcessorSpan(String containerName, TraceComponent traceComponent, SpanBuilder spanBuilder) {
+  public SpanMeta addProcessorSpan(String containerName, TraceComponent traceComponent, SpanBuilder spanBuilder) {
     Transaction transaction = getTransaction(traceComponent.getTransactionId());
     if (transaction == null) {
-      return;
+      return null;
     }
     LOGGER.trace(
         "Adding Processor span to transaction {} for location '{}'",
@@ -160,7 +160,7 @@ public class InMemoryTransactionStore implements TransactionStore {
         traceComponent.getLocation(),
         span.getSpanId(),
         span.getTraceId());
-
+    return span;
   }
 
   @Override

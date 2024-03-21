@@ -129,9 +129,10 @@ public class MuleNotificationProcessor {
             notification.getEvent().getCorrelationId());
         TraceComponent traceComponent = processorComponent.getStartTraceComponent(notification)
             .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()))
-            .withEventContextId(notification.getEvent().getContext().getId());
+            .withEventContextId(notification.getEvent().getContext().getId())
+            .withComponentLocation(notification.getComponent().getLocation());
         openTelemetryConnection.addProcessorSpan(traceComponent,
-            notification.getComponent().getLocation().getRootContainerName());
+            ComponentsUtil.getLocationParent(notification.getComponent().getLocation().getLocation()));
       }
     } catch (Exception ex) {
       logger.error("Error in handling processor start event", ex);
@@ -195,9 +196,8 @@ public class MuleNotificationProcessor {
               configurationComponentLocator)
                   .filter(ComponentsUtil::isSubFlow)
                   .ifPresent(subFlowComp -> {
-                    TraceComponent subflowTrace = TraceComponent.named(subFlowComp.getLocation())
+                    TraceComponent subflowTrace = TraceComponent.of(subFlowComp)
                         .withTransactionId(traceComponent.getTransactionId())
-                        .withLocation(subFlowComp.getLocation())
                         .withSpanName(subFlowComp.getLocation())
                         .withSpanKind(SpanKind.INTERNAL)
                         .withTags(Collections.singletonMap(MULE_APP_SCOPE_SUBFLOW_NAME.getKey(),
@@ -230,7 +230,7 @@ public class MuleNotificationProcessor {
 
   public void handleFlowStartEvent(PipelineMessageNotification notification) {
     try {
-      logger.info("Handling '{}' flow start event context id {} correlation id {} ",
+      logger.trace("Handling '{}' flow start event context id {} correlation id {} ",
           notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
           notification.getEvent().getCorrelationId());
       TraceComponent traceComponent = flowProcessorComponent

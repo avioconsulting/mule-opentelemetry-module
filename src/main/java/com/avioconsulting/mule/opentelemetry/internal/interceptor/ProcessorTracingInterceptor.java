@@ -26,14 +26,13 @@ import java.util.concurrent.CompletableFuture;
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
 import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.TRACE_CONTEXT_MAP_KEY;
 import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.TRACE_PREV_CONTEXT_MAP_KEY;
-import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.findLocation;
-import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.isFlowRef;
+import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.getEventTransactionId;
 
 /**
  * Interceptor to set tracing context information in flow a variable
  * named {@link TransactionStore#TRACE_CONTEXT_MAP_KEY}.
- * See {@link TransactionStore#getTransactionContext(String, ComponentLocation)}
+ * See {@link TransactionStore#getTransactionContext(String, String)}
  * for possible
  * entries in the map.
  */
@@ -104,7 +103,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
         LOGGER.trace("Creating Span in the interceptor for {} at {}",
             location.getComponentIdentifier().getIdentifier(), location.getLocation());
         muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(traceComponent,
-            location.getRootContainerName());
+            getLocationParent(location.getLocation()));
         final String transactionId = getEventTransactionId(event);
         if (isFlowRef(location)) {
           Optional<ComponentLocation> subFlowLocation = findLocation(
@@ -113,9 +112,8 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
                   .filter(ComponentsUtil::isSubFlow);
           if (subFlowLocation.isPresent()) {
             ComponentLocation subFlowComp = subFlowLocation.get();
-            TraceComponent subflowTrace = TraceComponent.named(subFlowComp.getLocation())
+            TraceComponent subflowTrace = TraceComponent.of(subFlowComp)
                 .withTransactionId(traceComponent.getTransactionId())
-                .withLocation(subFlowComp.getLocation())
                 .withSpanName(subFlowComp.getLocation())
                 .withSpanKind(SpanKind.INTERNAL)
                 .withTags(Collections.singletonMap(MULE_APP_SCOPE_SUBFLOW_NAME.getKey(),
@@ -125,7 +123,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
                 .withContext(traceComponent.getContext())
                 .withEventContextId(traceComponent.getEventContextId());
             muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(subflowTrace,
-                traceComponent.getLocation());
+                location.getLocation());
             event.addVariable(TRACE_CONTEXT_MAP_KEY,
                 muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId,
                     subflowTrace.contextScopedLocation()));

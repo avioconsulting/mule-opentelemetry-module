@@ -117,7 +117,7 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
     Map<String, String> tags = getAttributes(getSourceComponent(notification).orElse(notification.getComponent()),
         attributesTypedValue);
     tags.put(MESSAGING_OPERATION.getKey(), PROCESS);
-    return TraceComponent.named(notification.getResourceIdentifier())
+    return TraceComponent.of(notification.getResourceIdentifier(), notification.getComponent().getLocation())
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
         .withSpanName(formattedSpanName(attributes.getDestination(), PROCESS))

@@ -45,7 +45,7 @@ public class InMemoryTransactionStoreTest extends AbstractJMHTest {
     SpanBuilder spanBuilder = tracer.spanBuilder("test-transaction")
         .setSpanKind(SpanKind.SERVER)
         .setStartTimestamp(startTimestamp);
-    TraceComponent traceComponent = TraceComponent.named("test-1").withTransactionId("test-1")
+    TraceComponent traceComponent = TraceComponent.of("test-1").withTransactionId("test-1")
         .withStartTime(startTimestamp)
         .withLocation(TEST_1_FLOW_FLOW_REF);
     connection.getTransactionStore().startTransaction(traceComponent, TEST_1_FLOW, spanBuilder);

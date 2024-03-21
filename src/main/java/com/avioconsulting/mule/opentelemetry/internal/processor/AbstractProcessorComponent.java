@@ -74,9 +74,8 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   }
 
   protected TraceComponent getTraceComponentBuilderFor(EnrichedServerNotification notification) {
-    return TraceComponent.named(notification.getResourceIdentifier())
+    return TraceComponent.of(notification.getResourceIdentifier(), notification.getComponent().getLocation())
         .withTransactionId(getTransactionId(notification))
-        .withLocation(notification.getComponent().getLocation().getLocation())
         .withTags(new HashMap<>())
         .withErrorMessage(
             notification.getEvent().getError().map(Error::getDescription).orElse(null));
@@ -84,8 +83,7 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   protected TraceComponent getBaseTraceComponent(
       EnrichedServerNotification notification) {
-    return TraceComponent.named(notification.getComponent().getLocation().getLocation())
-        .withLocation(notification.getComponent().getLocation().getLocation())
+    return TraceComponent.of(notification.getComponent())
         .withSpanName(notification.getComponent().getIdentifier().getName())
         .withTransactionId(getTransactionId(notification));
   }
@@ -154,8 +152,7 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
     tags.put(MULE_CORRELATION_ID.getKey(), event.getCorrelationId());
     tags.putAll(getAttributes(component,
         event.getMessage().getAttributes()));
-    return TraceComponent.named(component.getLocation().getLocation())
-        .withLocation(component.getLocation().getLocation())
+    return TraceComponent.of(component)
         .withSpanName(getDefaultSpanName(tags))
         .withTags(tags)
         .withSpanKind(getSpanKind())

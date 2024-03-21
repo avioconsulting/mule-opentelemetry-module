@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.avioconsulting.mule</groupId>
     <artifactId>mule-opentelemetry-module</artifactId>
-    <version>2.0.0-M5.2-Scopes.3-SNAPSHOT</version>
+    <version>2.0.0-M4-SNAPSHOT</version>
     <packaging>mule-extension</packaging>
 
     <parent>
@@ -398,6 +398,13 @@
             <artifactId>mule-module-extensions-spring-support</artifactId>
             <version>${mule.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mule.modules</groupId>
+            <artifactId>mule-tracing-module</artifactId>
+            <version>1.0.0</version>
+            <classifier>mule-plugin</classifier>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mule.services</groupId>

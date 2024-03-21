@@ -3,11 +3,13 @@ package com.avioconsulting.mule.opentelemetry.api.traces;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
+import org.mule.runtime.api.component.Component;
+import org.mule.runtime.api.component.location.ComponentLocation;
 
 import java.time.Instant;
 import java.util.Map;
 
-public class TraceComponent {
+public class TraceComponent implements ComponentEventContext {
   private Map<String, String> tags;
   private final String name;
   private String transactionId;
@@ -20,13 +22,28 @@ public class TraceComponent {
   private Instant startTime = Instant.now();
   private Instant endTime;
   private String eventContextId;
+  private ComponentLocation componentLocation;
 
   private TraceComponent(String name) {
     this.name = name;
   }
 
-  public static TraceComponent named(String name) {
+  public static TraceComponent of(String name) {
     return new TraceComponent(name);
+  }
+
+  public static TraceComponent of(String name, ComponentLocation location) {
+    return of(name)
+        .withLocation(location.getLocation())
+        .withComponentLocation(location);
+  }
+
+  public static TraceComponent of(Component component) {
+    return of(component.getLocation());
+  }
+
+  public static TraceComponent of(ComponentLocation location) {
+    return of(location.getLocation(), location);
   }
 
   public SpanKind getSpanKind() {
@@ -73,12 +90,8 @@ public class TraceComponent {
     return eventContextId;
   }
 
-  public String contextScopedPath(String path) {
-    return getEventContextId() + "/" + path;
-  }
-
-  public String contextScopedLocation() {
-    return getEventContextId() + "/" + getLocation();
+  public ComponentLocation getComponentLocation() {
+    return componentLocation;
   }
 
   public TraceComponent withTags(Map<String, String> val) {
@@ -133,6 +146,11 @@ public class TraceComponent {
 
   public TraceComponent withEventContextId(String eventContextId) {
     this.eventContextId = eventContextId;
+    return this;
+  }
+
+  public TraceComponent withComponentLocation(ComponentLocation componentLocation) {
+    this.componentLocation = componentLocation;
     return this;
   }
 
