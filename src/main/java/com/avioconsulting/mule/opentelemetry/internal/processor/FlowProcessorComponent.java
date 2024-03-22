@@ -53,7 +53,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
 
     TraceComponent traceComponent = TraceComponent.named(notification.getResourceIdentifier());
 
-    Map<String, String> tags = new HashMap<>();
+    Map<String, String> tags = getProcessorCommonTags(notification.getComponent());
     tags.put(MULE_APP_FLOW_NAME.getKey(), notification.getResourceIdentifier());
     tags.put(MULE_SERVER_ID.getKey(), notification.getServerId());
     tags.put(MULE_CORRELATION_ID.getKey(), notification.getEvent().getCorrelationId());

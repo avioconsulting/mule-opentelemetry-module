@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.internal.store;
 
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.internal.processor.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
@@ -73,7 +74,8 @@ public class FlowSpan implements Serializable {
   private void resetSpanNameIfNeeded(TraceComponent traceComponent) {
     if (!PropertiesUtil.isUseAPIKitSpanNames())
       return;
-    if (apikitConfigName != null && traceComponent.getName().endsWith(":" + apikitConfigName)) {
+    if (apikitConfigName != null && ComponentsUtil.isFlowTrace(traceComponent)
+        && traceComponent.getName().endsWith(":" + apikitConfigName)) {
       if (rootSpanName.endsWith("/*")) { // Wildcard listener for HTTP APIKit Router
         String spanName = apiKitRoutePath(traceComponent.getTags(), getRootSpanName());
         getSpan().updateName(spanName);
