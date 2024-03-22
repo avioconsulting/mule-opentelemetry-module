@@ -45,4 +45,59 @@ After multiple iterations of the test with above setup and comparing the perform
 * Up to 5% overhead on request processing under the load
 * Up to 10% CPU overhead
 
+[#_static_vs_dynamic_global_configurations]
+==== Static vs. Dynamic Configurations
 
+Depending on how global configurations are written they can be https://docs.mulesoft.com/mule-sdk/latest/static-dynamic-configs[Static or Dynamic].
+
+- *Static Configuration* - A configuration is static when none of its parameters are assigned an expression (even if those parameters do support expressions)
+
+[source,xml]
+----
+<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration">
+    <http:request-connection host="${sys.greet.http.host}" port="${sys.greet.http.port}" />
+</http:request-config>
+----
+
+
+- *Dynamic Configuration* - In dynamic configurations, at least one parameter has an expression
+
+[source,xml]
+----
+<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration">
+  <http:request-connection host="${sys.greet.http.host}" port="${sys.greet.http.port}"
+    <http:default-headers>
+      <http:default-header key="traceparent"
+value="#[vars.OTEL_TRACE_CONTEXT.traceparent as String]" />
+    </http:default-headers>
+</http:request-config>
+----
+
+_For Static configurations_, a single instance is created and _re-used_ each time it is needed.
+
+_For Dynamic configurations_, Each time an operation that points to a dynamic configuration is executed, all the parameters in the configuration are evaluated. A configuration instance is created for each unique set of resolved parameters. In that way, each time the same values are resolved, the same instance is returned, but for each different set of values, a _different_ instance is created.
+
+This lifecycle difference can make a huge difference on the configuration objects created. Every request will have a different `traceparent` value. Thus, when using Dynamic configurations, a new instance will be created *for each request*.
+
+Following result demonstrates the configuration Object creations for a load of _20 concurrent users for a 1-minute_ time period -
+
+*Observations:*
+
+- The number of Objects creation and allocation is much higher for Dynamic configurations
+- With configuration expiration window, this affects the memory consumption and GC times
+
+*Recommendations:*
+
+For higher load applications, static configurations i.e. propagation from operations instead of global configuration should be preferred.
+
+
+
+*Static Configuration Object Creations*
+
+image::Images/static_vs_dynamic_static_1.png[width=1024]
+image::Images/static_vs_dynamic_static_obj.png[width=1024]
+
+*Dynamic Configuration Object Creations*
+
+image::Images/static_vs_dynamic_dynamic_1.png[width=1024]
+image::Images/static_vs_dynamic_dynamic_obj.png[width=1024]
