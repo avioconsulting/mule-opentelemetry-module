@@ -31,7 +31,7 @@ public class MuleOpenTelemetryAPIKitTest extends AbstractMuleArtifactTraceTest {
   public void getAPIKitOrders() throws Exception {
     sendRequest(CORRELATION_ID, "/api/orders/1234", 200);
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
-        .hasSize(3)
+        .hasSize(8)
         .anySatisfy(span -> {
           assertThat(span)
               .as("Span for http:listener source flow")
@@ -52,13 +52,27 @@ public class MuleOpenTelemetryAPIKitTest extends AbstractMuleArtifactTraceTest {
               .extracting("spanName", "spanKind", "spanStatus")
               .containsOnly("router:router order-exp-config", "INTERNAL", "UNSET");
         }));
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:request target flow")
+              .extracting("spanName", "spanKind", "spanStatus")
+              .containsOnly("/test", "CLIENT", "UNSET");
+        }));
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .anySatisfy(span -> {
+          assertThat(span)
+              .as("Span for http:listener target flow")
+              .extracting("spanName", "spanKind", "spanStatus")
+              .containsOnly("GET /test", "SERVER", "UNSET");
+        }));
   }
 
   @Test
   public void getAPIKitOrders_404Error() throws Exception {
     sendRequest(CORRELATION_ID, "/api/something/1234", 404);
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
-        .hasSize(2)
+        .hasSize(4)
         .anySatisfy(span -> {
           assertThat(span)
               .as("Span for http:listener source flow")
@@ -78,7 +92,7 @@ public class MuleOpenTelemetryAPIKitTest extends AbstractMuleArtifactTraceTest {
         ContentType.APPLICATION_JSON);
     sendRequest("post", CORRELATION_ID, "/api/orders", 201, stringEntity);
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
-        .hasSize(3)
+        .hasSize(4)
         .anySatisfy(span -> {
           assertThat(span)
               .as("Span for http:listener source flow")
