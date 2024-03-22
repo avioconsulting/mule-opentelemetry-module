@@ -2,13 +2,62 @@
 <mule xmlns="http://www.mulesoft.org/schema/mule/core"
       xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
       xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry"
       xmlns:http="http://www.mulesoft.org/schema/mule/http"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
       http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-      http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd">
+      http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd">
     <apikit:config name="order-exp-config" api="order-exp.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
-    <import file="global-common.xml"/>
+    <http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="79881531-bfaa-49fd-8227-b67e35d64cf8" >
+        <http:listener-connection host="0.0.0.0" port="${http.port}" />
+    </http:listener-config>
+
+    <opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1"  maxQueueSize="2048"
+                          maxBatchExportSize="512" batchExportDelayInterval="5000"
+                          exportTimeout="30000" spanAllProcessors="true">
+        <opentelemetry:resource-attributes >
+            <opentelemetry:attribute key="mule.env" value="Dev" />
+        </opentelemetry:resource-attributes>
+        <opentelemetry:exporter >
+            <!--			<opentelemetry:logging-exporter logPrefix="test-log" />-->
+            <opentelemetry:generic-exporter >
+                <opentelemetry:config-properties >
+                    <opentelemetry:config-property key="otel.traces.exporter" value="delegatedLogging" />
+                </opentelemetry:config-properties>
+            </opentelemetry:generic-exporter>
+        </opentelemetry:exporter>
+    </opentelemetry:config>
+    <http:request-config name="SELF_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="c18eed36-eb42-4c29-abc9-9e7a2c6049e1" >
+        <http:request-connection host="0.0.0.0" port="${http.port}" />
+    </http:request-config>
+    <error-handler name="global-apikit-error-handler">
+        <on-error-propagate type="APIKIT:BAD_REQUEST">
+            <set-payload value="#[output application/json --- {message: 'Bad request'}]"/>
+            <set-variable value="400" variableName="httpStatus" />
+        </on-error-propagate>
+        <on-error-propagate type="APIKIT:NOT_FOUND">
+            <set-payload value="#[output application/json --- {message: 'Resource not found'}]"/>
+            <set-variable value="404" variableName="httpStatus" />
+        </on-error-propagate>
+        <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+            <set-payload value="#[output application/json --- {message: 'Method not allowed'}]"/>
+            <set-variable value="405" variableName="httpStatus" />
+        </on-error-propagate>
+        <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+            <set-payload value="#[output application/json --- {message: 'Not acceptable'}]"/>
+            <set-variable value="406" variableName="httpStatus" />
+        </on-error-propagate>
+        <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+            <set-payload value="#[output application/json --- {message: 'Unsupported media type'}]"/>
+            <set-variable value="415" variableName="httpStatus" />
+        </on-error-propagate>
+        <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+            <set-payload value="#[output application/json --- {message: 'Not Implemented'}]"/>
+            <set-variable value="501" variableName="httpStatus" />
+        </on-error-propagate>
+    </error-handler>
     <flow name="order-exp-main">
         <http:listener config-ref="HTTP_Listener_config" path="/api/*">
             <http:response statusCode="#[vars.httpStatus default 200]">
@@ -22,8 +71,22 @@
         <apikit:router config-ref="order-exp-config" />
         <error-handler ref="global-apikit-error-handler"/>
     </flow>
+    <flow name="apikit-test-flow" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
+        <http:listener config-ref="HTTP_Listener_config" path="/test">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />
+    </flow>
+
     <flow name="get:\orders\(orderId):order-exp-config">
         <set-variable value="#[attributes.uriParams.'orderId']" variableName="orderId" />
+        <http:request method="GET" doc:name="Request" config-ref="SELF_HTTP_Request_configuration" path="/test"/>
         <logger level="INFO" message="get:\orders\(orderId):order-exp-config" />
     </flow>
     <flow name="post:\orders:application\json:order-exp-config">

@@ -68,6 +68,7 @@ public class HttpSpanUtil {
   public static String apiKitRoutePath(Map<String, String> tags, String rootSpanName) {
     Objects.requireNonNull(rootSpanName, "Root span name must not be null");
     String flowName = tags.get(MULE_APP_FLOW_NAME.getKey());
+    Objects.requireNonNull(flowName, "Flow name must not be null");
     String pathName = (flowName.split(":")[1]).replace(":", "")
         .replaceAll("\\\\", "/")
         .replaceAll("\\(", "{").replaceAll("\\)", "}");
