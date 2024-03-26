@@ -15,6 +15,7 @@ import java.util.Optional;
 
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.ROUTE;
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.SCOPE;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_PROCESSOR_NAME;
 
 public class ComponentsUtil {
 
@@ -113,5 +114,10 @@ public class ComponentsUtil {
   public static boolean isRoute(TypedComponentIdentifier tci) {
     Objects.requireNonNull(tci, "Component Identifier cannot be null");
     return tci.getIdentifier().getName().equals("route");
+  }
+
+  public static boolean isFlowTrace(TraceComponent traceComponent) {
+    return traceComponent != null && traceComponent.getTags() != null
+        && "flow".equalsIgnoreCase(traceComponent.getTags().get(MULE_APP_PROCESSOR_NAME.getKey()));
   }
 }
