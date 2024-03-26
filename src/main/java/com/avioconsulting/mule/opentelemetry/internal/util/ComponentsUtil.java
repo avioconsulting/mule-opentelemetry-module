@@ -1,11 +1,14 @@
 package com.avioconsulting.mule.opentelemetry.internal.util;
 
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 
 import java.util.Optional;
+
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_PROCESSOR_NAME;
 
 public class ComponentsUtil {
 
@@ -28,5 +31,10 @@ public class ComponentsUtil {
     return configurationComponentLocator
         .find(identifier).stream()
         .filter(c -> c.getLocation().getLocation().equals(location)).findFirst();
+  }
+
+  public static boolean isFlowTrace(TraceComponent traceComponent) {
+    return traceComponent != null && traceComponent.getTags() != null
+        && "flow".equalsIgnoreCase(traceComponent.getTags().get(MULE_APP_PROCESSOR_NAME.getKey()));
   }
 }
