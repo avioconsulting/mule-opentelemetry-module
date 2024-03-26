@@ -463,13 +463,9 @@ image::manual-context-flow-injection.png[]
 
 [#_http_request_context_injection]
 ====== HTTP Request Context Injection
-The Module does **NOT** support automatic context propagation. In order to *propagate the trace header* information to other web applications, the Mule HTTP Requester Configuration *must*
-have default headers configured in the following way:
+The Module does **NOT** support automatic context propagation. In order to *propagate the trace header* information to other web applications, the Mule HTTP Requester Operation _OR_ Configuration *must* be configured to propagate following http headers -
 
-image::http-requester-config.png[600,600,title="Mule HTTP Requester Configuration",align="center"]
-
-
-.HTTP Requester Configuration for Default Headers
+.HTTP Headers for Trace Context
 [cols="30%, 70%"]
 |===
 | *Key*          | *Value*
@@ -477,15 +473,46 @@ image::http-requester-config.png[600,600,title="Mule HTTP Requester Configuratio
 | `tracestate`   | `#[vars.OTEL_TRACE_CONTEXT.tracestate default ''  as String]`
 |===
 
+*Using Operation vs. Global Configuration:*
+
+HTTP Outbound headers can be added at HTTP Request Operation level OR as a default headers in HTTP Request Global Configuration.
+
+HTTP Global configuration may be easier from code modifications perspective i.e. just at one global level. That comes at the cost of performance because using expressions in configurations makes it a *https://docs.mulesoft.com/mule-sdk/latest/static-dynamic-configs[dynamic configuration^]*.
+
+On the other hand, using headers section in HTTP Request operation may need modification of every `http:request` operation, but then it keeps the global configuration as a *static configuration* for runtime to reuse the same instance.
+
+WARNING: Using Static configurations is a preferred approach from performance perspective. Dynamic is only recommended for lower request volume uses cases. For more information on performance impact, see link:#_static_vs_dynamic_global_configurations[performance report section].
+
+*Propagation with Request Operation:*
+To propagate context using request operation, add/append request headers section of every `http:request` operation to include following entries -
+
+[source,xml]
+.Example GET Request with OTEL Trace context headers
+----
+<http:request method="GET" doc:name="Request" doc:id="f187cd33-70ce-4e09-96e0-70115c3ac727" config-ref="HTTP_Request_configuration" path="/api/path">
+    <http:headers ><![CDATA[#[output application/java
+---
+{
+"traceparent": vars.OTEL_TRACE_CONTEXT.traceparent as String,
+"tracestate": vars.OTEL_TRACE_CONTEXT.tracestate default '' as String
+}]]]>
+    </http:headers>
+</http:request>
+----
+
+*Propagation with Requester Global Configuration:*
+
+In order to propagate the trace header information to other web applications, the Mule HTTP Requester Configuration must have default headers configured in the following way:
 
 .Mule configuration xml for setting default headers in the HTTP Requester Configuration
 [source%nowrap%linenums, xml]
 ----
-<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="7c863500-0642-4e9d-b759-5e317225e015" sendCorrelationId="NEVER">
-	<http:request-connection host="mule-hello-world-api.us-e1.cloudhub.io" />
+<http:request-config name="HTTP_Request_configuration"
+    doc:name="HTTP Request configuration">
+	<http:request-connection host="some-api.us-e1.cloudhub.io" />
 	<http:default-headers >
-		<http:default-header key='traceparent' value="#[vars.OTEL_TRACE_CONTEXT.traceparent default '' as String]" /> <1>
-		<http:default-header key='tracestate' value="#[vars.OTEL_TRACE_CONTEXT.tracestate default '' as String]" />   <2>
+		<http:default-header key='traceparent' value="#[vars.OTEL_TRACE_CONTEXT.traceparent default '' as String]" />
+		<http:default-header key='tracestate' value="#[vars.OTEL_TRACE_CONTEXT.tracestate default '' as String]" />
 	</http:default-headers>
 </http:request-config>
 ----
