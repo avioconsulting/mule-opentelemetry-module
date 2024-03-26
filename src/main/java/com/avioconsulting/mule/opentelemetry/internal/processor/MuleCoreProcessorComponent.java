@@ -3,13 +3,15 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import org.mule.runtime.api.component.Component;
+import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.component.TypedComponentIdentifier;
+import org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.ROUTER;
 
 /**
  * This processor handles any specific operations or sources from Mule Core
@@ -18,6 +20,8 @@ import java.util.Map;
  * spanAllProcessors flag on global configuration.
  */
 public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
+
+  private List<ComponentType> scopes = Arrays.asList(ROUTER);
 
   @Override
   protected String getNamespace() {
@@ -32,6 +36,13 @@ public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
   @Override
   protected List<String> getSources() {
     return Collections.emptyList();
+  }
+
+  @Override
+  public boolean canHandle(ComponentIdentifier componentIdentifier) {
+    return super.canHandle(componentIdentifier)
+        || (componentIdentifier instanceof TypedComponentIdentifier
+            && scopes.contains(((TypedComponentIdentifier) componentIdentifier).getType()));
   }
 
   @Override

@@ -44,7 +44,9 @@ public class MuleOpenTelemetryEnabledInterceptorHttpTest extends AbstractMuleArt
         .extractingByKey(TransactionStore.TRACE_CONTEXT_MAP_KEY,
             as(InstanceOfAssertFactories.type(TypedValue.class)))
         .extracting("value", as(InstanceOfAssertFactories.map(String.class, String.class)))
-        .containsEntry(TransactionStore.TRACE_TRANSACTION_ID, "test-correlation-id")
+        .containsKey(TransactionStore.TRACE_TRANSACTION_ID)
+        .doesNotContainEntry(TransactionStore.TRACE_TRANSACTION_ID, "test-correlation-id")
+        .describedAs("transaction id is event context id, not correlation id")
         .containsKey("traceparent")
         .containsKey(TransactionStore.SPAN_ID);
   }
@@ -58,7 +60,9 @@ public class MuleOpenTelemetryEnabledInterceptorHttpTest extends AbstractMuleArt
         .extractingByKey(TransactionStore.TRACE_CONTEXT_MAP_KEY,
             as(InstanceOfAssertFactories.type(TypedValue.class)))
         .extracting("value", as(InstanceOfAssertFactories.map(String.class, String.class)))
-        .containsEntry(TransactionStore.TRACE_TRANSACTION_ID, "test-correlation-id")
+        .containsKey(TransactionStore.TRACE_TRANSACTION_ID)
+        .doesNotContainEntry(TransactionStore.TRACE_TRANSACTION_ID, "test-correlation-id")
+        .describedAs("transaction id is event context id, not correlation id")
         .containsKey("traceparent")
         .containsKey(TransactionStore.SPAN_ID);
   }

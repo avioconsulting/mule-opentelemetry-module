@@ -1,9 +1,16 @@
 package com.avioconsulting.mule.opentelemetry.internal.util;
 
+import org.mule.runtime.api.event.Event;
+import org.mule.runtime.api.event.EventContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Map;
 import java.util.Objects;
 
 public class OpenTelemetryUtil {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(OpenTelemetryUtil.class);
 
   /**
    * <pre>
@@ -32,6 +39,20 @@ public class OpenTelemetryUtil {
       String propKey = entry.getKey().substring(replaceVal.length());
       tags.put(propKey, entry.getValue());
     });
+  }
+
+  /**
+   * This method uses {@link EventContext#getId()} for extracting the unique id
+   * for current event processing.
+   *
+   * @param event
+   *            {@link Event} to extract id from
+   * @return String id for the current event
+   */
+  public static String getEventTransactionId(Event event) {
+    // For child contexts, the primary id is appended with "_{timeInMillis}".
+    // We remove time part to get a unique id across the event processing.
+    return event.getContext().getId().split("_")[0];
   }
 
 }

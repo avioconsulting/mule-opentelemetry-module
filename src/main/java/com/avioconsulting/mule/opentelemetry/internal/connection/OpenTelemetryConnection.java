@@ -18,10 +18,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.events.GlobalEventEmitterProvider;
 import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanBuilder;
-import io.opentelemetry.api.trace.StatusCode;
-import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.*;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapSetter;
@@ -43,6 +40,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.*;
+import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
 
 public class OpenTelemetryConnection implements TraceContextHandler {
 
@@ -207,7 +205,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    * @return Map<String, String>
    */
   public Map<String, String> getTraceContext(String transactionId) {
-    return getTraceContext(transactionId, (ComponentLocation) null);
+    return getTraceContext(transactionId, (String) null);
   }
 
   /**
@@ -226,7 +224,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    *            {@link ComponentLocation} to get context for
    * @return Map<String, String>
    */
-  public Map<String, String> getTraceContext(String transactionId, ComponentLocation componentLocation) {
+  public Map<String, String> getTraceContext(String transactionId, String componentLocation) {
     TransactionContext transactionContext = getTransactionStore().getTransactionContext(transactionId,
         componentLocation);
     Map<String, String> traceContext = new HashMap<>(10);
@@ -279,11 +277,11 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    * 
    * @param traceComponent
    *            {@link TraceComponent}
-   * @param rootContainerName
+   * @param containerName
    *            {@link String} name of the container such as flow that holds this
    *            component
    */
-  public void addProcessorSpan(TraceComponent traceComponent, String rootContainerName) {
+  public void addProcessorSpan(TraceComponent traceComponent, String containerName) {
     SpanBuilder spanBuilder = this
         .spanBuilder(traceComponent.getSpanName())
         .setSpanKind(traceComponent.getSpanKind())
@@ -292,15 +290,44 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF.getKey()),
         traceComponent.getTags(), OTEL_SYSTEM_PROPERTIES_MAP);
     traceComponent.getTags().forEach(spanBuilder::setAttribute);
+
+    String parentLocation = getRouteContainerLocation(traceComponent);
+    if (parentLocation != null && traceComponent.getLocation().endsWith("/0")) {
+      // Create parent span for the first processor in the chain /0
+      SpanMeta parentSpan = addRouteSpan(traceComponent, parentLocation,
+          getLocationParent(parentLocation));
+      spanBuilder.setParent(parentSpan.getContext());
+    }
+    if (parentLocation == null) {
+      parentLocation = containerName;
+    }
     getTransactionStore().addProcessorSpan(
-        rootContainerName,
+        parentLocation,
         traceComponent, spanBuilder);
+  }
+
+  private SpanMeta addRouteSpan(TraceComponent childTrace, String parentLocation, String rootContainerName) {
+    TraceComponent parentTrace = TraceComponent.of(parentLocation)
+        .withLocation(parentLocation)
+        .withTags(Collections.emptyMap())
+        .withTransactionId(childTrace.getTransactionId())
+        .withSpanName(parentLocation)
+        .withSpanKind(SpanKind.INTERNAL)
+        .withEventContextId(childTrace.getEventContextId())
+        .withStartTime(childTrace.getStartTime());
+    SpanBuilder spanBuilder = this.spanBuilder(parentLocation)
+        .setParent(childTrace.getContext())
+        .setSpanKind(SpanKind.INTERNAL)
+        .setStartTimestamp(childTrace.getStartTime());
+    return getTransactionStore().addProcessorSpan(
+        rootContainerName,
+        parentTrace, spanBuilder);
   }
 
   public SpanMeta endProcessorSpan(final TraceComponent traceComponent, Error error) {
     return getTransactionStore().endProcessorSpan(
         traceComponent.getTransactionId(),
-        traceComponent.getLocation(),
+        traceComponent,
         span -> {
           if (error != null) {
             span.recordException(error.getCause());
@@ -333,16 +360,14 @@ public class OpenTelemetryConnection implements TraceContextHandler {
       return null;
     }
     return openTelemetryConnection.getTransactionStore().endTransaction(
-        traceComponent.getTransactionId(),
-        traceComponent.getName(),
+        traceComponent,
         rootSpan -> {
           traceComponent.getTags().forEach(rootSpan::setAttribute);
           openTelemetryConnection.setSpanStatus(traceComponent, rootSpan);
           if (exception != null) {
             rootSpan.recordException(exception);
           }
-        },
-        traceComponent.getEndTime());
+        });
   }
 
   public void setSpanStatus(TraceComponent traceComponent, Span span) {

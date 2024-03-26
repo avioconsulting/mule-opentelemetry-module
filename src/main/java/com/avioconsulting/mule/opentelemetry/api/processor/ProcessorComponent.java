@@ -5,7 +5,7 @@ import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
-import org.mule.runtime.api.message.Message;
+import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 public interface ProcessorComponent {
@@ -23,7 +23,17 @@ public interface ProcessorComponent {
    */
   TraceComponent getStartTraceComponent(EnrichedServerNotification notification);
 
-  TraceComponent getStartTraceComponent(Component component, Message message, String correlationId);
+  /**
+   * Build a {@link TraceComponent} for start of the {@link Component} processing
+   * given {@link Event}
+   * 
+   * @param component
+   *            {@link Component}
+   * @param event
+   *            {@link Event}
+   * @return TraceComponent
+   */
+  TraceComponent getStartTraceComponent(Component component, Event event);
 
   /**
    * Build a {@link TraceComponent} for end of a flow-like container or a message

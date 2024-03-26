@@ -3,8 +3,10 @@ package com.avioconsulting.mule.opentelemetry.internal;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import org.mule.runtime.extension.api.annotation.Alias;
 import org.mule.runtime.extension.api.annotation.param.Connection;
+import org.mule.runtime.extension.api.annotation.param.Optional;
 import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.runtime.parameter.CorrelationInfo;
+import org.mule.runtime.extension.api.runtime.parameter.ParameterResolver;
 
 import java.util.Map;
 import java.util.function.Supplier;
@@ -14,9 +16,9 @@ public class OpenTelemetryOperations {
   @DisplayName("Get Trace Context")
   @Alias("get-trace-context")
   public Map<String, String> getTraceContext(@Connection Supplier<OpenTelemetryConnection> openTelemetryConnection,
+      @DisplayName("Trace Transaction Id") @Optional(defaultValue = "#[vars.OTEL_TRACE_CONTEXT.TRACE_TRANSACTION_ID]") ParameterResolver<String> traceTransactionId,
       CorrelationInfo correlationInfo) {
-    String transactionId = correlationInfo.getCorrelationId();
-    return openTelemetryConnection.get().getTraceContext(transactionId);
+    return openTelemetryConnection.get().getTraceContext(traceTransactionId.resolve());
   }
 
   /**
@@ -36,9 +38,10 @@ public class OpenTelemetryOperations {
    */
   @DisplayName("Add Custom Tags")
   public void addCustomTags(@Connection Supplier<OpenTelemetryConnection> openTelemetryConnection,
+      @DisplayName("Trace Transaction Id") @Optional(defaultValue = "#[vars.OTEL_TRACE_CONTEXT.TRACE_TRANSACTION_ID]") ParameterResolver<String> traceTransactionId,
       Map<String, String> tags,
       CorrelationInfo correlationInfo) {
-    openTelemetryConnection.get().getTransactionStore().addTransactionTags(correlationInfo.getCorrelationId(),
+    openTelemetryConnection.get().getTransactionStore().addTransactionTags(traceTransactionId.resolve(),
         "custom",
         tags);
   }

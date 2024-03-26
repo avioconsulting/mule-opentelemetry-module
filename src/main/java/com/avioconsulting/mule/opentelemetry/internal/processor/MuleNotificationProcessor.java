@@ -123,14 +123,16 @@ public class MuleNotificationProcessor {
     try {
       ProcessorComponent processorComponent = getProcessorComponent(notification);
       if (processorComponent != null) {
-        logger.trace(
-            "Handling '{}:{}' processor start event",
-            notification.getResourceIdentifier(),
-            notification.getComponent().getIdentifier());
+        logger.trace("Handling '{}:{}' processor start event context id {} correlation id {} ",
+            notification.getResourceIdentifier(), notification.getComponent().getIdentifier(),
+            notification.getEvent().getContext().getId(),
+            notification.getEvent().getCorrelationId());
         TraceComponent traceComponent = processorComponent.getStartTraceComponent(notification)
-            .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()));
+            .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()))
+            .withEventContextId(notification.getEvent().getContext().getId())
+            .withComponentLocation(notification.getComponent().getLocation());
         openTelemetryConnection.addProcessorSpan(traceComponent,
-            notification.getComponent().getLocation().getRootContainerName());
+            ComponentsUtil.getLocationParent(notification.getComponent().getLocation().getLocation()));
       }
     } catch (Exception ex) {
       logger.error("Error in handling processor start event", ex);
@@ -179,12 +181,13 @@ public class MuleNotificationProcessor {
     try {
       ProcessorComponent processorComponent = getProcessorComponent(notification);
       if (processorComponent != null) {
-        logger.trace(
-            "Handling '{}:{}' processor end event ",
-            notification.getResourceIdentifier(),
-            notification.getComponent().getIdentifier());
+        logger.trace("Handling '{}:{}' processor end event context id {} correlation id {} ",
+            notification.getResourceIdentifier(), notification.getComponent().getIdentifier(),
+            notification.getEvent().getContext().getId(),
+            notification.getEvent().getCorrelationId());
         TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification)
-            .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()));
+            .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()))
+            .withEventContextId(notification.getEvent().getContext().getId());
         SpanMeta spanMeta = openTelemetryConnection.endProcessorSpan(traceComponent,
             notification.getEvent().getError().orElse(null));
 
@@ -193,16 +196,16 @@ public class MuleNotificationProcessor {
               configurationComponentLocator)
                   .filter(ComponentsUtil::isSubFlow)
                   .ifPresent(subFlowComp -> {
-                    TraceComponent subflowTrace = TraceComponent.named(subFlowComp.getLocation())
+                    TraceComponent subflowTrace = TraceComponent.of(subFlowComp)
                         .withTransactionId(traceComponent.getTransactionId())
-                        .withLocation(subFlowComp.getLocation())
                         .withSpanName(subFlowComp.getLocation())
                         .withSpanKind(SpanKind.INTERNAL)
                         .withTags(Collections.singletonMap(MULE_APP_SCOPE_SUBFLOW_NAME.getKey(),
                             subFlowComp.getLocation()))
                         .withStatsCode(traceComponent.getStatusCode())
                         .withEndTime(traceComponent.getEndTime())
-                        .withContext(traceComponent.getContext());
+                        .withContext(traceComponent.getContext())
+                        .withEventContextId(notification.getEvent().getContext().getId());
                     SpanMeta subFlow = openTelemetryConnection.endProcessorSpan(subflowTrace,
                         notification.getEvent().getError().orElse(null));
                     if (subFlow != null) {
@@ -227,10 +230,13 @@ public class MuleNotificationProcessor {
 
   public void handleFlowStartEvent(PipelineMessageNotification notification) {
     try {
-      logger.trace("Handling '{}' flow start event", notification.getResourceIdentifier());
+      logger.trace("Handling '{}' flow start event context id {} correlation id {} ",
+          notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
+          notification.getEvent().getCorrelationId());
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceStartTraceComponent(notification, openTelemetryConnection)
-          .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()));
+          .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()))
+          .withEventContextId(notification.getEvent().getContext().getId());
       openTelemetryConnection.startTransaction(traceComponent);
     } catch (Exception ex) {
       logger.error(
@@ -244,10 +250,13 @@ public class MuleNotificationProcessor {
 
   public void handleFlowEndEvent(PipelineMessageNotification notification) {
     try {
-      logger.trace("Handling '{}' flow end event", notification.getResourceIdentifier());
+      logger.info("Handling '{}' flow end event context id {} correlation id {} ",
+          notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
+          notification.getEvent().getCorrelationId());
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceEndTraceComponent(notification, openTelemetryConnection)
-          .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()));
+          .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()))
+          .withEventContextId(notification.getEvent().getContext().getId());
       TransactionMeta transactionMeta = openTelemetryConnection.endTransaction(traceComponent,
           notification.getException());
       openTelemetryConnection.getMetricsProviders().captureFlowMetrics(transactionMeta,
@@ -261,13 +270,4 @@ public class MuleNotificationProcessor {
       throw ex;
     }
   }
-  //
-  // public void captureCustomMetric(ExtensionNotification extensionNotification)
-  // {
-  // MetricEventNotification<Long> metric = (MetricEventNotification<Long>)
-  // extensionNotification.getData()
-  // .getValue();
-  // muleMetricsProcessor.captureCustomMetric(metric);
-  // }
-
 }

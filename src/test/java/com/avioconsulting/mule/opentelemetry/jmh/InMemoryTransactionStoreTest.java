@@ -45,7 +45,7 @@ public class InMemoryTransactionStoreTest extends AbstractJMHTest {
     SpanBuilder spanBuilder = tracer.spanBuilder("test-transaction")
         .setSpanKind(SpanKind.SERVER)
         .setStartTimestamp(startTimestamp);
-    TraceComponent traceComponent = TraceComponent.named("test-1").withTransactionId("test-1")
+    TraceComponent traceComponent = TraceComponent.of("test-1").withTransactionId("test-1")
         .withStartTime(startTimestamp)
         .withLocation(TEST_1_FLOW_FLOW_REF);
     connection.getTransactionStore().startTransaction(traceComponent, TEST_1_FLOW, spanBuilder);
@@ -62,7 +62,7 @@ public class InMemoryTransactionStoreTest extends AbstractJMHTest {
   @Benchmark
   public void getTransactionComponentContext(Blackhole blackhole) {
     TransactionContext transactionContext = connection.getTransactionStore().getTransactionContext("test-1",
-        COMPONENT_LOCATION);
+        COMPONENT_LOCATION.getLocation());
     blackhole.consume(transactionContext);
   }
 
@@ -75,7 +75,7 @@ public class InMemoryTransactionStoreTest extends AbstractJMHTest {
   @Benchmark
   public void getTraceContextComponent(Blackhole blackhole) {
     Map<String, String> transactionContext = connection.getTraceContext("test-1",
-        COMPONENT_LOCATION);
+        COMPONENT_LOCATION.getLocation());
     blackhole.consume(transactionContext);
   }
 }

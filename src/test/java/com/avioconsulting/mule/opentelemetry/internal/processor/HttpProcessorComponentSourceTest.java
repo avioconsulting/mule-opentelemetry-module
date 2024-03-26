@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
+import com.avioconsulting.mule.opentelemetry.test.util.TestInterceptionEvent;
 import io.opentelemetry.api.trace.StatusCode;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -75,7 +76,7 @@ public class HttpProcessorComponentSourceTest extends AbstractProcessorComponent
 
     Message message = getMessage(requestAttributes);
     when(event.getMessage()).thenReturn(message);
-
+    when(event.getContext()).thenReturn(new TestInterceptionEvent.TestEventContext());
     ComponentLocation componentLocation = getComponentLocation();
 
     Map<String, String> config = new HashMap<>();

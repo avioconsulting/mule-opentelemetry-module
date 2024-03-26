@@ -9,6 +9,7 @@ import org.mule.extension.http.api.HttpRequestAttributes;
 import org.mule.extension.http.api.HttpResponseAttributes;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.metadata.MediaType;
@@ -123,20 +124,20 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  public TraceComponent getStartTraceComponent(Component component, Message message, String correlationId) {
+  public TraceComponent getStartTraceComponent(Component component, Event event) {
 
-    TraceComponent traceComponent = super.getStartTraceComponent(component, message, correlationId);
+    TraceComponent traceComponent = super.getStartTraceComponent(component, event);
 
     Map<String, String> requesterTags = getAttributes(component,
-        message.getAttributes());
+        event.getMessage().getAttributes());
     requesterTags.putAll(traceComponent.getTags());
 
-    return TraceComponent.named(component.getLocation().getRootContainerName())
+    return TraceComponent.of(component.getLocation().getRootContainerName(), component.getLocation())
         .withTags(requesterTags)
-        .withLocation(component.getLocation().getLocation())
         .withSpanName(requesterTags.get(HTTP_ROUTE.getKey()))
         .withTransactionId(traceComponent.getTransactionId())
-        .withSpanKind(getSpanKind());
+        .withSpanKind(getSpanKind())
+        .withEventContextId(traceComponent.getEventContextId());
   }
 
   @Override
@@ -184,7 +185,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     TypedValue<HttpRequestAttributes> attributesTypedValue = notification.getEvent().getMessage().getAttributes();
     HttpRequestAttributes attributes = attributesTypedValue.getValue();
     Map<String, String> tags = attributesToTags(attributes);
-    return TraceComponent.named(notification.getResourceIdentifier())
+    return TraceComponent.of(notification.getResourceIdentifier(), notification.getComponent().getLocation())
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
         .withSpanName(HttpSpanUtil.spanName(tags, attributes.getListenerPath()))

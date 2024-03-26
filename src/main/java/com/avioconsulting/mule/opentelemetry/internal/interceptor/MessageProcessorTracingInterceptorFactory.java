@@ -17,8 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.FLOW;
-import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.SCOPE;
+import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.*;
 
 /**
  * ProcessorInterceptorFactory can intercept processors. This is injected
@@ -36,7 +35,6 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
   public static final String MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME = "mule.otel.interceptor.processor.enable";
   private final boolean interceptorEnabled = Boolean
       .parseBoolean(System.getProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME, "true"));
-
   /**
    * {@link MuleNotificationProcessor} instance for getting opentelemetry
    * connection supplier by processor.
@@ -149,8 +147,8 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
         }
       }
     }
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Will Intercept '{}'?: {}", location, intercept);
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("Will Intercept '{}'?: {}", location, intercept);
     }
     return intercept;
   }

@@ -8,94 +8,94 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 
 	<import file="global-common.xml"/>
 
-	<http:request-config name="INVALID_HTTP_BasePath_Request_configuration" doc:name="HTTP Request configuration" doc:id="c18eed36-eb42-4c29-abc9-9e7a2c6049e1" basePath="/api" >
+	<http:request-config name="INVALID_HTTP_BasePath_Request_configuration" doc:name="HTTP Request configuration"  basePath="/api" >
 		<http:request-connection host="0.0.0.0" port="9085" />
 	</http:request-config>
-	<flow name="http-json-status" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
-		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test-json-status"/>
-		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />
-		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+	<flow name="http-json-status"  >
+		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test-json-status"/>
+		<logger level="INFO" doc:name="Logger"  />
+		<set-payload value="Received in App2" doc:name="Set Payload"  />
 		<set-variable variableName="httpStatus" value="#[output json --- 200]"/>
-		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
+		<logger level="INFO" doc:name="Logger"  />
 	</flow>
-	<flow name="http-bad-status" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
-		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test-bad-status"/>
-		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />
-		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+	<flow name="http-bad-status"  >
+		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test-bad-status"/>
+		<logger level="INFO" doc:name="Logger"  />
+		<set-payload value="Received in App2" doc:name="Set Payload"  />
 		<set-variable variableName="httpStatus" value="#[output json --- 'NotANumber']"/>
-		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
+		<logger level="INFO" doc:name="Logger"  />
 	</flow>
-	<flow name="http-wildcard-listener" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
-		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test-wildcard/*"/>
-		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />
-		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+	<flow name="http-wildcard-listener"  >
+		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test-wildcard/*"/>
+		<logger level="INFO" doc:name="Logger"  />
+		<set-payload value="Received in App2" doc:name="Set Payload"  />
 		<set-variable variableName="httpStatus" value="#[200]"/>
-		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
+		<logger level="INFO" doc:name="Logger"  />
 	</flow>
-	<flow name="mule-opentelemetry-app-2Flow" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
-		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test"/>
-		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />
-		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+	<flow name="mule-opentelemetry-app-2Flow"  >
+		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test"/>
+		<logger level="INFO" doc:name="Logger"  />
+		<set-payload value="Received in App2" doc:name="Set Payload"  />
 		<set-variable variableName="httpStatus" value="#[200]"/>
-		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
+		<logger level="INFO" doc:name="Logger"  />
 	</flow>
-	<flow name="http-test-without-status-variable" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
-		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test/no-status"/>
-		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />
-		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+	<flow name="http-test-without-status-variable"  >
+		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test/no-status"/>
+		<logger level="INFO" doc:name="Logger"  />
+		<set-payload value="Received in App2" doc:name="Set Payload"  />
 		<!--<set-variable variableName="httpStatus" value="#[200]"/>-->
-		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
+		<logger level="INFO" doc:name="Logger"  />
 	</flow>
-	<flow name="http-test-errorResponse-status-variable" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
-		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test/error-status"/>
-		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />
-		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
-		<raise-error doc:name="Raise error" doc:id="049f12f1-24cd-4337-868c-96c140dde0b8" type="ANY"/>
-		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
+	<flow name="http-test-errorResponse-status-variable"  >
+		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test/error-status"/>
+		<logger level="INFO" doc:name="Logger"  />
+		<set-payload value="Received in App2" doc:name="Set Payload"  />
+		<raise-error doc:name="Raise error"  type="ANY"/>
+		<logger level="INFO" doc:name="Logger"  />
 		<error-handler >
-			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="e594b839-276b-4a11-b6ce-c54920f408ad" >
-				<set-variable value="#[500]" doc:name="Set Variable" doc:id="4ce4adfa-65e5-4936-ae99-bd74638ece3c" variableName="httpStatus"/>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate"  >
+				<set-variable value="#[500]" doc:name="Set Variable"  variableName="httpStatus"/>
 			</on-error-propagate>
 		</error-handler>
 	</flow>
 
-	<flow name="mule-opentelemetry-app-2-interceptor-test" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
-		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />
-		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
-		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
+	<flow name="mule-opentelemetry-app-2-interceptor-test"  >
+		<logger level="INFO" doc:name="Logger"  />
+		<set-payload value="Received in App2" doc:name="Set Payload"  />
+		<logger level="INFO" doc:name="Logger"  />
 	</flow>
-	<flow name="mule-opentelemetry-app-2Flow-requester-error" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
-		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test-invalid-request"/>
-		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />
-		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+	<flow name="mule-opentelemetry-app-2Flow-requester-error"  >
+		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test-invalid-request"/>
+		<logger level="INFO" doc:name="Logger"  />
+		<set-payload value="Received in App2" doc:name="Set Payload"  />
 		<http:request method="GET" doc:name="Request" config-ref="INVALID_HTTP_Request_configuration" path="/remote/invalid"/>
-		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
+		<logger level="INFO" doc:name="Logger"  />
 	</flow>
-	<flow name="mule-opentelemetry-app-2-private-Flow-requester-error" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
-		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />
-		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+	<flow name="mule-opentelemetry-app-2-private-Flow-requester-error"  >
+		<logger level="INFO" doc:name="Logger"  />
+		<set-payload value="Received in App2" doc:name="Set Payload"  />
 		<http:request method="GET" doc:name="Request" config-ref="INVALID_HTTP_Request_configuration" path="/remote/invalid"/>
-		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
+		<logger level="INFO" doc:name="Logger"  />
 	</flow>
-	<flow name="mule-opentelemetry-app-2-private-Flow-requester_basepath" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
-		<logger level="INFO" doc:name="Logger" doc:id="97393612-d33a-466f-b9b5-600a21098532" />
-		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+	<flow name="mule-opentelemetry-app-2-private-Flow-requester_basepath"  >
+		<logger level="INFO" doc:name="Logger"  />
+		<set-payload value="Received in App2" doc:name="Set Payload"  />
 		<http:request method="GET" doc:name="Request" config-ref="INVALID_HTTP_BasePath_Request_configuration" path="/remote/invalid"/>
-		<logger level="INFO" doc:name="Logger" doc:id="f0b7d26d-3f66-4bed-afeb-f70fa8d739ec" />
+		<logger level="INFO" doc:name="Logger"  />
 	</flow>
 	<flow name="Server400TestFlow"
-		  doc:id="f42f8120-fb86-4213-8808-4c1e3795816c">
+		  >
 		<http:listener doc:name="Listener"
-					   doc:id="fee82c53-3e44-4163-b71d-0a26891562d7"
+
 					   config-ref="HTTP_Listener_config" path="/test/error/400">
 			<http:response statusCode="400" />
 		</http:listener>
 		<logger level="INFO" doc:name="Logger"
-				doc:id="d7c9aa3a-63ec-407f-ab77-e71d3cd67519" message="start" />
+				 message="start" />
 	</flow>
-	<flow name="mule-opentelemetry-app-2-context-propagation-source" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
-		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test/propagation/source"/>
-		<set-payload value="Received in App2" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+	<flow name="mule-opentelemetry-app-2-context-propagation-source"  >
+		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test/propagation/source"/>
+		<set-payload value="Received in App2" doc:name="Set Payload"  />
 		<!-- to simulate two different traces, propagated correlrationId must be different than this flows correlationId id -->
 		<http:request method="GET" doc:name="Request" config-ref="SELF_HTTP_Request_configuration" path="/test/propagation/target" correlationId="#[uuid()]">
 			<http:headers ><![CDATA[#[output application/java
@@ -105,9 +105,9 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 }]]]></http:headers>
 		</http:request>
 	</flow>
-	<flow name="mule-opentelemetry-app-2-context-propagation-target" doc:id="ddcac188-d00c-4614-ba69-5deef8575938" >
-		<http:listener doc:name="Listener" doc:id="96ac0ccd-1027-495e-9dbd-57f176233ff3" config-ref="HTTP_Listener_config" path="/test/propagation/target"/>
-		<set-payload value="From Propagation target" doc:name="Set Payload" doc:id="6bb91307-b173-4256-8c64-491dad475af7" />
+	<flow name="mule-opentelemetry-app-2-context-propagation-target"  >
+		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test/propagation/target"/>
+		<set-payload value="From Propagation target" doc:name="Set Payload"  />
 	</flow>
 
 	<flow name="mule-opentelemetry-app-requester-remote" >
@@ -119,4 +119,31 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test/remote/target"/>
 		<set-payload value="From Remote target" doc:name="Set Payload"/>
 	</flow>
+
+
+
+	<flow name="app-requester-scatter-gather" >
+		<http:listener doc:name="Listener" config-ref="HTTP_Listener_config" path="/test-scatter-gather"/>
+		<logger level="INFO" doc:name="Logger 3"  message="#['Log outside']"/>
+		<scatter-gather doc:name="Scatter-Gather"  >
+			<route >
+				<logger level="INFO" doc:name="Logger 1"  message="#['Log route 1']"/>
+				<flow-ref doc:name="sub-flow-call-remote-target"  name="sub-flow-call-remote-target"/>
+			</route>
+			<route >
+				<logger level="INFO" doc:name="Logger 2"  message="#['Log route 1']"/>
+				<flow-ref doc:name="sub-flow-call-remote-target"  name="sub-flow-call-remote-target"/>
+			</route>
+			<route >
+				<logger level="INFO" doc:name="Logger 3"  message="#['Log route 1']"/>
+				<flow-ref doc:name="sub-flow-call-remote-target"  name="sub-flow-call-remote-target"/>
+			</route>
+		</scatter-gather>
+		<logger level="INFO" doc:name="Logger 3"  message="#['Log outside']"/>
+		<flow-ref doc:name="sub-flow-call-remote-target"  name="sub-flow-call-remote-target"/>
+		<logger level="INFO" doc:name="Logger"/>
+	</flow>
+	<sub-flow name="sub-flow-call-remote-target"  >
+		<http:request method="GET" doc:name="Request" config-ref="SELF_HTTP_Request_configuration" path="/test/remote/target"/>
+	</sub-flow>
 </mule>
