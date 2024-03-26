@@ -7,7 +7,7 @@ AVIO Consulting
 :doctype: book
 :icons: font
 :toc: left
-:toclevels: 3
+:toclevels: 4
 :imagesdir: ./Images
 :tabsize: 4
 :keywords: Mule, MuleSoft, Observability, OpenTelemetry, OTel, Tracing, Instrumentation, Distributed
