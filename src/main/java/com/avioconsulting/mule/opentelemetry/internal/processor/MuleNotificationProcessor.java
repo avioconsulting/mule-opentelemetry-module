@@ -250,7 +250,7 @@ public class MuleNotificationProcessor {
 
   public void handleFlowEndEvent(PipelineMessageNotification notification) {
     try {
-      logger.info("Handling '{}' flow end event context id {} correlation id {} ",
+      logger.trace("Handling '{}' flow end event context id {} correlation id {} ",
           notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
           notification.getEvent().getCorrelationId());
       TraceComponent traceComponent = flowProcessorComponent
