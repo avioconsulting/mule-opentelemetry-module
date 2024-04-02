@@ -88,10 +88,4 @@ public class MuleOpenTelemetryProcessorPropertyOverrideTest extends AbstractMule
         .containsExactly(parentSpan.getTraceId(), parentSpan.getSpanId());
   }
 
-  private static DelegatedLoggingSpanTestExporter.Span getSpan(String INTERNAL, String spanName) {
-    return DelegatedLoggingSpanTestExporter.spanQueue
-        .stream()
-        .filter(s -> s.getSpanKind().equals(INTERNAL) && s.getSpanName().equals(spanName))
-        .findFirst().get();
-  }
 }

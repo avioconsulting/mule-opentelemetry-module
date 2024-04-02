@@ -141,4 +141,17 @@ http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/
 	<sub-flow name="simple-subflow-logger">
 		<logger level="INFO" message="#['Simple flow']" doc:name="SimpleLogger" />
 	</sub-flow>
+
+	<flow name="mule-core-flow-1"  >
+		<logger level="INFO" doc:name="FirstLogger"  />
+		<flow-ref name="mule-core-flow-2"/>
+	</flow>
+	<flow name="mule-core-flow-2"  >
+		<logger level="INFO" doc:name="SecondLogger"  />
+		<flow-ref name="mule-core-flow-3"/>
+	</flow>
+	<flow name="mule-core-flow-3"  >
+		<logger level="INFO" doc:name="ThirdLogger"  />
+		<raise-error doc:name="Raise error" description="Random failure" type="APP:RANDOM_FAILURE"/>
+	</flow>
 </mule>

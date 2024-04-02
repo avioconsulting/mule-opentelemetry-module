@@ -24,8 +24,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
-import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.TRACE_CONTEXT_MAP_KEY;
-import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.TRACE_PREV_CONTEXT_MAP_KEY;
+import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.getEventTransactionId;
 
@@ -70,6 +69,10 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
       ProcessorComponent processorComponent = muleNotificationProcessor
           .getProcessorComponent(location.getComponentIdentifier().getIdentifier());
       switchTraceContext(event, TRACE_CONTEXT_MAP_KEY, TRACE_PREV_CONTEXT_MAP_KEY);
+      if (isFirstProcessor(location)) {
+        switchTraceContext(event, OTEL_FLOW_CONTEXT_ID, OTEL_FLOW_PREV_CONTEXT_ID);
+        event.addVariable(OTEL_FLOW_CONTEXT_ID, event.getContext().getId());
+      }
       if (processorComponent == null) {
         // when spanAllProcessor is false, and it's the first generic processor
         String transactionId = getEventTransactionId(event);
@@ -147,6 +150,8 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
   @Override
   public void after(ComponentLocation location, InterceptionEvent event, Optional<Throwable> thrown) {
     switchTraceContext(event, TRACE_PREV_CONTEXT_MAP_KEY, TRACE_CONTEXT_MAP_KEY);
+    if (isFlowRef(location))
+      switchTraceContext(event, OTEL_FLOW_PREV_CONTEXT_ID, OTEL_FLOW_CONTEXT_ID);
   }
 
   private void switchTraceContext(InterceptionEvent event, String removalContextKey, String newContextKey) {

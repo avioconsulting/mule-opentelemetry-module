@@ -5,12 +5,15 @@ import org.assertj.core.api.SoftAssertions;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.mule.runtime.api.exception.DefaultMuleException;
 import org.mule.runtime.core.api.event.CoreEvent;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter.spanQueue;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.awaitility.Awaitility.await;
 
 public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
@@ -24,7 +27,7 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
   public void testFlowControls() throws Exception {
     CoreEvent coreEvent = flowRunner("flow-controls:\\get-value")
         .run();
-    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+    await().untilAsserted(() -> assertThat(spanQueue)
         .hasSize(16));
   }
 
@@ -32,7 +35,7 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
   public void testFlowControls_ScatterGather() throws Exception {
     CoreEvent coreEvent = flowRunner("flow-controls:scatter-gather:\\get-value")
         .run();
-    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+    await().untilAsserted(() -> assertThat(spanQueue)
         .hasSize(23));
 
     Map<Object, Set<String>> groupedSpans = groupSpanByParent();
@@ -73,7 +76,7 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
             "flow-controls:scatter-gather:\\get-value", "logger:LastLogger"));
     softly.assertThat((Integer) groupedSpans.values().stream().mapToInt(Set::size).sum())
         .as("Total grouped span count")
-        .isEqualTo(DelegatedLoggingSpanTestExporter.spanQueue.size());
+        .isEqualTo(spanQueue.size());
     softly.assertThat(groupedSpans).as("Number of keys asserted").hasSize(10);
 
     softly.assertAll();
@@ -82,14 +85,14 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
   @NotNull
   private Map<Object, Set<String>> groupSpanByParent() {
     // Find the root span
-    DelegatedLoggingSpanTestExporter.Span root = DelegatedLoggingSpanTestExporter.spanQueue.stream()
+    DelegatedLoggingSpanTestExporter.Span root = spanQueue.stream()
         .filter(span -> span.getParentSpanContext().getSpanId().equals("0000000000000000")).findFirst().get();
 
     // Create a lookup of span id and name
-    Map<String, String> idNameMap = DelegatedLoggingSpanTestExporter.spanQueue.stream().collect(Collectors.toMap(
+    Map<String, String> idNameMap = spanQueue.stream().collect(Collectors.toMap(
         DelegatedLoggingSpanTestExporter.Span::getSpanId, DelegatedLoggingSpanTestExporter.Span::getSpanName));
 
-    Map<Object, Set<String>> groupedSpans = DelegatedLoggingSpanTestExporter.spanQueue.stream()
+    Map<Object, Set<String>> groupedSpans = spanQueue.stream()
         .collect(Collectors.groupingBy(
             span -> idNameMap.getOrDefault(span.getParentSpanContext().getSpanId(), root.getSpanName()),
             Collectors.mapping(DelegatedLoggingSpanTestExporter.Span::getSpanName, Collectors.toSet())));
@@ -101,7 +104,7 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
   public void testWithCorrelationId() throws Exception {
     CoreEvent coreEvent = flowRunner("flow-scope-with-correlation-id")
         .run();
-    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+    await().untilAsserted(() -> assertThat(spanQueue)
         .hasSize(20));
   }
 
@@ -109,7 +112,7 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
   public void testRouter_RoundRobin() throws Exception {
     CoreEvent coreEvent = flowRunner("flow-controls:round-robin:\\get-value")
         .run();
-    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+    await().untilAsserted(() -> assertThat(spanQueue)
         .hasSize(6));
     Map<Object, Set<String>> groupedSpans = groupSpanByParent();
     SoftAssertions softly = new SoftAssertions();
@@ -131,10 +134,24 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
   public void testScopes_foreach() throws Exception {
     CoreEvent coreEvent = flowRunner("mule-core-flows-scope_foreach")
         .run();
-    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+    await().untilAsserted(() -> assertThat(spanQueue)
         .hasSize(14));
     Map<Object, Set<String>> groupedSpans = groupSpanByParent();
     System.out.println(groupedSpans);
+  }
+
+  @Test
+  public void testFlowErrorPropagationSpans() throws Exception {
+    Exception muleException = catchThrowableOfType(() -> flowRunner("mule-core-flow-1")
+        .run(), Exception.class);
+    assertThat(muleException).hasMessage("Random failure").isNotNull();
+    await().untilAsserted(() -> assertThat(spanQueue)
+        .hasSize(9));
+    assertThat(spanQueue)
+        .extracting("spanName")
+        .contains("mule-core-flow-1", "mule-core-flow-2", "mule-core-flow-3");
+    assertThat(getSpan("SERVER", "mule-core-flow-3").getAttributes())
+        .containsEntry("error.type", "org.mule.runtime.core.internal.exception.MessagingException");
   }
 
 }
