@@ -32,6 +32,8 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -106,6 +108,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     if (metricsProvider != null)
       metricsProvider.initialise(appIdentifier);
     openTelemetry = builder.build().getOpenTelemetrySdk();
+    installOpenTelemetryLogger();
     if (metricsProvider != null) {
       metricsProvider.start();
       metricsProviders.initialize(metricsProvider, openTelemetry);
@@ -113,6 +116,21 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
     transactionStore = InMemoryTransactionStore.getInstance();
     PropertiesUtil.init();
+  }
+
+  private void installOpenTelemetryLogger() {
+    try {
+      Class<?> clazz = Class
+          .forName("com.avioconsulting.mule.opentelemetry.logs.api.OpenTelemetryLog4jAppender");
+      Method install = clazz.getMethod("install", OpenTelemetry.class);
+      logger.info("Initializing AVIO OpenTelemetry Log4J support");
+      install.invoke(null, openTelemetry);
+    } catch (ClassNotFoundException e) {
+      logger.warn(
+          "OpenTelemetry Log4j support not found on the classpath. Logs will not be exported via OpenTelemetry.");
+    } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public AppIdentifier getAppIdentifier() {
