@@ -4,6 +4,7 @@ import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
+import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
@@ -11,6 +12,7 @@ import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.slf4j.Logger;
@@ -21,6 +23,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
@@ -259,7 +262,21 @@ public class MuleNotificationProcessor {
           .withEventContextId(notification.getEvent().getContext().getId());
       TransactionMeta transactionMeta = openTelemetryConnection.endTransaction(traceComponent,
           notification.getException());
-      openTelemetryConnection.getMetricsProviders().captureFlowMetrics(transactionMeta,
+      if (transactionMeta == null) {
+        // If transaction isn't found by the current context,
+        // search by any context from variable
+        TypedValue<String> contextId = (TypedValue<String>) notification.getEvent().getVariables()
+            .get(TransactionStore.OTEL_FLOW_CONTEXT_ID);
+        if (contextId != null && contextId.getValue() != null) {
+          traceComponent = traceComponent.withEventContextId(contextId.getValue());
+        }
+        transactionMeta = openTelemetryConnection.endTransaction(traceComponent,
+            notification.getException());
+      }
+
+      openTelemetryConnection.getMetricsProviders().captureFlowMetrics(
+          Objects.requireNonNull(transactionMeta,
+              "Transaction for " + traceComponent.contextScopedLocation() + " cannot be null"),
           notification.getResourceIdentifier(),
           notification.getException());
 

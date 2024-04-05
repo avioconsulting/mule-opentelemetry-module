@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.isFirstProcessor;
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.*;
 
 /**
@@ -116,13 +117,10 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
     boolean intercept = false;
     if (interceptorEnabled &&
         muleNotificationProcessor.hasConnection()) {
-      String interceptPath = String.format("%s/processors/0", location.getRootContainerName());
       // Intercept the first processor of the flow OR
       // included processor/namespaces OR
       // any processor/namespaces that are not excluded
       ComponentIdentifier identifier = location.getComponentIdentifier().getIdentifier();
-      boolean firstProcessor = isFlowTypeContainer(location)
-          && interceptPath.equalsIgnoreCase(location.getLocation());
       boolean interceptConfigured = interceptInclusions.stream()
           .anyMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
               & (mc.getName().equalsIgnoreCase(identifier.getName())
@@ -131,7 +129,7 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
               .noneMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
                   & (mc.getName().equalsIgnoreCase(identifier.getName())
                       || "*".equalsIgnoreCase(mc.getName())));
-      intercept = firstProcessor
+      intercept = isFirstProcessor(location)
           || interceptConfigured;
 
       if (intercept) {
@@ -153,10 +151,4 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
     return intercept;
   }
 
-  private boolean isFlowTypeContainer(ComponentLocation componentLocation) {
-    return componentLocation.getParts().get(0).getPartIdentifier()
-        .filter(c -> FLOW.equals(c.getType())
-            || (SCOPE.equals(c.getType())))
-        .isPresent();
-  }
 }

@@ -48,6 +48,13 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
 
   protected static final java.util.Queue<CoreEvent> CAPTURED = new ConcurrentLinkedDeque<>();
 
+  protected static DelegatedLoggingSpanTestExporter.Span getSpan(String spanKind, String spanName) {
+    return DelegatedLoggingSpanTestExporter.spanQueue
+        .stream()
+        .filter(s -> s.getSpanKind().equals(spanKind) && s.getSpanName().equals(spanName))
+        .findFirst().get();
+  }
+
   @Before
   public void beforeTest() {
     Awaitility.reset();

@@ -13,13 +13,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_PROCESSOR_NAME;
+import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.FLOW;
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.ROUTE;
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.SCOPE;
-import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_PROCESSOR_NAME;
 
 public class ComponentsUtil {
 
-  private static List<TypedComponentIdentifier.ComponentType> ROUTE_IDENTIFIERS = Arrays.asList(ROUTE, SCOPE);
+  private static final List<TypedComponentIdentifier.ComponentType> ROUTE_IDENTIFIERS = Arrays.asList(ROUTE, SCOPE);
 
   public static Optional<ComponentLocation> findLocation(String location,
       ConfigurationComponentLocator configurationComponentLocator) {
@@ -119,5 +120,18 @@ public class ComponentsUtil {
   public static boolean isFlowTrace(TraceComponent traceComponent) {
     return traceComponent != null && traceComponent.getTags() != null
         && "flow".equalsIgnoreCase(traceComponent.getTags().get(MULE_APP_PROCESSOR_NAME.getKey()));
+  }
+
+  public static boolean isFirstProcessor(ComponentLocation location) {
+    String interceptPath = String.format("%s/processors/0", location.getRootContainerName());
+    return isFlowTypeContainer(location)
+        && interceptPath.equalsIgnoreCase(location.getLocation());
+  }
+
+  public static boolean isFlowTypeContainer(ComponentLocation componentLocation) {
+    return !componentLocation.getParts().isEmpty() && componentLocation.getParts().get(0).getPartIdentifier()
+        .filter(c -> FLOW.equals(c.getType())
+            || (SCOPE.equals(c.getType())))
+        .isPresent();
   }
 }

@@ -20,6 +20,8 @@ public interface TransactionStore {
   String TRACE_PREV_CONTEXT_MAP_KEY = "OTEL_PREV_TRACE_CONTEXT";
   String TRACE_ID = "traceId";
   String SPAN_ID = "spanId";
+  String OTEL_FLOW_CONTEXT_ID = "_OTEL_FLOW_CONTEXT_ID";
+  String OTEL_FLOW_PREV_CONTEXT_ID = "_OTEL_FLOW_PREV_CONTEXT_ID";
 
   /**
    * A default implementation to get a mule correlation id as a local transaction

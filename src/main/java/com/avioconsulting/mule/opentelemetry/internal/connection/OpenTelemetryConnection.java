@@ -39,6 +39,7 @@ import java.util.Properties;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.ERROR_TYPE;
 import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
 
@@ -366,6 +367,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
           openTelemetryConnection.setSpanStatus(traceComponent, rootSpan);
           if (exception != null) {
             rootSpan.recordException(exception);
+            rootSpan.setAttribute(ERROR_TYPE.getKey(), exception.getClass().getTypeName());
           }
         });
   }

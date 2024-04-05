@@ -99,10 +99,4 @@ public class MuleOpenTelemetryProcessorEnabledTest extends AbstractMuleArtifactT
         .containsExactly(parentSpan.getTraceId(), parentSpan.getSpanId());
   }
 
-  private static Span getSpan(String INTERNAL, String spanName) {
-    return DelegatedLoggingSpanTestExporter.spanQueue
-        .stream()
-        .filter(s -> s.getSpanKind().equals(INTERNAL) && s.getSpanName().equals(spanName))
-        .findFirst().get();
-  }
 }
