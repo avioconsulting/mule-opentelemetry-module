@@ -94,6 +94,7 @@ public class OtlpExporter extends AbstractExporter {
     Map<String, String> config = super.getExporterProperties();
     config.put(OTEL_TRACES_EXPORTER_KEY, OTLP);
     config.put(OTEL_METRICS_EXPORTER_KEY, OTLP);
+    config.put(OTEL_LOGS_EXPORTER_KEY, OTLP);
     config.put(OTEL_EXPORTER_OTLP_PROTOCOL, protocol.getValue());
     config.put(OTEL_EXPORTER_OTLP_ENDPOINT, getCollectorEndpoint());
     // Set Traces endpoint when using HTTP/Protobuf only

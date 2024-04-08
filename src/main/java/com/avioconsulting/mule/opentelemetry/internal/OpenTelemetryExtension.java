@@ -11,6 +11,7 @@ import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsC
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigSupplier;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsProvider;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration;
+import com.avioconsulting.mule.opentelemetry.logs.api.LogsApiPackageMarker;
 import org.mule.runtime.extension.api.annotation.Configurations;
 import org.mule.runtime.extension.api.annotation.Export;
 import org.mule.runtime.extension.api.annotation.Extension;
@@ -25,6 +26,7 @@ import org.mule.runtime.extension.api.annotation.dsl.xml.Xml;
 @SubTypeMapping(baseType = OpenTelemetryMetricsConfigProvider.class, subTypes = {
     NoopOpenTelemetryMetricsConfigProvider.class })
 @Export(classes = { OpenTelemetryMetricsConfigProvider.class, AppIdentifier.class, OpenTelemetryMetricsProvider.class,
-    MetricBaseNotificationData.class, OpenTelemetryMetricsConfigSupplier.class })
+    MetricBaseNotificationData.class, OpenTelemetryMetricsConfigSupplier.class, LogsApiPackageMarker.class })
+
 public class OpenTelemetryExtension {
 }
