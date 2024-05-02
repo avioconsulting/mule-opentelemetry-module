@@ -71,6 +71,7 @@ public class ComponentsUtil {
       if (parts.size() > 2) {
         int routeIndex = parts.size() - 3;
         LocationPart parentPart = parts.get(routeIndex);
+        System.out.println("parentPart: " + parentPart);
         parentLocation = parentPart
             .getPartIdentifier()
             .filter(ComponentsUtil::isRoute)
@@ -114,7 +115,8 @@ public class ComponentsUtil {
 
   public static boolean isRoute(TypedComponentIdentifier tci) {
     Objects.requireNonNull(tci, "Component Identifier cannot be null");
-    return tci.getIdentifier().getName().equals("route");
+    return tci.getIdentifier().getName().equals("route")
+        || ROUTE.equals(tci.getType());
   }
 
   public static boolean isFlowTrace(TraceComponent traceComponent) {

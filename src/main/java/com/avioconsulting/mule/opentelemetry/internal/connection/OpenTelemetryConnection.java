@@ -311,11 +311,21 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     traceComponent.getTags().forEach(spanBuilder::setAttribute);
 
     String parentLocation = getRouteContainerLocation(traceComponent);
-    if (parentLocation != null && traceComponent.getLocation().endsWith("/0")) {
+    if (parentLocation != null) {
       // Create parent span for the first processor in the chain /0
-      SpanMeta parentSpan = addRouteSpan(traceComponent, parentLocation,
+      TraceComponent parentTrace = TraceComponent.of(parentLocation)
+          .withLocation(parentLocation)
+          .withTags(Collections.emptyMap())
+          .withTransactionId(traceComponent.getTransactionId())
+          .withSpanName(parentLocation)
+          .withSpanKind(SpanKind.INTERNAL)
+          .withEventContextId(traceComponent.getEventContextId())
+          .withStartTime(traceComponent.getStartTime());
+      // if (!getTransactionStore().processorSpanExists(traceComponent)) {
+      SpanMeta parentSpan = addRouteSpan(parentTrace, traceComponent, parentLocation,
           getLocationParent(parentLocation));
       spanBuilder.setParent(parentSpan.getContext());
+      // }
     }
     if (parentLocation == null) {
       parentLocation = containerName;
@@ -325,15 +335,8 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         traceComponent, spanBuilder);
   }
 
-  private SpanMeta addRouteSpan(TraceComponent childTrace, String parentLocation, String rootContainerName) {
-    TraceComponent parentTrace = TraceComponent.of(parentLocation)
-        .withLocation(parentLocation)
-        .withTags(Collections.emptyMap())
-        .withTransactionId(childTrace.getTransactionId())
-        .withSpanName(parentLocation)
-        .withSpanKind(SpanKind.INTERNAL)
-        .withEventContextId(childTrace.getEventContextId())
-        .withStartTime(childTrace.getStartTime());
+  private SpanMeta addRouteSpan(TraceComponent parentTrace, TraceComponent childTrace, String parentLocation,
+      String rootContainerName) {
     SpanBuilder spanBuilder = this.spanBuilder(parentLocation)
         .setParent(childTrace.getContext())
         .setSpanKind(SpanKind.INTERNAL)

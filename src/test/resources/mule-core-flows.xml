@@ -57,6 +57,32 @@ http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/
 			</route>
 		</scatter-gather>
 	</flow>
+
+	<flow name="flow-controls:first-successful-\get-value"  >
+		<logger level="INFO" doc:name="FirstLogger"  />
+		<first-successful doc:name="First-Successful-Control"  >
+			<route >
+				<logger level="INFO" doc:name="FirstSuccess1"  />
+			</route>
+			<route >
+				<logger level="INFO" doc:name="FirstSuccess2"  />
+			</route>
+		</first-successful>
+	</flow>
+
+	<flow name="flow-controls:choice-\get-value"  >
+		<logger level="INFO" doc:name="FirstLogger"  />
+		<choice doc:name="Choice-Control"  >
+			<when expression="#[random() * 10 &gt; 5]">
+				<logger level="INFO" doc:name="ChoiceWhen"  />
+				<flow-ref name="simple-flow-logger"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="ChoiceDefault"  />
+				<flow-ref name="simple-flow-logger"/>
+			</otherwise>
+		</choice>
+	</flow>
 	<flow name="flow-controls:round-robin:\get-value"  >
 		<logger level="INFO" doc:name="FirstLogger"  />
 		<round-robin doc:name="Round-Robin-Control"  >
@@ -141,6 +167,10 @@ http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/
 	<sub-flow name="simple-subflow-logger">
 		<logger level="INFO" message="#['Simple flow']" doc:name="SimpleLogger" />
 	</sub-flow>
+
+	<flow name="simple-flow-logger">
+		<logger level="INFO" message="#['Simple flow']" doc:name="SimpleLogger" />
+	</flow>
 
 	<flow name="mule-core-flow-1"  >
 		<logger level="INFO" doc:name="FirstLogger"  />
