@@ -12,6 +12,7 @@ import org.mule.runtime.api.notification.EnrichedServerNotification;
 import java.util.*;
 
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.ROUTER;
+import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.SCOPE;
 
 /**
  * This processor handles any specific operations or sources from Mule Core
@@ -21,8 +22,6 @@ import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentT
  */
 public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
 
-  private List<ComponentType> scopes = Arrays.asList(ROUTER);
-
   @Override
   protected String getNamespace() {
     return NAMESPACE_MULE;
@@ -30,7 +29,7 @@ public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
 
   @Override
   protected List<String> getOperations() {
-    return Collections.singletonList("flow-ref");
+    return Arrays.asList("flow-ref", "choice", "first-successful", "scatter-gather", "round-robin");
   }
 
   @Override
@@ -40,9 +39,8 @@ public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
 
   @Override
   public boolean canHandle(ComponentIdentifier componentIdentifier) {
-    return super.canHandle(componentIdentifier)
-        || (componentIdentifier instanceof TypedComponentIdentifier
-            && scopes.contains(((TypedComponentIdentifier) componentIdentifier).getType()));
+    System.out.println("Can handle " + componentIdentifier + " " + super.canHandle(componentIdentifier));
+    return super.canHandle(componentIdentifier);
   }
 
   @Override

@@ -32,6 +32,84 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
   }
 
   @Test
+  public void testFlowControls_Choice() throws Exception {
+    CoreEvent coreEvent = flowRunner("flow-controls:choice-\\get-value")
+        .run();
+    await().untilAsserted(() -> assertThat(spanQueue)
+        .hasSize(8));
+    Map<Object, Set<String>> groupedSpans = groupSpanByParent();
+    System.out.println(groupedSpans);
+    SoftAssertions softly = new SoftAssertions();
+    softly.assertThat(groupedSpans)
+        .hasEntrySatisfying("flow-controls:choice-\\get-value", val -> assertThat(val)
+            .contains(
+                "flow-controls:choice-\\get-value",
+                "logger:FirstLogger",
+                "choice:Choice-Control"));
+    softly.assertThat(groupedSpans)
+        .hasEntrySatisfying("choice:Choice-Control", val -> assertThat(val)
+            .containsAnyOf(
+                "flow-controls:choice-\\get-value/processors/1/route/0",
+                "flow-controls:choice-\\get-value/processors/1/route/1"));
+    if (groupedSpans.containsKey("flow-controls:choice-\\get-value/processors/1/route/0")) {
+      softly.assertThat(groupedSpans)
+          .hasEntrySatisfying("flow-controls:choice-\\get-value/processors/1/route/0", val -> assertThat(val)
+              .contains(
+                  "logger:ChoiceWhen", "flow-ref:flow-ref"));
+    } else {
+      softly.assertThat(groupedSpans)
+          .hasEntrySatisfying("flow-controls:choice-\\get-value/processors/1/route/1", val -> assertThat(val)
+              .contains(
+                  "logger:ChoiceDefault", "flow-ref:flow-ref"));
+    }
+    softly.assertThat(groupedSpans)
+        .hasEntrySatisfying("flow-ref:flow-ref", val -> assertThat(val)
+            .contains(
+                "simple-flow-logger"));
+    softly.assertThat(groupedSpans)
+        .hasEntrySatisfying("simple-flow-logger", val -> assertThat(val)
+            .contains(
+                "logger:SimpleLogger"));
+    softly.assertAll();
+  }
+
+  @Test
+  public void testFlowControls_FirstSuccessful() throws Exception {
+    CoreEvent coreEvent = flowRunner("flow-controls:first-successful-\\get-value")
+        .run();
+    await().untilAsserted(() -> assertThat(spanQueue)
+        .hasSize(5));
+    Map<Object, Set<String>> groupedSpans = groupSpanByParent();
+    System.out.println(groupedSpans);
+    SoftAssertions softly = new SoftAssertions();
+    softly.assertThat(groupedSpans)
+        .hasEntrySatisfying("flow-controls:first-successful-\\get-value", val -> assertThat(val)
+            .contains(
+                "flow-controls:first-successful-\\get-value",
+                "logger:FirstLogger",
+                "first-successful:First-Successful-Control"));
+    softly.assertThat(groupedSpans)
+        .hasEntrySatisfying("first-successful:First-Successful-Control", val -> assertThat(val)
+            .containsAnyOf(
+                "flow-controls:first-successful-\\get-value/processors/1/route/0",
+                "flow-controls:first-successful-\\get-value/processors/1/route/1"));
+    if (groupedSpans.containsKey("flow-controls:first-successful-\\get-value/processors/1/route/0")) {
+      softly.assertThat(groupedSpans)
+          .hasEntrySatisfying("flow-controls:first-successful-\\get-value/processors/1/route/0",
+              val -> assertThat(val)
+                  .contains(
+                      "logger:FirstSuccess1"));
+    } else {
+      softly.assertThat(groupedSpans)
+          .hasEntrySatisfying("flow-controls:first-successful-\\get-value/processors/1/route/1",
+              val -> assertThat(val)
+                  .contains(
+                      "logger:FirstSuccess2"));
+    }
+    softly.assertAll();
+  }
+
+  @Test
   public void testFlowControls_ScatterGather() throws Exception {
     CoreEvent coreEvent = flowRunner("flow-controls:scatter-gather:\\get-value")
         .run();
@@ -39,7 +117,7 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
         .hasSize(23));
 
     Map<Object, Set<String>> groupedSpans = groupSpanByParent();
-
+    System.out.println(groupedSpans);
     SoftAssertions softly = new SoftAssertions();
     softly.assertThat(groupedSpans)
         .hasEntrySatisfying("scatter-gather:Scatter-Gather-Control", val -> assertThat(val)

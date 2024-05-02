@@ -124,6 +124,11 @@ public class TestInterceptionEvent implements InterceptionEvent {
       return id;
     }
 
+    // @Override
+    public String getRootId() {
+      return id;
+    }
+
     @Override
     public String getCorrelationId() {
       return correlationId;
