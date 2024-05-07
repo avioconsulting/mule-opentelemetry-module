@@ -39,7 +39,6 @@ public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
 
   @Override
   public boolean canHandle(ComponentIdentifier componentIdentifier) {
-    System.out.println("Can handle " + componentIdentifier + " " + super.canHandle(componentIdentifier));
     return super.canHandle(componentIdentifier);
   }
 

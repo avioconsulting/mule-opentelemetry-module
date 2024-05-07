@@ -71,7 +71,6 @@ public class ComponentsUtil {
       if (parts.size() > 2) {
         int routeIndex = parts.size() - 3;
         LocationPart parentPart = parts.get(routeIndex);
-        System.out.println("parentPart: " + parentPart);
         parentLocation = parentPart
             .getPartIdentifier()
             .filter(ComponentsUtil::isRoute)
