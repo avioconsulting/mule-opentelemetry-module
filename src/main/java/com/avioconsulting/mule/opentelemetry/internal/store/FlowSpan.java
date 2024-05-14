@@ -97,6 +97,8 @@ public class FlowSpan implements Serializable {
     Span span = spanBuilder.startSpan();
     ProcessorSpan ps = new ProcessorSpan(span, traceComponent.getLocation(), transactionId,
         traceComponent.getStartTime(), flowName).setTags(traceComponent.getTags());
+    LOGGER.trace("Adding span for {}:{} - {}", traceComponent.contextScopedLocation(), traceComponent.getSpanName(),
+        span.getSpanContext().getSpanId());
     childSpans.putIfAbsent(traceComponent.contextScopedLocation(), ps);
     return ps;
   }
@@ -142,7 +144,7 @@ public class FlowSpan implements Serializable {
               + getRootSpanName()
               + " trace transaction " + transactionId + " context "
               + getSpan().getSpanContext().toString());
-
+      LOGGER.trace("Removing span for {} - {}", traceComponent.contextScopedLocation(), removed.getSpanId());
       endRouteSpans(traceComponent, endTime);
 
       removed.setEndTime(endTime);

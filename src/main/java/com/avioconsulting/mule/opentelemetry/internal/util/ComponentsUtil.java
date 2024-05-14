@@ -135,4 +135,8 @@ public class ComponentsUtil {
             || (SCOPE.equals(c.getType())))
         .isPresent();
   }
+
+  public static boolean isAsyncScope(TypedComponentIdentifier identifier) {
+    return SCOPE.equals(identifier.getType()) && identifier.getIdentifier().getName().equals("async");
+  }
 }

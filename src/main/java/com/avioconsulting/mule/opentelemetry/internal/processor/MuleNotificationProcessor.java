@@ -13,6 +13,8 @@ import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.metadata.TypedValue;
+import org.mule.runtime.api.notification.AsyncMessageNotification;
+import org.mule.runtime.api.notification.EnrichedServerNotification;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
 import org.slf4j.Logger;
@@ -117,14 +119,35 @@ public class MuleNotificationProcessor {
 
   public void handleProcessorStartEvent(MessageProcessorNotification notification) {
     String location = notification.getComponent().getLocation().getLocation();
+    if (ComponentsUtil.isAsyncScope(notification.getComponent().getLocation().getComponentIdentifier())) {
+      // Async scopes are handled via AsyncMessageNotifications.
+      // Creating one here will create duplicate spans
+      return;
+    }
     if (interceptSpannedComponents.contains(location)) {
       logger.trace(
           "Component {} will be processed by interceptor, skipping notification processing to create span",
           location);
       return;
     }
+    processComponentStartSpan(notification);
+  }
+
+  /**
+   * Process the {@link AsyncMessageNotification} to capture start of the span.
+   * @param notification AsyncMessageNotification
+   */
+  public void handleAsyncScheduledEvent(AsyncMessageNotification notification) {
+    processComponentStartSpan(notification);
+  }
+
+  /**
+   * A common and generic start of the span based on {@link EnrichedServerNotification}.
+   * @param notification {@link EnrichedServerNotification}
+   */
+  private void processComponentStartSpan(EnrichedServerNotification notification) {
     try {
-      ProcessorComponent processorComponent = getProcessorComponent(notification);
+      ProcessorComponent processorComponent = getProcessorComponent(notification.getComponent().getIdentifier());
       if (processorComponent != null) {
         logger.trace("Handling '{}:{}' processor start event context id {} correlation id {} ",
             notification.getResourceIdentifier(), notification.getComponent().getIdentifier(),
@@ -179,10 +202,10 @@ public class MuleNotificationProcessor {
     return processorComponent;
   }
 
-  public void handleProcessorEndEvent(MessageProcessorNotification notification) {
+  public void handleProcessorEndEvent(EnrichedServerNotification notification) {
     String location = notification.getComponent().getLocation().getLocation();
     try {
-      ProcessorComponent processorComponent = getProcessorComponent(notification);
+      ProcessorComponent processorComponent = getProcessorComponent(notification.getComponent().getIdentifier());
       if (processorComponent != null) {
         logger.trace("Handling '{}:{}' processor end event context id {} correlation id {} ",
             notification.getResourceIdentifier(), notification.getComponent().getIdentifier(),

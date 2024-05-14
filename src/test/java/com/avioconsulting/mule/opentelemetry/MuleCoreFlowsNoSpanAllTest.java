@@ -72,6 +72,36 @@ public class MuleCoreFlowsNoSpanAllTest extends AbstractMuleArtifactTraceTest {
     softly.assertAll();
   }
 
+  @Test
+  public void testScopes_foreach() throws Exception {
+    CoreEvent coreEvent = flowRunner("mule-core-flows-scope_foreach")
+        .run();
+    await().untilAsserted(() -> assertThat(spanQueue)
+        .hasSize(12));
+    Map<Object, Set<String>> groupedSpans = groupSpanByParent();
+    System.out.println(groupedSpans);
+  }
+
+  @Test
+  public void testFlowScopes() throws Exception {
+    CoreEvent coreEvent = flowRunner("mule-core-flows-scope-no-generic-span")
+        .run();
+    await().untilAsserted(() -> assertThat(spanQueue)
+        .hasSize(20));
+    Map<Object, Set<String>> groupedSpans = groupSpanByParent();
+    System.out.println(groupedSpans);
+  }
+
+  @Test
+  public void testFlowWithGenericSpansOnly() throws Exception {
+    CoreEvent coreEvent = flowRunner("simple-flow-to-flow")
+        .run();
+    await().untilAsserted(() -> assertThat(spanQueue)
+        .hasSize(3));
+    Map<Object, Set<String>> groupedSpans = groupSpanByParent();
+    System.out.println(groupedSpans);
+  }
+
   @NotNull
   private Map<Object, Set<String>> groupSpanByParent() {
     // Find the root span
