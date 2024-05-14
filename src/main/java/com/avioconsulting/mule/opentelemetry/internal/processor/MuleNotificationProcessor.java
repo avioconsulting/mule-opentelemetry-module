@@ -135,15 +135,20 @@ public class MuleNotificationProcessor {
 
   /**
    * Process the {@link AsyncMessageNotification} to capture start of the span.
-   * @param notification AsyncMessageNotification
+   * 
+   * @param notification
+   *            AsyncMessageNotification
    */
   public void handleAsyncScheduledEvent(AsyncMessageNotification notification) {
     processComponentStartSpan(notification);
   }
 
   /**
-   * A common and generic start of the span based on {@link EnrichedServerNotification}.
-   * @param notification {@link EnrichedServerNotification}
+   * A common and generic start of the span based on
+   * {@link EnrichedServerNotification}.
+   * 
+   * @param notification
+   *            {@link EnrichedServerNotification}
    */
   private void processComponentStartSpan(EnrichedServerNotification notification) {
     try {

@@ -6,8 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Async work is scheduled and completed beyond the lifecycle of `mule:async` processor execution.
- * This dedicated listener for AsyncMessageNotification will let us process the spans for Aynch chain of processors.
+ * Async work is scheduled and completed beyond the lifecycle of `mule:async`
+ * processor execution.
+ * This dedicated listener for AsyncMessageNotification will let us process the
+ * spans for Aynch chain of processors.
  *
  * @since 2.1.2
  */
