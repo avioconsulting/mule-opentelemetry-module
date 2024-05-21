@@ -4,15 +4,10 @@ import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
-import org.mule.runtime.api.component.TypedComponentIdentifier;
-import org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import java.util.*;
-
-import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.ROUTER;
-import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.SCOPE;
 
 /**
  * This processor handles any specific operations or sources from Mule Core
@@ -22,6 +17,16 @@ import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentT
  */
 public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
 
+  /**
+   * These core containers are to be processed in interceptor
+   */
+  public static final List<String> CORE_INTERCEPT_SCOPE_ROUTERS = Arrays.asList("flow-ref", "choice",
+      "first-successful",
+      "until-successful",
+      "scatter-gather", "round-robin", "foreach", "parallel-foreach", "try");
+
+  private static List<String> CORE_PROCESSORS;
+
   @Override
   protected String getNamespace() {
     return NAMESPACE_MULE;
@@ -29,12 +34,17 @@ public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
 
   @Override
   protected List<String> getOperations() {
-    return Arrays.asList("flow-ref", "choice", "first-successful", "scatter-gather", "round-robin");
+    return CORE_PROCESSORS;
   }
 
   @Override
   protected List<String> getSources() {
     return Collections.emptyList();
+  }
+
+  public MuleCoreProcessorComponent() {
+    CORE_PROCESSORS = new ArrayList<>(CORE_INTERCEPT_SCOPE_ROUTERS);
+    CORE_PROCESSORS.add("async");
   }
 
   @Override

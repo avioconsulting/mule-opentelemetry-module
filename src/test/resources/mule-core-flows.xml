@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:tracing="http://www.mulesoft.org/schema/mule/tracing"
+	  xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	  xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry"
 	  xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd
-http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/tracing/current/mule-tracing.xsd">
+http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/tracing/current/mule-tracing.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
 
 	<opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config"
 						  serviceName="api-app-1"
@@ -20,8 +22,23 @@ http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/
 				</opentelemetry:config-properties>
 			</opentelemetry:generic-exporter>
 		</opentelemetry:exporter>
+<!--		<opentelemetry:interception-enabled-components >-->
+<!--			<opentelemetry:mule-component namespace="mule" name="async" />-->
+<!--		</opentelemetry:interception-enabled-components>-->
 	</opentelemetry:config>
-
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="79881531-bfaa-49fd-8227-b67e35d64cf8" >
+		<http:listener-connection host="0.0.0.0" port="${http.port}" />
+	</http:listener-config>
+	<http:request-config name="SELF_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="c18eed36-eb42-4c29-abc9-9e7a2c6049e1" >
+		<http:request-connection host="0.0.0.0" port="${http.port}"/>
+			<http:default-headers >
+				<http:default-header key="#['traceparent']" value="#[(vars.OTEL_TRACE_CONTEXT.traceparent as String) default '']" />
+			</http:default-headers>
+	</http:request-config>
+	<flow name="simple-http"  >
+		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test-simple"/>
+		<set-payload value="Received" doc:name="Set Payload"  />
+	</flow>
 	<flow name="flow-controls:\get-value"  >
 		<logger level="INFO" doc:name="FirstLogger"  />
 		<choice doc:name="Choice-Control"  >
@@ -148,11 +165,29 @@ http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/
 		</async>
 	</flow>
 
+	<flow name="mule-core-flows-scope-no-generic-span"  >
+		<foreach doc:name="For Each"  collection="#[1 to 2]">
+			<flow-ref name="simple-flow-logger"/>
+		</foreach>
+		<parallel-foreach doc:name="Parallel For Each"  collection="#[1 to 2]">
+			<flow-ref name="simple-flow-logger"/>
+		</parallel-foreach>
+		<try doc:name="Try"  >
+			<flow-ref name="simple-flow-logger"/>
+		</try>
+		<until-successful maxRetries="5" doc:name="Until Successful"  >
+			<flow-ref name="simple-flow-logger"/>
+		</until-successful>
+		<async doc:name="Async"  >
+			<flow-ref name="simple-flow-logger"/>
+		</async>
+	</flow>
+
 	<flow name="mule-core-flows-scope_foreach"  >
-		<logger level="INFO" doc:name="FirstLogger"  />
+		<logger level="INFO" doc:name="FirstLogger"/>
 		<foreach doc:name="For Each"  collection="#[1 to 5]">
 			<logger level="INFO" doc:name="ForEachLogger" />
-			<set-payload mimeType="text/plain" value="Greetings of the day!"/>
+			<http:request method="GET" doc:name="Request" config-ref="SELF_HTTP_Request_configuration" path="/test-simple"/>
 		</foreach>
 		<logger level="INFO" doc:name="LastLogger"  />
 	</flow>
@@ -164,10 +199,18 @@ http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/
 		<set-payload mimeType="text/plain" value="Greetings of the day!"/>
 	</flow>
 
+
+	<flow name="simple-flow">
+		<logger level="INFO" message="#['Simple flow']" doc:name="FirstSimpleLogger" />
+		<flow-ref name="simple-subflow-logger"/>
+	</flow>
 	<sub-flow name="simple-subflow-logger">
 		<logger level="INFO" message="#['Simple flow']" doc:name="SimpleLogger" />
 	</sub-flow>
-
+	<flow name="simple-flow-to-flow">
+		<logger level="INFO" message="#['Simple flow']" doc:name="FirstSimpleLogger" />
+		<flow-ref name="simple-flow-logger"/>
+	</flow>
 	<flow name="simple-flow-logger">
 		<logger level="INFO" message="#['Simple flow']" doc:name="SimpleLogger" />
 	</flow>
@@ -184,4 +227,14 @@ http://www.mulesoft.org/schema/mule/tracing http://www.mulesoft.org/schema/mule/
 		<logger level="INFO" doc:name="ThirdLogger"  />
 		<raise-error doc:name="Raise error" description="Random failure" type="APP:RANDOM_FAILURE"/>
 	</flow>
+
+
+	<flow name="mule-core-flows-async-scope"  >
+		<logger level="INFO" doc:name="FirstLogger" />
+		<async doc:name="Async"  >
+			<logger level="INFO" doc:name="AsyncLogger"  />
+			<http:request method="GET" doc:name="Request" config-ref="SELF_HTTP_Request_configuration" path="/test-simple"/>
+		</async>
+	</flow>
+
 </mule>

@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 
 import com.avioconsulting.mule.opentelemetry.api.config.MuleComponent;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration;
+import com.avioconsulting.mule.opentelemetry.internal.processor.MuleCoreProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
@@ -18,7 +19,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.isFirstProcessor;
-import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.*;
 
 /**
  * ProcessorInterceptorFactory can intercept processors. This is injected
@@ -72,7 +72,8 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
     Stream.of(excludedNamespaces.split(","))
         .forEach(ns -> interceptExclusions.add(new MuleComponent(ns, "*")));
 
-    interceptInclusions.add(new MuleComponent("mule", "flow-ref"));
+    MuleCoreProcessorComponent.CORE_INTERCEPT_SCOPE_ROUTERS
+        .forEach(c -> interceptInclusions.add(new MuleComponent("mule", c)));
 
     if (muleNotificationProcessor.getTraceLevelConfiguration() != null) {
       if (muleNotificationProcessor.getTraceLevelConfiguration().getInterceptionDisabledComponents() != null)

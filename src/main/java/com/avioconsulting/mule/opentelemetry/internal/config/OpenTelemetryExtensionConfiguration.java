@@ -11,6 +11,7 @@ import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsC
 import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryOperations;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnectionProvider;
+import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.AsyncMessageNotificationListener;
 import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MetricEventNotificationListener;
 import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MuleMessageProcessorNotificationListener;
 import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MulePipelineMessageNotificationListener;
@@ -190,6 +191,7 @@ public class OpenTelemetryExtensionConfiguration
         new MuleMessageProcessorNotificationListener(muleNotificationProcessor));
     notificationListenerRegistry.registerListener(
         new MulePipelineMessageNotificationListener(muleNotificationProcessor));
+    notificationListenerRegistry.registerListener(new AsyncMessageNotificationListener(muleNotificationProcessor));
     notificationListenerRegistry.registerListener(new MetricEventNotificationListener(muleNotificationProcessor),
         extensionNotification -> METRIC_NOTIFICATION_DATA_TYPE
             .isCompatibleWith(extensionNotification.getData().getDataType()));

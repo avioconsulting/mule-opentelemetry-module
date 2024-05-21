@@ -31,6 +31,8 @@ public class DelegatedLoggingSpanTestExporter implements SpanExporter {
       span.setSpanStatusDescription(spanData.getStatus().getDescription());
       span.setInstrumentationName(spanData.getInstrumentationScopeInfo().getName());
       span.setInstrumentationVersion(spanData.getInstrumentationScopeInfo().getVersion());
+      span.setStartEpocNanos(spanData.getStartEpochNanos());
+      span.setEndEpocNanos(spanData.getEndEpochNanos());
       Map<String, Object> attributes = new HashMap<>();
       spanData.getAttributes().forEach((key, value) -> attributes.put(key.getKey(), value));
       span.setAttributes(attributes);
@@ -70,6 +72,8 @@ public class DelegatedLoggingSpanTestExporter implements SpanExporter {
     private SpanContext parentSpanContext;
     private SpanContext spanContext;
     private String spanStatusDescription;
+    private long startEpocNanos;
+    private long endEpocNanos;
 
     public String getInstrumentationName() {
       return instrumentationName;
@@ -170,11 +174,29 @@ public class DelegatedLoggingSpanTestExporter implements SpanExporter {
           ", spanId='" + spanId + '\'' +
           ", spanKind='" + spanKind + '\'' +
           ", spanStatus='" + spanStatus + '\'' +
-          ", spanStatusDescription='" + spanStatusDescription + '\'' +
           ", attributes=" + attributes +
           ", parentSpanContext=" + parentSpanContext +
           ", spanContext=" + spanContext +
+          ", spanStatusDescription='" + spanStatusDescription + '\'' +
+          ", startEpocNanos=" + startEpocNanos +
+          ", endEpocNanos=" + endEpocNanos +
           '}';
+    }
+
+    public void setStartEpocNanos(long startEpocNanos) {
+      this.startEpocNanos = startEpocNanos;
+    }
+
+    public long getStartEpocNanos() {
+      return startEpocNanos;
+    }
+
+    public void setEndEpocNanos(long endEpocNanos) {
+      this.endEpocNanos = endEpocNanos;
+    }
+
+    public long getEndEpocNanos() {
+      return endEpocNanos;
     }
   }
 

@@ -5,7 +5,6 @@ import org.assertj.core.api.SoftAssertions;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mule.runtime.api.exception.DefaultMuleException;
 import org.mule.runtime.core.api.event.CoreEvent;
 
 import java.util.*;
@@ -213,9 +212,47 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
     CoreEvent coreEvent = flowRunner("mule-core-flows-scope_foreach")
         .run();
     await().untilAsserted(() -> assertThat(spanQueue)
-        .hasSize(14));
+        .hasSize(24));
     Map<Object, Set<String>> groupedSpans = groupSpanByParent();
     System.out.println(groupedSpans);
+    SoftAssertions softly = new SoftAssertions();
+    softly.assertThat(groupedSpans)
+        .hasEntrySatisfying("mule-core-flows-scope_foreach", val -> assertThat(val)
+            .containsOnly(
+                "mule-core-flows-scope_foreach",
+                "foreach:For Each",
+                "logger:FirstLogger",
+                "logger:LastLogger"));
+    softly.assertThat(groupedSpans).hasEntrySatisfying("foreach:For Each",
+        val -> assertThat(val).containsOnly("/test-simple", "logger:ForEachLogger"));
+    softly.assertThat(groupedSpans).hasEntrySatisfying("/test-simple",
+        val -> assertThat(val).containsOnly("GET /test-simple"));
+    softly.assertThat(groupedSpans).hasEntrySatisfying("GET /test-simple",
+        val -> assertThat(val).containsOnly("set-payload:Set Payload"));
+  }
+
+  @Test
+  public void testScopes_async() throws Exception {
+    CoreEvent coreEvent = flowRunner("mule-core-flows-async-scope")
+        .run();
+    await().untilAsserted(() -> assertThat(spanQueue)
+        .hasSize(7));
+    Map<Object, Set<String>> groupedSpans = groupSpanByParent();
+    System.out.println(groupedSpans);
+    SoftAssertions softly = new SoftAssertions();
+    softly.assertThat(groupedSpans)
+        .hasEntrySatisfying("mule-core-flows-async-scope", val -> assertThat(val)
+            .containsOnly(
+                "mule-core-flows-async-scope",
+                "logger:FirstLogger",
+                "async:Async"));
+    softly.assertThat(groupedSpans).hasEntrySatisfying("async:Async",
+        val -> assertThat(val).containsOnly("logger:AsyncLogger", "/test-simple"));
+    softly.assertThat(groupedSpans).hasEntrySatisfying("/test-simple",
+        val -> assertThat(val).containsOnly("GET /test-simple"));
+    softly.assertThat(groupedSpans).hasEntrySatisfying("GET /test-simple",
+        val -> assertThat(val).containsOnly("set-payload:Set Payload"));
+    softly.assertAll();
   }
 
   @Test

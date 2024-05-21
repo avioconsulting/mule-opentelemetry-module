@@ -279,7 +279,15 @@ public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInter
             .getInterceptInclusions())
                 .as("Default Inclusion")
                 .isNotEmpty()
-                .containsOnly(new MuleComponent("mule", "flow-ref"));
+                .containsOnly(new MuleComponent("mule", "flow-ref"),
+                    new MuleComponent("mule", "choice"),
+                    new MuleComponent("mule", "first-successful"),
+                    new MuleComponent("mule", "until-successful"),
+                    new MuleComponent("mule", "scatter-gather"),
+                    new MuleComponent("mule", "round-robin"),
+                    new MuleComponent("mule", "foreach"),
+                    new MuleComponent("mule", "parallel-foreach"),
+                    new MuleComponent("mule", "try"));
   }
 
   @Test
@@ -294,6 +302,14 @@ public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInter
                 .as("Default with Trace level Inclusion")
                 .isNotEmpty()
                 .containsOnly(new MuleComponent("mule", "flow-ref"),
-                    new MuleComponent("mule", "logger"));
+                    new MuleComponent("mule", "logger"),
+                    new MuleComponent("mule", "choice"),
+                    new MuleComponent("mule", "first-successful"),
+                    new MuleComponent("mule", "until-successful"),
+                    new MuleComponent("mule", "scatter-gather"),
+                    new MuleComponent("mule", "round-robin"),
+                    new MuleComponent("mule", "foreach"),
+                    new MuleComponent("mule", "parallel-foreach"),
+                    new MuleComponent("mule", "try"));
   }
 }
