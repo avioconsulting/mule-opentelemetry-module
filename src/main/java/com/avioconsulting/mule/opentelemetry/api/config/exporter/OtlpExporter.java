@@ -23,6 +23,7 @@ public class OtlpExporter extends AbstractExporter {
   public static final String OTEL_EXPORTER_OTLP_ENDPOINT = "otel.exporter.otlp.endpoint";
   public static final String OTEL_EXPORTER_OTLP_TRACES_ENDPOINT = "otel.exporter.otlp.traces.endpoint";
   public static final String OTEL_EXPORTER_OTLP_METRICS_ENDPOINT = "otel.exporter.otlp.metrics.endpoint";
+  public static final String OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = "otel.exporter.otlp.logs.endpoint";
   public static final String OTEL_EXPORTER_OTLP_COMPRESSION = "otel.exporter.otlp.compression";
   public static final String OTEL_EXPORTER_OTLP_HEADERS = "otel.exporter.otlp.headers";
   @Parameter
@@ -101,6 +102,7 @@ public class OtlpExporter extends AbstractExporter {
     if (protocol.equals(Protocol.HTTP_PROTOBUF)) {
       config.put(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, getSignalEndpoint("traces"));
       config.put(OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, getSignalEndpoint("metrics"));
+      config.put(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, getSignalEndpoint("logs"));
     }
     if (!OtlpRequestCompression.NONE.equals(requestCompression)) {
       config.put(OTEL_EXPORTER_OTLP_COMPRESSION, requestCompression.getValue());
