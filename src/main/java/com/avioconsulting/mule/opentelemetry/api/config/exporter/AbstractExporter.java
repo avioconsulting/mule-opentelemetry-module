@@ -4,11 +4,18 @@ import org.mule.runtime.extension.api.annotation.param.NullSafe;
 import org.mule.runtime.extension.api.annotation.param.Optional;
 import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public abstract class AbstractExporter implements OpenTelemetryExporter {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractExporter.class);
 
   @Parameter
   @NullSafe
@@ -34,4 +41,29 @@ public abstract class AbstractExporter implements OpenTelemetryExporter {
     return config;
   }
 
+  /**
+   * When paths are provided relative to the mule application code, the OTEL SDK
+   * resolution fails to find those files.
+   * This method leverages classpath to find the absolute path.
+   *
+   * @param propertyName
+   *            {@link String} property to transform form
+   * @param path
+   *            {@link String} path to transform
+   * @return transformed path or same path if exists
+   */
+  protected String transformToAbsolutePath(String propertyName, String path) {
+    if (path != null && !path.isEmpty()) {
+      if (Files.exists(Paths.get(path))) {
+        LOGGER.debug("{} path exists - {}", propertyName, path);
+        return path;
+      } else {
+        String absolutePath = Objects.requireNonNull(this.getClass().getClassLoader().getResource(path),
+            path + " not found on the classpath").getPath();
+        LOGGER.info("Transforming {} from {} to absolute path {}", propertyName, path, absolutePath);
+        return absolutePath;
+      }
+    }
+    return path;
+  }
 }
