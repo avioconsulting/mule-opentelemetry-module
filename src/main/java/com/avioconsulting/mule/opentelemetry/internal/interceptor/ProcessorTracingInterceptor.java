@@ -91,7 +91,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
                 .orElse(null));
 
         if (component == null) {
-          LOGGER.warn("Could not locate a component for {} at {}",
+          LOGGER.debug("Could not locate a component for {} at {}",
               location.getComponentIdentifier().getIdentifier(), location.getLocation());
           switchTraceContext(event, TRACE_PREV_CONTEXT_MAP_KEY, TRACE_CONTEXT_MAP_KEY);
           return;
