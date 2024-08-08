@@ -223,7 +223,15 @@ public class MuleNotificationProcessor {
             notification.getEvent().getError().orElse(null));
 
         if (isFlowRef(notification.getComponent().getLocation())) {
-          findLocation(traceComponent.getTags().get("mule.app.processor.flowRef.name"),
+          String targetFlowName = traceComponent.getTags().get("mule.app.processor.flowRef.name");
+          if (openTelemetryConnection.getExpressionManager().isExpression(targetFlowName)) {
+            logger.trace("Resolving expression '{}'", targetFlowName);
+            targetFlowName = openTelemetryConnection.getExpressionManager()
+                .evaluate(targetFlowName, notification.getEvent().asBindingContext()).getValue()
+                .toString();
+            logger.trace("Resolved to value '{}'", targetFlowName);
+          }
+          findLocation(targetFlowName,
               configurationComponentLocator)
                   .filter(ComponentsUtil::isSubFlow)
                   .ifPresent(subFlowComp -> {

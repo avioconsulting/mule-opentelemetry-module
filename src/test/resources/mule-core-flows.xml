@@ -237,4 +237,8 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 		</async>
 	</flow>
 
+	<flow name="call-dynamic-flow-ref">
+		<logger level="INFO" doc:name="ParentFirstLogger"  />
+		<flow-ref name="#[vars.targetFlow]" doc:name="target-flow-call"/>
+	</flow>
 </mule>
