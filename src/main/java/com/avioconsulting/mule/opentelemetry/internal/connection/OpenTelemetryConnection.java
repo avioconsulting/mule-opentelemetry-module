@@ -25,7 +25,9 @@ import io.opentelemetry.context.propagation.TextMapSetter;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
 import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.connection.ConnectionProvider;
 import org.mule.runtime.api.message.Error;
+import org.mule.runtime.core.api.el.ExpressionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +57,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   private final Logger logger = LoggerFactory.getLogger(OpenTelemetryConnection.class);
   private OpenTelemetryMetricsConfigProvider metricsProvider;
   private AppIdentifier appIdentifier;
-
+  private ExpressionManager expressionManager;
   /**
    * Instrumentation version must be picked from the module's artifact version.
    * This is a fallback for any dev testing.
@@ -102,6 +104,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
       turnOffTracing = openTelemetryConfigWrapper.isTurnOffTracing();
       appIdentifier = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getAppIdentifier();
       metricsProvider = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getMetricsConfigProvider();
+      expressionManager = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getExpressionManager();
     }
     builder.setServiceClassLoader(AutoConfiguredOpenTelemetrySdkBuilder.class.getClassLoader());
     builder.setResultAsGlobal();
@@ -147,7 +150,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
 
   /**
    * {@link Supplier} to use with
-   * {@link org.mule.runtime.api.connection.ConnectionProvider} where lazy
+   * {@link ConnectionProvider} where lazy
    * initialization is required.
    * 
    * @return a non-null {@code Supplier<OpenTelemetryConnection>}
@@ -278,6 +281,10 @@ public class OpenTelemetryConnection implements TraceContextHandler {
 
   public Meter get(String instrumentationScopeName) {
     return openTelemetry.meterBuilder(instrumentationScopeName).build();
+  }
+
+  public ExpressionManager getExpressionManager() {
+    return expressionManager;
   }
 
   public static enum HashMapTextMapSetter implements TextMapSetter<Map<String, String>> {

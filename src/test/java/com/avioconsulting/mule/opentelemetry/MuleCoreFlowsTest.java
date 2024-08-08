@@ -269,4 +269,43 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
         .containsEntry("error.type", "org.mule.runtime.core.internal.exception.MessagingException");
   }
 
+  @Test
+  public void testDynamicFlowRefFlowPropagation() throws Exception {
+    CoreEvent event = flowRunner("call-dynamic-flow-ref").withVariable("targetFlow", "simple-flow-to-flow").run();
+    await().untilAsserted(() -> assertThat(spanQueue)
+        .hasSize(8));
+    Map<Object, Set<String>> groupedSpans = groupSpanByParent();
+    System.out.println(groupedSpans);
+    SoftAssertions softly = new SoftAssertions();
+    softly.assertThat(groupedSpans)
+        .hasEntrySatisfying("call-dynamic-flow-ref", val -> assertThat(val)
+            .containsOnly(
+                "logger:ParentFirstLogger", "call-dynamic-flow-ref", "flow-ref:target-flow-call"));
+    softly.assertThat(groupedSpans).hasEntrySatisfying("flow-ref:target-flow-call",
+        val -> assertThat(val).containsOnly("simple-flow-to-flow"));
+    softly.assertThat(groupedSpans).hasEntrySatisfying("simple-flow-to-flow",
+        val -> assertThat(val).containsOnly("logger:FirstSimpleLogger", "flow-ref:flow-ref"));
+    softly.assertAll();
+  }
+
+  @Test
+  public void testDynamicFlowRefSubFlowPropagation() throws Exception {
+    CoreEvent event = flowRunner("call-dynamic-flow-ref")
+        .withVariable("targetFlow", "simple-subflow-logger").run();
+    await().untilAsserted(() -> assertThat(spanQueue)
+        .hasSize(5));
+    Map<Object, Set<String>> groupedSpans = groupSpanByParent();
+    System.out.println(groupedSpans);
+    SoftAssertions softly = new SoftAssertions();
+    softly.assertThat(groupedSpans)
+        .hasEntrySatisfying("call-dynamic-flow-ref", val -> assertThat(val)
+            .containsOnly(
+                "logger:ParentFirstLogger", "call-dynamic-flow-ref", "flow-ref:target-flow-call"));
+    softly.assertThat(groupedSpans).hasEntrySatisfying("flow-ref:target-flow-call",
+        val -> assertThat(val).containsOnly("simple-subflow-logger"));
+    softly.assertThat(groupedSpans).hasEntrySatisfying("simple-subflow-logger",
+        val -> assertThat(val).containsOnly("logger:SimpleLogger"));
+    softly.assertAll();
+  }
+
 }

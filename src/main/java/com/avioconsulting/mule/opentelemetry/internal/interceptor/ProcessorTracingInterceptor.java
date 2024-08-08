@@ -109,8 +109,15 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
             getLocationParent(location.getLocation()));
         final String transactionId = getEventTransactionId(event);
         if (isFlowRef(location)) {
+          String targetFlowName = traceComponent.getTags().get("mule.app.processor.flowRef.name");
+          if (muleNotificationProcessor.getOpenTelemetryConnection().getExpressionManager()
+              .isExpression(targetFlowName)) {
+            targetFlowName = muleNotificationProcessor.getOpenTelemetryConnection().getExpressionManager()
+                .evaluate(targetFlowName, event.asBindingContext()).getValue().toString();
+            traceComponent.getTags().put("mule.app.processor.flowRef.name", targetFlowName);
+          }
           Optional<ComponentLocation> subFlowLocation = findLocation(
-              traceComponent.getTags().get("mule.app.processor.flowRef.name"),
+              targetFlowName,
               configurationComponentLocator)
                   .filter(ComponentsUtil::isSubFlow);
           if (subFlowLocation.isPresent()) {

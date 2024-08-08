@@ -156,6 +156,10 @@ public class OpenTelemetryExtensionConfiguration
     return this;
   }
 
+  public ExpressionManager getExpressionManager() {
+    return expressionManager;
+  }
+
   @Override
   public String getConfigName() {
     return configName;

@@ -6,6 +6,7 @@ import com.avioconsulting.mule.opentelemetry.api.config.OpenTelemetryResource;
 import com.avioconsulting.mule.opentelemetry.api.config.SpanProcessorConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigProvider;
+import org.mule.runtime.core.api.el.ExpressionManager;
 import org.mule.runtime.http.api.HttpService;
 
 public interface OpenTelemetryConfiguration {
@@ -27,4 +28,6 @@ public interface OpenTelemetryConfiguration {
   AppIdentifier getAppIdentifier();
 
   OpenTelemetryMetricsConfigProvider getMetricsConfigProvider();
+
+  ExpressionManager getExpressionManager();
 }
