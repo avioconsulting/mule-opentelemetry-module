@@ -94,10 +94,10 @@ For higher load applications, static configurations i.e. propagation from operat
 
 *Static Configuration Object Creations*
 
-image::Images/static_vs_dynamic_static_1.png[width=1024]
-image::Images/static_vs_dynamic_static_obj.png[width=1024]
+image::static_vs_dynamic_static_1.png[width=1024]
+image::static_vs_dynamic_static_obj.png[width=1024]
 
 *Dynamic Configuration Object Creations*
 
-image::Images/static_vs_dynamic_dynamic_1.png[width=1024]
-image::Images/static_vs_dynamic_dynamic_obj.png[width=1024]
+image::static_vs_dynamic_dynamic_1.png[width=1024]
+image::static_vs_dynamic_dynamic_obj.png[width=1024]
