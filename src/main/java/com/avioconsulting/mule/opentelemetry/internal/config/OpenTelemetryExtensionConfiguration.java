@@ -6,6 +6,7 @@ import com.avioconsulting.mule.opentelemetry.api.config.OpenTelemetryResource;
 import com.avioconsulting.mule.opentelemetry.api.config.SpanProcessorConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.notifications.MetricBaseNotificationData;
+import com.avioconsulting.mule.opentelemetry.api.providers.NoopOpenTelemetryMetricsConfigProvider;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigProvider;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigSupplier;
 import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryOperations;
@@ -46,6 +47,7 @@ import javax.inject.Inject;
 public class OpenTelemetryExtensionConfiguration
     implements Startable, Stoppable, OpenTelemetryConfiguration, OpenTelemetryMetricsConfigSupplier {
 
+  public static final String PROP_MULE_OTEL_METRICS_DISABLED = "mule.otel.metrics.disabled";
   public static final String PROP_MULE_OTEL_TRACING_DISABLED = "mule.otel.tracing.disabled";
   private final Logger logger = LoggerFactory.getLogger(OpenTelemetryExtensionConfiguration.class);
   private static final DataType METRIC_NOTIFICATION_DATA_TYPE = DataType.fromType(MetricBaseNotificationData.class);
@@ -96,8 +98,14 @@ public class OpenTelemetryExtensionConfiguration
   private SpanProcessorConfiguration spanProcessorConfiguration;
 
   @Parameter
-  @Optional
+  @Optional(defaultValue = "false")
   @Placement(order = 501, tab = "Metrics")
+  @Summary("Turn off Metrics for this application.")
+  private boolean turnOffMetrics;
+
+  @Parameter
+  @Optional
+  @Placement(order = 502, tab = "Metrics")
   @DisplayName("Metrics Provider")
   @Summary("OpenTelemetry Metrics Provider")
   private OpenTelemetryMetricsConfigProvider metricsConfigProvider;
@@ -106,6 +114,17 @@ public class OpenTelemetryExtensionConfiguration
   public boolean isTurnOffTracing() {
     return System.getProperties().containsKey(PROP_MULE_OTEL_TRACING_DISABLED) ? Boolean
         .parseBoolean(System.getProperty(PROP_MULE_OTEL_TRACING_DISABLED)) : turnOffTracing;
+  }
+
+  @Override
+  public boolean isTurnOffMetrics() {
+    boolean disabled = System.getProperties().containsKey(PROP_MULE_OTEL_METRICS_DISABLED) ? Boolean
+        .parseBoolean(System.getProperty(PROP_MULE_OTEL_METRICS_DISABLED)) : turnOffMetrics;
+    if (!disabled) {
+      disabled = this.metricsConfigProvider == null
+          || this.metricsConfigProvider instanceof NoopOpenTelemetryMetricsConfigProvider;
+    }
+    return disabled;
   }
 
   // Visible for testing purpose
@@ -173,17 +192,6 @@ public class OpenTelemetryExtensionConfiguration
 
   @Override
   public void start() throws MuleException {
-    if (disableTelemetry()) {
-      logger.warn("Tracing and Metrics is disabled. OpenTelemetry will be turned off for config '{}'.",
-          getConfigName());
-      // Is there a better way to let runtime trigger the configuration shutdown
-      // without stopping the application?
-      // Raising an exception here will make runtime invoke the stop method
-      // but it will kill the application as well, so can't do that here.
-      // For now, let's skip the initialization of tracing related components and
-      // processors.
-      return;
-    }
     logger.info("Initiating otel config - '{}'", getConfigName());
     appIdentifier = AppIdentifier.fromEnvironment(expressionManager);
     OpenTelemetryConnection openTelemetryConnection = OpenTelemetryConnection
@@ -191,14 +199,23 @@ public class OpenTelemetryExtensionConfiguration
     muleNotificationProcessor.init(openTelemetryConnection,
         getTraceLevelConfiguration());
 
-    notificationListenerRegistry.registerListener(
-        new MuleMessageProcessorNotificationListener(muleNotificationProcessor));
-    notificationListenerRegistry.registerListener(
-        new MulePipelineMessageNotificationListener(muleNotificationProcessor));
-    notificationListenerRegistry.registerListener(new AsyncMessageNotificationListener(muleNotificationProcessor));
-    notificationListenerRegistry.registerListener(new MetricEventNotificationListener(muleNotificationProcessor),
-        extensionNotification -> METRIC_NOTIFICATION_DATA_TYPE
-            .isCompatibleWith(extensionNotification.getData().getDataType()));
+    if (!isTurnOffTracing()) {
+      logger.info("Tracing has been turned off. No listener will be registered.");
+      notificationListenerRegistry.registerListener(
+          new MuleMessageProcessorNotificationListener(muleNotificationProcessor));
+      notificationListenerRegistry.registerListener(
+          new MulePipelineMessageNotificationListener(muleNotificationProcessor));
+      notificationListenerRegistry
+          .registerListener(new AsyncMessageNotificationListener(muleNotificationProcessor));
+    }
+
+    if (!isTurnOffMetrics()) {
+      logger.info("Metrics has been turned off. No listener will be registered.");
+      notificationListenerRegistry.registerListener(
+          new MetricEventNotificationListener(muleNotificationProcessor),
+          extensionNotification -> METRIC_NOTIFICATION_DATA_TYPE
+              .isCompatibleWith(extensionNotification.getData().getDataType()));
+    }
   }
 
   @Override
@@ -211,15 +228,8 @@ public class OpenTelemetryExtensionConfiguration
     return metricsConfigProvider;
   }
 
-  private boolean disableTelemetry() {
-    return isTurnOffTracing() && metricsConfigProvider == null;
-  }
-
   @Override
   public void stop() throws MuleException {
-    if (isTurnOffTracing()) {
-      logger.info("{} is set to true. Configuration '{}' has been stopped.", PROP_MULE_OTEL_TRACING_DISABLED,
-          getConfigName());
-    }
+
   }
 }

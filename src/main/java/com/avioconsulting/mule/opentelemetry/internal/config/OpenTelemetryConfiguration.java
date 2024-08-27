@@ -13,6 +13,8 @@ public interface OpenTelemetryConfiguration {
 
   boolean isTurnOffTracing();
 
+  boolean isTurnOffMetrics();
+
   TraceLevelConfiguration getTraceLevelConfiguration();
 
   ExporterConfiguration getExporterConfiguration();

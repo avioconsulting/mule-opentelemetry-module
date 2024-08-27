@@ -36,9 +36,13 @@ public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInter
   @Mock
   ConfigurationComponentLocator configurationComponentLocator;
 
+  @Mock
+  OpenTelemetryConnection openTelemetryConnection;
+
   @Before
   public void setMocks() {
     when(muleNotificationProcessor.hasConnection()).thenReturn(true);
+    when(muleNotificationProcessor.getOpenTelemetryConnection()).thenReturn(openTelemetryConnection);
   }
 
   @Test
@@ -191,6 +195,24 @@ public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInter
         new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
             .intercept(location))
                 .isTrue();
+  }
+
+  @Test
+  public void interceptionDisabledWithTurnOff() {
+    ComponentLocation location = Mockito.mock(ComponentLocation.class);
+
+    LocationPart part1 = mock(LocationPart.class);
+    TypedComponentIdentifier identifier = mock(TypedComponentIdentifier.class);
+
+    TypedComponentIdentifier componentIdentifier = getComponentIdentifier(null, null);
+    when(location.getComponentIdentifier()).thenReturn(componentIdentifier);
+
+    when(openTelemetryConnection.isTurnOffTracing()).thenReturn(true);
+
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(location))
+                .isFalse();
   }
 
   private static LocationPart getLocationPart(String path) {

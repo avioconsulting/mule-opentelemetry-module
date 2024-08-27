@@ -130,8 +130,9 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
               .noneMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
                   & (mc.getName().equalsIgnoreCase(identifier.getName())
                       || "*".equalsIgnoreCase(mc.getName())));
-      intercept = isFirstProcessor(location)
-          || interceptConfigured;
+      intercept = !muleNotificationProcessor.getOpenTelemetryConnection().isTurnOffTracing()
+          && (isFirstProcessor(location)
+              || interceptConfigured);
 
       if (intercept) {
         // This factory executes during application initialization.

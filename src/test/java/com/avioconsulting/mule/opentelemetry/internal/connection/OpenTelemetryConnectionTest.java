@@ -24,6 +24,7 @@ public class OpenTelemetryConnectionTest extends AbstractInternalTest {
     when(configuration.getResource()).thenReturn(resource);
     when(configuration.getExporterConfiguration()).thenReturn(exporterConfig);
     when(configuration.getSpanProcessorConfiguration()).thenReturn(spc);
+    when(configuration.isTurnOffMetrics()).thenReturn(true);
     OpenTelemetryConfigWrapper wrapper = new OpenTelemetryConfigWrapper(configuration);
     OpenTelemetryConnection instance = OpenTelemetryConnection.getInstance(wrapper);
     verify(resource).getConfigMap();

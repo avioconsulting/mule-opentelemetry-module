@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+      http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd">
+    <opentelemetry:config name="OpenTelemetry_Config" doc:name="OpenTelemetry Config" doc:id="91477cb5-36f7-48ad-90b7-c339af87b408" serviceName="api-app-1"  maxQueueSize="2048"
+                          maxBatchExportSize="512" batchExportDelayInterval="5000"
+                          exportTimeout="30000" spanAllProcessors="true"
+                          turnOffTracing="true">
+        <opentelemetry:resource-attributes >
+            <opentelemetry:attribute key="mule.env" value="Dev" />
+        </opentelemetry:resource-attributes>
+        <opentelemetry:exporter >
+            <!--			<opentelemetry:logging-exporter logPrefix="test-log" />-->
+            <opentelemetry:generic-exporter >
+                <opentelemetry:config-properties >
+                    <opentelemetry:config-property key="otel.traces.exporter" value="delegatedLogging" />
+                </opentelemetry:config-properties>
+            </opentelemetry:generic-exporter>
+        </opentelemetry:exporter>
+    </opentelemetry:config>
+    <flow name="simple-flow">
+        <logger level="INFO" message="post:\orders:application\json:order-exp-config" />
+    </flow>
+</mule>
