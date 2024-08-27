@@ -87,7 +87,7 @@ public class MuleNotificationProcessor {
    *            {@link String} value of target processor
    */
   public void addMeteredComponentLocation(String location) {
-    if (openTelemetryConnection != null) {
+    if (openTelemetryConnection != null && !openTelemetryConnection.isTurnOffMetrics()) {
       openTelemetryConnection.getMetricsProviders().addMeteredComponent(location);
     }
   }

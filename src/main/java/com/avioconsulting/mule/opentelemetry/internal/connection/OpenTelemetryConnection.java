@@ -76,6 +76,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   private final OpenTelemetry openTelemetry;
   private final Tracer tracer;
   private boolean turnOffTracing = false;
+  private boolean turnOffMetrics = false;
 
   private OpenTelemetryConnection(OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
     Properties properties = getModuleProperties();
@@ -87,6 +88,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     // See here for autoconfigure options
     // https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure
     AutoConfiguredOpenTelemetrySdkBuilder builder = AutoConfiguredOpenTelemetrySdk.builder();
+
     if (openTelemetryConfigWrapper != null) {
       // TODO: Process other config elements for OTEL SDK
       final Map<String, String> configMap = new HashMap<>();
@@ -102,19 +104,24 @@ public class OpenTelemetryConnection implements TraceContextHandler {
       builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
       logger.debug("Creating OpenTelemetryConnection with properties: [" + configMap + "]");
       turnOffTracing = openTelemetryConfigWrapper.isTurnOffTracing();
+      turnOffMetrics = openTelemetryConfigWrapper.isTurnOffMetrics();
       appIdentifier = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getAppIdentifier();
       metricsProvider = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getMetricsConfigProvider();
       expressionManager = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getExpressionManager();
     }
     builder.setServiceClassLoader(AutoConfiguredOpenTelemetrySdkBuilder.class.getClassLoader());
     builder.setResultAsGlobal();
-    if (metricsProvider != null)
+    if (!turnOffMetrics)
       metricsProvider.initialise(appIdentifier);
     openTelemetry = builder.build().getOpenTelemetrySdk();
     installOpenTelemetryLogger();
-    if (metricsProvider != null) {
+    if (!turnOffMetrics) {
+      logger.info("Initializing Metrics Providers");
       metricsProvider.start();
       metricsProviders.initialize(metricsProvider, openTelemetry);
+    } else {
+      logger.info("Disabling loaded Metrics Providers");
+      metricsProviders.clear();
     }
     tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
     transactionStore = InMemoryTransactionStore.getInstance();
@@ -142,6 +149,10 @@ public class OpenTelemetryConnection implements TraceContextHandler {
 
   public boolean isTurnOffTracing() {
     return turnOffTracing;
+  }
+
+  public boolean isTurnOffMetrics() {
+    return turnOffMetrics;
   }
 
   public OpenTelemetryMetricsProviderCollection getMetricsProviders() {

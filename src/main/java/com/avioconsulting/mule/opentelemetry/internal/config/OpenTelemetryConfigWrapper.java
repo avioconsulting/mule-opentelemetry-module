@@ -31,6 +31,10 @@ public class OpenTelemetryConfigWrapper {
     return openTelemetryConfiguration.isTurnOffTracing();
   }
 
+  public boolean isTurnOffMetrics() {
+    return openTelemetryConfiguration.isTurnOffMetrics();
+  }
+
   public OpenTelemetryConfiguration getOpenTelemetryConfiguration() {
     return openTelemetryConfiguration;
   }
