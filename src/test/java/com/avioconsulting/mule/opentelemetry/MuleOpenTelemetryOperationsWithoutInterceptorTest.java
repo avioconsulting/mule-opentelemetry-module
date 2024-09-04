@@ -27,6 +27,12 @@ public class MuleOpenTelemetryOperationsWithoutInterceptorTest extends AbstractM
         "false");
   }
 
+  @Override
+  protected void doTearDownAfterMuleContextDispose() throws Exception {
+    super.doTearDownAfterMuleContextDispose();
+    System.clearProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME);
+  }
+
   @Test
   public void testHttpTracing_WithTransactionTags() throws Exception {
     sendRequest(CORRELATION_ID, "transaction-tags", 200, Collections.emptyMap(),
