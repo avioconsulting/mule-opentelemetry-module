@@ -322,8 +322,8 @@ To disable span generation for all processors in a specific namespace, set the `
 <opentelemetry:mule-component namespace="os" name="*" />
 ----
 
-==== Custom Tags
-In addition to all the trace attributes captured by the module, it is possible to add custom tags to the current trace using an *operation* `opentelemetry:add-custom-tags`.
+==== Add Custom Transaction Tags
+In addition to all the trace attributes captured by the module, it is possible to add custom tags to the current trace using an *operation* `opentelemetry:add-transaction-tags`.
 
 WARNING: All custom tag keys are transformed to `custom.{keyName}`. This also prevents accidentally overriding other standard keys-value pairs in trace tags. Depending on the APM (elastic, etc.) you use, they may be displayed differently. For example, elastic will display them as `label.custom_{keyName}`.
 
@@ -332,12 +332,12 @@ These could be any business data that you may want to capture as a part of your 
 [source,xml]
 .Adding custom tag from variable
 ----
-    <opentelemetry:add-custom-tags doc:name="Add Custom Tags"
+    <opentelemetry:add-transaction-tags doc:name="Add Custom Tags"
                 config-ref="OpenTelemetry_Config">
         <opentelemetry:tags >
             <opentelemetry:tag key="orderNumber" value="#[vars.orderNumber]"/>
         </opentelemetry:tags>
-    </opentelemetry:add-custom-tags>
+    </opentelemetry:add-transaction-tags>
 ----
 
 You can also use dataweave to set the tags.
@@ -345,7 +345,7 @@ You can also use dataweave to set the tags.
 [source,xml]
 .Adding custom tags as DataWeave map
 ----
-    <opentelemetry:add-custom-tags doc:name="Add Custom Tags"
+    <opentelemetry:add-transaction-tags doc:name="Add Custom Tags"
                 config-ref="OpenTelemetry_Config"
                 tags="#[output java --- {orderNumber: payload.orderNumber}]" />
 ----
@@ -462,17 +462,17 @@ If the intercepted processors needs fine-tuning such as including or excluding c
 image::processor-interceptor-configuration.png[600, 600, title="Trace Level - Processor Interception Configuration", align="center"]
 
 ====== Manual Injection
-If needed, `<opentelemetry:get-trace-context />` operation can be used to manually inject trace context into flow.
+If needed, `<opentelemetry:get-current-trace-context />` operation can be used to manually inject trace context into flow.
 
 NOTE: `target` must be used to set operation output to a flow variable.
 
 NOTE: *OTEL_TRACE_CONTEXT.spanId* will be of the flow container span.
 
-WARNING: Similar to link:module-config.adoc#_first_processor_interceptor[First Processor Interceptor], tis context relates to the main flow span and if used for propagation to external services then span rendering may not look accurate.
+WARNING: Similar to link:module-config.adoc#_first_processor_interceptor[First Processor Interceptor], this context relates to the main flow span and if used for propagation to external services then span rendering may not look accurate.
 
 [source,xml]
 ----
-<opentelemetry:get-trace-context doc:name="Get Trace Context" config-ref="OpenTelemetry_Config" target="traceContext"/>
+<opentelemetry:get-current-trace-context doc:name="Get Current Trace Context" config-ref="OpenTelemetry_Config" target="traceContext"/>
 ----
 
 image::manual-context-flow-injection.png[]

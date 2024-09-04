@@ -38,8 +38,48 @@ public class MuleOpenTelemetryOperationsTest extends AbstractMuleArtifactTraceTe
   }
 
   @Test
+  public void testHttpTracing_WithTransactionTags() throws Exception {
+    sendRequest(CORRELATION_ID, "transaction-tags", 200, Collections.emptyMap(),
+        Collections.singletonMap("orderId", "order123"));
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .hasSize(1)
+        .element(0)
+        .extracting("spanName", "spanKind", "spanStatus")
+        .containsOnly("GET /transaction-tags", "SERVER", "UNSET"));
+    assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .element(0)
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
+        .containsEntry("http.status_code", "200")
+        .containsEntry("custom.orderId", "order123")
+        .containsEntry("custom.quantity", "20")
+        .containsEntry("custom.payload", "Tag Payload");
+  }
+
+  @Test
   public void testHttpTracing_GetTraceContext() throws Exception {
-    CoreEvent coreEvent = runFlow("mule-opentelemetry-get-trace-context");
+    CoreEvent coreEvent = flowRunner("mule-opentelemetry-get-trace-context").run();
+    assertThat(coreEvent.getVariables())
+        .as("Variables that should contain OTEL injected context")
+        .containsKeys("OTEL_TRACE_CONTEXT", "OTEL_CONTEXT");
+    TypedValue<Map<String, String>> otel_trace_context_from_interceptor = (TypedValue<Map<String, String>>) coreEvent
+        .getVariables().get("OTEL_TRACE_CONTEXT");
+    TypedValue<Map<String, String>> otel_context_from_operation = (TypedValue<Map<String, String>>) coreEvent
+        .getVariables().get("OTEL_CONTEXT");
+    assertThat(otel_trace_context_from_interceptor.getValue())
+        .containsExactlyEntriesOf(otel_context_from_operation.getValue());
+    assertThat(otel_trace_context_from_interceptor.getValue())
+        .containsKeys("traceId", "spanId", "spanIdLong", "traceIdLongLowPart", "TRACE_TRANSACTION_ID");
+    assertThat(otel_trace_context_from_interceptor.getValue())
+        .hasEntrySatisfying("spanIdLong", (value) -> assertThat(Long.parseUnsignedLong(value)).isNotEqualTo(0));
+    assertThat(otel_trace_context_from_interceptor.getValue())
+        .hasEntrySatisfying("traceIdLongLowPart",
+            (value) -> assertThat(Long.parseUnsignedLong(value)).isNotEqualTo(0));
+  }
+
+  @Test
+  public void testHttpTracing_GetCurrentTraceContext() throws Exception {
+    CoreEvent coreEvent = flowRunner("mule-opentelemetry-get-current-trace-context")
+        .withSourceCorrelationId("test_123").run();
     assertThat(coreEvent.getVariables())
         .as("Variables that should contain OTEL injected context")
         .containsKeys("OTEL_TRACE_CONTEXT", "OTEL_CONTEXT");

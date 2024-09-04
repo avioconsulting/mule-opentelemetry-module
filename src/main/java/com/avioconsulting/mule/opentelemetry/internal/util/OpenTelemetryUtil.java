@@ -50,9 +50,20 @@ public class OpenTelemetryUtil {
    * @return String id for the current event
    */
   public static String getEventTransactionId(Event event) {
+    return getEventTransactionId(event.getContext().getId());
+  }
+
+  /**
+   * Creates a unique id for current event processing.
+   *
+   * @param eventId
+   *            {@link Event} to extract id from
+   * @return String id for the current event
+   */
+  public static String getEventTransactionId(String eventId) {
     // For child contexts, the primary id is appended with "_{timeInMillis}".
     // We remove time part to get a unique id across the event processing.
-    return event.getContext().getId().split("_")[0];
+    return eventId.split("_")[0];
   }
 
 }
