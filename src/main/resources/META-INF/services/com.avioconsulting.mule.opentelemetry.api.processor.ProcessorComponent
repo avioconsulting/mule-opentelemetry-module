@@ -3,3 +3,4 @@ com.avioconsulting.mule.opentelemetry.internal.processor.DBProcessorComponent
 com.avioconsulting.mule.opentelemetry.internal.processor.AnypointMQProcessorComponent
 com.avioconsulting.mule.opentelemetry.internal.processor.MuleCoreProcessorComponent
 com.avioconsulting.mule.opentelemetry.internal.processor.APIKitProcessorComponent
+com.avioconsulting.mule.opentelemetry.internal.processor.WSCProcessorComponent
