@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/current/mule-wsc.xsd">
+	<import file="global-common.xml"/>
+	<wsc:config name="Web_Service_Consumer_Config_Test" doc:name="Web Service Consumer Config" doc:id="16d99563-1133-45df-8ee9-0c436eb7bfa5" >
+		<wsc:connection wsdlLocation="http://localhost/calculator.asmx?wsdl" service="Calculator" port="CalculatorSoap12" address="http://localhost/calculator.asmx"/>
+	</wsc:config>
+	<flow name="consume-wsc-flow" doc:id="95f1a18d-c935-4ab6-9393-bc4c8834dd54">
+		<wsc:consume doc:name="Consume" doc:id="a7478426-8854-49d4-8df0-133e39e1f973" config-ref="Web_Service_Consumer_Config_Test" operation="Add">
+			<wsc:message>
+				<wsc:body><![CDATA[<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <Add xmlns="http://tempuri.org/">
+      <intA>1</intA>
+      <intB>2</intB>
+    </Add>
+  </soap:Body>
+</soap:Envelope>]]></wsc:body>
+			</wsc:message>
+		</wsc:consume>
+	
+	</flow>
+		
+</mule>

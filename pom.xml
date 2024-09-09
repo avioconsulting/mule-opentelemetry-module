@@ -469,7 +469,13 @@
             <version>1.4.01</version>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.mule.connectors</groupId>
+            <artifactId>mule-wsc-connector</artifactId>
+            <version>1.10.0</version>
+            <classifier>mule-plugin</classifier>
+            <scope>test</scope>
+        </dependency>
 <!--        <dependency>-->
 <!--            <groupId>io.opentelemetry</groupId>-->
 <!--            <artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>-->
