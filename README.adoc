@@ -28,4 +28,4 @@ image::src/docs/asciidoc/Images/mule-with-opentelemetry.png[title="Mule with Ope
 ** Jump to https://avioconsulting.github.io/mule-opentelemetry-module/#The-How-Mule-OTel-module-id[Installation and Usage section]
 * Instructions for link:CONTRIBUTING.adoc[Contributing] to the repo.
 
-NOTE: This module supports OpenTelemetry *Traces and Metrics* only. Logs are _not_ supported, yet.
+NOTE: This module supports OpenTelemetry *Traces* only. Logs and Metrics are _not_ supported, yet.

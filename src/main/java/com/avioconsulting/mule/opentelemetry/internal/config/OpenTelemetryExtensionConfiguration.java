@@ -199,8 +199,9 @@ public class OpenTelemetryExtensionConfiguration
     muleNotificationProcessor.init(openTelemetryConnection,
         getTraceLevelConfiguration());
 
-    if (!isTurnOffTracing()) {
+    if (isTurnOffTracing()) {
       logger.info("Tracing has been turned off. No listener will be registered.");
+    } else {
       notificationListenerRegistry.registerListener(
           new MuleMessageProcessorNotificationListener(muleNotificationProcessor));
       notificationListenerRegistry.registerListener(
@@ -209,8 +210,9 @@ public class OpenTelemetryExtensionConfiguration
           .registerListener(new AsyncMessageNotificationListener(muleNotificationProcessor));
     }
 
-    if (!isTurnOffMetrics()) {
+    if (isTurnOffMetrics()) {
       logger.info("Metrics has been turned off. No listener will be registered.");
+    } else {
       notificationListenerRegistry.registerListener(
           new MetricEventNotificationListener(muleNotificationProcessor),
           extensionNotification -> METRIC_NOTIFICATION_DATA_TYPE
