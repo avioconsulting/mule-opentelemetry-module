@@ -17,6 +17,8 @@ import org.mule.runtime.extension.api.annotation.Export;
 import org.mule.runtime.extension.api.annotation.Extension;
 import org.mule.runtime.extension.api.annotation.SubTypeMapping;
 import org.mule.runtime.extension.api.annotation.dsl.xml.Xml;
+import org.mule.sdk.api.annotation.JavaVersionSupport;
+import org.mule.sdk.api.meta.JavaVersion;
 
 @Xml(prefix = "opentelemetry")
 @Extension(name = "OpenTelemetry")
@@ -27,6 +29,6 @@ import org.mule.runtime.extension.api.annotation.dsl.xml.Xml;
     NoopOpenTelemetryMetricsConfigProvider.class })
 @Export(classes = { OpenTelemetryMetricsConfigProvider.class, AppIdentifier.class, OpenTelemetryMetricsProvider.class,
     MetricBaseNotificationData.class, OpenTelemetryMetricsConfigSupplier.class, LogsApiPackageMarker.class })
-
+@JavaVersionSupport({ JavaVersion.JAVA_8, JavaVersion.JAVA_11, JavaVersion.JAVA_17 })
 public class OpenTelemetryExtension {
 }
