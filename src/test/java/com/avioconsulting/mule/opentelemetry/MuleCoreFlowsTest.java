@@ -1,14 +1,11 @@
 package com.avioconsulting.mule.opentelemetry;
 
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
 import org.assertj.core.api.SoftAssertions;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mule.runtime.core.api.event.CoreEvent;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter.spanQueue;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -159,23 +156,6 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
     softly.assertAll();
   }
 
-  @NotNull
-  private Map<Object, Set<String>> groupSpanByParent() {
-    // Find the root span
-    DelegatedLoggingSpanTestExporter.Span root = spanQueue.stream()
-        .filter(span -> span.getParentSpanContext().getSpanId().equals("0000000000000000")).findFirst().get();
-
-    // Create a lookup of span id and name
-    Map<String, String> idNameMap = spanQueue.stream().collect(Collectors.toMap(
-        DelegatedLoggingSpanTestExporter.Span::getSpanId, DelegatedLoggingSpanTestExporter.Span::getSpanName));
-
-    Map<Object, Set<String>> groupedSpans = spanQueue.stream()
-        .collect(Collectors.groupingBy(
-            span -> idNameMap.getOrDefault(span.getParentSpanContext().getSpanId(), root.getSpanName()),
-            Collectors.mapping(DelegatedLoggingSpanTestExporter.Span::getSpanName, Collectors.toSet())));
-    return groupedSpans;
-  }
-
   @Test
   @Ignore
   public void testWithCorrelationId() throws Exception {
@@ -293,7 +273,7 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
     CoreEvent event = flowRunner("call-dynamic-flow-ref")
         .withVariable("targetFlow", "simple-subflow-logger").run();
     await().untilAsserted(() -> assertThat(spanQueue)
-        .hasSize(5));
+        .hasSize(6));
     Map<Object, Set<String>> groupedSpans = groupSpanByParent();
     System.out.println(groupedSpans);
     SoftAssertions softly = new SoftAssertions();
@@ -304,7 +284,43 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
     softly.assertThat(groupedSpans).hasEntrySatisfying("flow-ref:target-flow-call",
         val -> assertThat(val).containsOnly("simple-subflow-logger"));
     softly.assertThat(groupedSpans).hasEntrySatisfying("simple-subflow-logger",
-        val -> assertThat(val).containsOnly("logger:SimpleLogger"));
+        val -> assertThat(val).containsOnly(
+            "get-current-trace-context:simple-subflow-logger:Get Current Trace Context",
+            "logger:simple-subflow-logger:SimpleLogger"));
+    softly.assertAll();
+  }
+
+  @Test
+  public void testFlowRefInvocations_withCurrentContextOperations() throws Exception {
+    CoreEvent event = flowRunner("root-flow").run();
+    await().untilAsserted(() -> assertThat(spanQueue)
+        .hasSize(11));
+    Map<Object, Set<String>> groupedSpans = groupSpanByParent();
+    System.out.println(groupedSpans);
+    SoftAssertions softly = new SoftAssertions();
+    softly.assertThat(groupedSpans)
+        .hasEntrySatisfying("root-flow", val -> assertThat(val)
+            .containsOnly(
+                "root-flow", "logger:root-flow:FirstRootLogger",
+                "get-current-trace-context:root-flow:Get Current Trace Context",
+                "flow-ref:root-flow:simple-flow"));
+    softly.assertThat(groupedSpans)
+        .as("Flow-ref to Flow context propagation due to interceptor.")
+        .hasEntrySatisfying("flow-ref:root-flow:simple-flow", val -> assertThat(val)
+            .containsOnly(
+                "simple-flow"));
+    softly.assertThat(groupedSpans).hasEntrySatisfying("simple-flow",
+        val -> assertThat(val).containsOnly("flow-ref:simple-flow:simple-subflow-logger",
+            "get-current-trace-context:simple-flow:Get Current Trace Context",
+            "logger:simple-flow:FirstSimpleLogger"));
+    softly.assertThat(groupedSpans)
+        .as("Sub-flow span created from the flow-ref interception")
+        .hasEntrySatisfying("flow-ref:simple-flow:simple-subflow-logger",
+            val -> assertThat(val).containsOnly("simple-subflow-logger"));
+    softly.assertThat(groupedSpans).hasEntrySatisfying("simple-subflow-logger",
+        val -> assertThat(val).containsOnly(
+            "get-current-trace-context:simple-subflow-logger:Get Current Trace Context",
+            "logger:simple-subflow-logger:SimpleLogger"));
     softly.assertAll();
   }
 

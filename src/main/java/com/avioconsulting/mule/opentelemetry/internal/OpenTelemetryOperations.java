@@ -1,7 +1,9 @@
 package com.avioconsulting.mule.opentelemetry.internal;
 
+import com.avioconsulting.mule.opentelemetry.api.traces.ComponentEventContext;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
+import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.extension.api.annotation.Alias;
 import org.mule.runtime.extension.api.annotation.param.Connection;
 import org.mule.runtime.extension.api.annotation.param.Optional;
@@ -57,13 +59,16 @@ public class OpenTelemetryOperations {
   @Summary("Gets the current trace context")
   public Map<String, String> getCurrentTraceContext(
       @Connection Supplier<OpenTelemetryConnection> openTelemetryConnection,
-      CorrelationInfo correlationInfo) {
+      CorrelationInfo correlationInfo, ComponentLocation location) {
     String eventTransactionId = OpenTelemetryUtil.getEventTransactionId(correlationInfo.getEventId());
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Getting current context for event Id: {}, correlationId: {}, trace transactionId: {}",
-          correlationInfo.getEventId(), correlationInfo.getCorrelationId(), eventTransactionId);
+      LOGGER.debug(
+          "Getting current context for event Id: {}, correlationId: {}, trace transactionId: {} at location {} in container {}",
+          correlationInfo.getEventId(), correlationInfo.getCorrelationId(), eventTransactionId,
+          location.getLocation(), location.getRootContainerName());
     }
-    return openTelemetryConnection.get().getTraceContext(eventTransactionId);
+    return openTelemetryConnection.get().getTraceContext(eventTransactionId, ComponentEventContext
+        .contextScopedLocationFor(correlationInfo.getEventId(), location.getRootContainerName()));
   }
 
   /**
