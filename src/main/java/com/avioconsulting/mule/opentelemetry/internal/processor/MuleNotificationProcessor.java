@@ -11,7 +11,9 @@ import com.avioconsulting.mule.opentelemetry.internal.processor.service.Processo
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.ComponentIdentifier;
+import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.AsyncMessageNotification;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
@@ -26,11 +28,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.findLocation;
+import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.getTraceComponent;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.isFlowRef;
+import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.resolveFlowName;
 
 /**
  * Notification Processor bean. This is injected through registry-bootstrap into
@@ -164,10 +169,24 @@ public class MuleNotificationProcessor {
             .withComponentLocation(notification.getComponent().getLocation());
         openTelemetryConnection.addProcessorSpan(traceComponent,
             ComponentsUtil.getLocationParent(notification.getComponent().getLocation().getLocation()));
+        processFlowRef(traceComponent, notification.getEvent());
       }
     } catch (Exception ex) {
       logger.error("Error in handling processor start event", ex);
       throw ex;
+    }
+  }
+
+  private void processFlowRef(TraceComponent traceComponent, Event event) {
+    if (isFlowRef(traceComponent.getComponentLocation())) {
+      Optional<ComponentLocation> subFlowLocation = resolveFlowName(
+          getOpenTelemetryConnection().getExpressionManager(), traceComponent, event.asBindingContext(),
+          configurationComponentLocator);
+      if (subFlowLocation.isPresent()) {
+        TraceComponent subflowTrace = getTraceComponent(subFlowLocation.get(), traceComponent);
+        getOpenTelemetryConnection().addProcessorSpan(subflowTrace,
+            traceComponent.getComponentLocation().getLocation());
+      }
     }
   }
 

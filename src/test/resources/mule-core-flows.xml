@@ -29,6 +29,9 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="79881531-bfaa-49fd-8227-b67e35d64cf8" >
 		<http:listener-connection host="0.0.0.0" port="${http.port}" />
 	</http:listener-config>
+	<sub-flow name="tracing-add-context">
+		<opentelemetry:get-current-trace-context doc:name="root-flow:Get Current Trace Context" doc:id="f747d5ce-d185-42b5-ad79-075b5aac5b7d" config-ref="OpenTelemetry_Config" target="OTEL_TRACE_CONTEXT"/>
+	</sub-flow>
 	<http:request-config name="SELF_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="c18eed36-eb42-4c29-abc9-9e7a2c6049e1" >
 		<http:request-connection host="0.0.0.0" port="${http.port}"/>
 			<http:default-headers >
@@ -199,13 +202,19 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 		<set-payload mimeType="text/plain" value="Greetings of the day!"/>
 	</flow>
 
-
+	<flow name="root-flow">
+		<opentelemetry:get-current-trace-context doc:name="root-flow:Get Current Trace Context" doc:id="f747d5ce-d185-42b5-ad79-075b5aac5b7d" config-ref="OpenTelemetry_Config" target="OTEL_TRACE_CONTEXT"/>
+		<logger level="INFO" message="#['Root flow']" doc:name="root-flow:FirstRootLogger" />
+		<flow-ref doc:name="root-flow:simple-flow" name="simple-flow"/>
+	</flow>
 	<flow name="simple-flow">
-		<logger level="INFO" message="#['Simple flow']" doc:name="FirstSimpleLogger" />
-		<flow-ref name="simple-subflow-logger"/>
+		<opentelemetry:get-current-trace-context doc:name="simple-flow:Get Current Trace Context" doc:id="f747d5ce-d185-42b5-ad79-075b5aac5b7d" config-ref="OpenTelemetry_Config" target="OTEL_TRACE_CONTEXT"/>
+		<logger level="INFO" message="#['Simple flow']" doc:name="simple-flow:FirstSimpleLogger" />
+		<flow-ref doc:name="simple-flow:simple-subflow-logger" name="simple-subflow-logger"/>
 	</flow>
 	<sub-flow name="simple-subflow-logger">
-		<logger level="INFO" message="#['Simple flow']" doc:name="SimpleLogger" />
+		<opentelemetry:get-current-trace-context doc:name="simple-subflow-logger:Get Current Trace Context" doc:id="f747d5ce-d185-42b5-ad79-075b5aac5b7d" config-ref="OpenTelemetry_Config" target="OTEL_TRACE_CONTEXT"/>
+		<logger level="INFO" message="#['Simple flow']" doc:name="simple-subflow-logger:SimpleLogger" />
 	</sub-flow>
 	<flow name="simple-flow-to-flow">
 		<logger level="INFO" message="#['Simple flow']" doc:name="FirstSimpleLogger" />
