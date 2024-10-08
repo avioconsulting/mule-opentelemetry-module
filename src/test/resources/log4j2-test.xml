@@ -6,24 +6,12 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="com.avioconsulting.mule.opentelemetry.internal.anypoint.clients.AMCApplicationManagerApi" level="DEBUG">
-            <AppenderRef ref="Console"/>
-        </Logger>
-        <Logger name="io.opentelemetry" level="TRACE" additivity="false">
-            <AppenderRef ref="Console"/>
-        </Logger>
-        <Logger name="com.avioconsulting.mule.opentelemetry" level="INFO" additivity="false">
-            <AppenderRef ref="Console"/>
-        </Logger>
-        <Logger name="org.mule.service.http.impl.service.HttpMessageLogger" level="INFO">
-            <AppenderRef ref="Console"/>
-        </Logger>
-        <Logger name="com.avioconsulting.mule.opentelemetry" level="INFO">
-            <AppenderRef ref="Console"/>
-        </Logger>
-        <Logger name="org.mule.runtime.core" level="WARN">
-            <AppenderRef ref="Console"/>
-        </Logger>
+        <Logger name="com.avioconsulting.mule.opentelemetry.internal.anypoint.clients.AMCApplicationManagerApi" level="INFO"/>
+        <Logger name="io.opentelemetry" level="INFO"/>
+        <Logger name="com.avioconsulting.mule.opentelemetry" level="INFO"/>
+        <Logger name="org.mule.service.http.impl.service.HttpMessageLogger" level="INFO"/>
+        <Logger name="com.avioconsulting.mule.opentelemetry" level="INFO"/>
+        <Logger name="org.mule.runtime.core" level="WARN"/>
         <Root level="INFO">
             <AppenderRef ref="Console"/>
         </Root>
