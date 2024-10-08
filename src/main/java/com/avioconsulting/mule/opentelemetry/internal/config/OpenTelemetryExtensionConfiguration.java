@@ -11,7 +11,6 @@ import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsC
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigSupplier;
 import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryOperations;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
-import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnectionProvider;
 import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.AsyncMessageNotificationListener;
 import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MetricEventNotificationListener;
 import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MuleMessageProcessorNotificationListener;
@@ -27,7 +26,6 @@ import org.mule.runtime.core.api.el.ExpressionManager;
 import org.mule.runtime.extension.api.annotation.Configuration;
 import org.mule.runtime.extension.api.annotation.Expression;
 import org.mule.runtime.extension.api.annotation.Operations;
-import org.mule.runtime.extension.api.annotation.connectivity.ConnectionProviders;
 import org.mule.runtime.extension.api.annotation.param.Optional;
 import org.mule.runtime.extension.api.annotation.param.Parameter;
 import org.mule.runtime.extension.api.annotation.param.ParameterGroup;
@@ -42,7 +40,6 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 
 @Operations(OpenTelemetryOperations.class)
-@ConnectionProviders(OpenTelemetryConnectionProvider.class)
 @Configuration
 public class OpenTelemetryExtensionConfiguration
     implements Startable, Stoppable, OpenTelemetryConfiguration, OpenTelemetryMetricsConfigSupplier {
@@ -60,6 +57,7 @@ public class OpenTelemetryExtensionConfiguration
   @Inject
   private ExpressionManager expressionManager;
   private AppIdentifier appIdentifier;
+  private OpenTelemetryConnection openTelemetryConnection;
 
   public HttpService getHttpService() {
     return httpService;
@@ -179,6 +177,10 @@ public class OpenTelemetryExtensionConfiguration
     return expressionManager;
   }
 
+  public OpenTelemetryConnection getOpenTelemetryConnection() {
+    return openTelemetryConnection;
+  }
+
   @Override
   public String getConfigName() {
     return configName;
@@ -194,7 +196,7 @@ public class OpenTelemetryExtensionConfiguration
   public void start() throws MuleException {
     logger.info("Initiating otel config - '{}'", getConfigName());
     appIdentifier = AppIdentifier.fromEnvironment(expressionManager);
-    OpenTelemetryConnection openTelemetryConnection = OpenTelemetryConnection
+    openTelemetryConnection = OpenTelemetryConnection
         .getInstance(new OpenTelemetryConfigWrapper(this));
     muleNotificationProcessor.init(openTelemetryConnection,
         getTraceLevelConfiguration());
