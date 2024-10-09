@@ -14,9 +14,7 @@ import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionS
 import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.ServiceProviderUtil;
-import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.api.events.GlobalEventEmitterProvider;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.*;
 import io.opentelemetry.context.Context;
@@ -72,7 +70,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
 
   private static final String INSTRUMENTATION_NAME = "mule-opentelemetry-module-DEV";
   private final TransactionStore transactionStore;
-  private static OpenTelemetryConnection openTelemetryConnection;
+  private OpenTelemetryConnection openTelemetryConnection;
   private final OpenTelemetry openTelemetry;
   private final Tracer tracer;
   private boolean turnOffTracing = false;
@@ -110,7 +108,6 @@ public class OpenTelemetryConnection implements TraceContextHandler {
       expressionManager = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getExpressionManager();
     }
     builder.setServiceClassLoader(AutoConfiguredOpenTelemetrySdkBuilder.class.getClassLoader());
-    builder.setResultAsGlobal();
     if (!turnOffMetrics)
       metricsProvider.initialise(appIdentifier);
     openTelemetry = builder.build().getOpenTelemetrySdk();
@@ -126,6 +123,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
     transactionStore = InMemoryTransactionStore.getInstance();
     PropertiesUtil.init();
+    openTelemetryConnection = this;
   }
 
   private void installOpenTelemetryLogger() {
@@ -160,40 +158,16 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   }
 
   /**
-   * {@link Supplier} to use with
-   * {@link ConnectionProvider} where lazy
-   * initialization is required.
-   * 
-   * @return a non-null {@code Supplier<OpenTelemetryConnection>}
-   */
-  public static Supplier<OpenTelemetryConnection> supplier() {
-    return () -> openTelemetryConnection;
-  }
-
-  /**
    * This is for tests to reset the static instance in-between the tests.
    * Reset Global OpenTelemetry instances.
    */
   public static void resetForTest() {
-    if (openTelemetryConnection != null && openTelemetryConnection.metricsProvider != null) {
-      openTelemetryConnection.metricsProvider.stop();
-      openTelemetryConnection.getMetricsProviders().stop();
-    }
-    GlobalOpenTelemetry.resetForTest();
-    GlobalEventEmitterProvider.resetForTest();
-    openTelemetryConnection = null;
+
   }
 
   public static synchronized OpenTelemetryConnection getInstance(
       OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
-    if (openTelemetryConnection == null) {
-      openTelemetryConnection = new OpenTelemetryConnection(openTelemetryConfigWrapper);
-    }
-    return openTelemetryConnection;
-  }
-
-  public static synchronized OpenTelemetryConnection getInstance() {
-    return openTelemetryConnection;
+    return new OpenTelemetryConnection(openTelemetryConfigWrapper);
   }
 
   /**
