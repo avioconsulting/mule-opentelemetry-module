@@ -34,6 +34,13 @@ public class PropertiesUtil {
     return value;
   }
 
+  public static boolean getBoolean(String name, boolean defaultValue) {
+    String property = getProperty(name);
+    if (property == null)
+      return defaultValue;
+    return Boolean.parseBoolean(property);
+  }
+
   private static String toEnvName(String propertyName) {
     return propertyName.toUpperCase(Locale.ROOT).replaceAll("\\.", "_")
         .replaceAll("-", "_");

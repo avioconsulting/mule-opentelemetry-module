@@ -334,4 +334,92 @@ public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInter
                     new MuleComponent("mule", "parallel-foreach"),
                     new MuleComponent("mule", "try"));
   }
+
+  @Test
+  public void interceptOnlyProcessor0_NotDefaultIncluded() {
+    // When the first processor only interception is enabled,
+    // any location other than processor 0 must not be intercepted
+    System.setProperty(MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY, "true");
+
+    ComponentLocation processor0 = Mockito.mock(ComponentLocation.class);
+    when(processor0.getRootContainerName()).thenReturn("MyFlow");
+    when(processor0.getLocation()).thenReturn("MyFlow/processors/0");
+
+    LocationPart part1 = mock(LocationPart.class);
+    TypedComponentIdentifier identifier = mock(TypedComponentIdentifier.class);
+    when(identifier.getType()).thenReturn(TypedComponentIdentifier.ComponentType.FLOW);
+    when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
+    when(processor0.getParts()).thenReturn(Arrays.asList(part1));
+
+    TypedComponentIdentifier componentIdentifier = getComponentIdentifier(null, null);
+    when(processor0.getComponentIdentifier()).thenReturn(componentIdentifier);
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(processor0))
+                .isTrue();
+
+    ComponentLocation flowRefLocation = Mockito.mock(ComponentLocation.class);
+    when(flowRefLocation.getRootContainerName()).thenReturn("MyFlow");
+    when(flowRefLocation.getLocation()).thenReturn("MyFlow/processors/anything-but-0");
+
+    TypedComponentIdentifier flowRefIdentifier = getComponentIdentifier("mule", "flow-ref");
+    when(flowRefLocation.getComponentIdentifier()).thenReturn(flowRefIdentifier);
+
+    LocationPart flowRefPart = mock(LocationPart.class);
+    TypedComponentIdentifier identifier2 = mock(TypedComponentIdentifier.class);
+    when(identifier2.getType()).thenReturn(TypedComponentIdentifier.ComponentType.FLOW);
+    when(flowRefPart.getPartIdentifier()).thenReturn(Optional.of(identifier2));
+    when(flowRefLocation.getParts()).thenReturn(Arrays.asList(flowRefPart));
+
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(flowRefLocation))
+                .isFalse();
+
+    System.clearProperty(MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY);
+  }
+
+  @Test
+  public void interceptProcessor0AndDefaultIncluded() {
+    // When interception is not disabled, the processor 0 and default included
+    // processors must be intercepted
+    // Default property value is false, so not setting it.
+    // System.setProperty(MULE_OTEL_FIRST_PROCESSOR_INTERCEPTOR_ONLY, "false");
+
+    ComponentLocation processor0 = Mockito.mock(ComponentLocation.class);
+    when(processor0.getRootContainerName()).thenReturn("MyFlow");
+    when(processor0.getLocation()).thenReturn("MyFlow/processors/0");
+
+    LocationPart part1 = mock(LocationPart.class);
+    TypedComponentIdentifier identifier = mock(TypedComponentIdentifier.class);
+    when(identifier.getType()).thenReturn(TypedComponentIdentifier.ComponentType.FLOW);
+    when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
+    when(processor0.getParts()).thenReturn(Arrays.asList(part1));
+
+    TypedComponentIdentifier componentIdentifier = getComponentIdentifier(null, null);
+    when(processor0.getComponentIdentifier()).thenReturn(componentIdentifier);
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(processor0))
+                .isTrue();
+
+    ComponentLocation flowRefLocation = Mockito.mock(ComponentLocation.class);
+    when(flowRefLocation.getRootContainerName()).thenReturn("MyFlow");
+    when(flowRefLocation.getLocation()).thenReturn("MyFlow/processors/anything-but-0");
+
+    TypedComponentIdentifier flowRefIdentifier = getComponentIdentifier("mule", "flow-ref");
+    when(flowRefLocation.getComponentIdentifier()).thenReturn(flowRefIdentifier);
+
+    LocationPart flowRefPart = mock(LocationPart.class);
+    TypedComponentIdentifier identifier2 = mock(TypedComponentIdentifier.class);
+    when(identifier2.getType()).thenReturn(TypedComponentIdentifier.ComponentType.FLOW);
+    when(flowRefPart.getPartIdentifier()).thenReturn(Optional.of(identifier2));
+    when(flowRefLocation.getParts()).thenReturn(Arrays.asList(flowRefPart));
+
+    assertThat(
+        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+            .intercept(flowRefLocation))
+                .isTrue();
+
+  }
 }

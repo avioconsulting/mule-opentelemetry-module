@@ -422,7 +422,22 @@ It is always injected under a key **OTEL_TRACE_CONTEXT**.
 - Before the first processor is invoked - this context relates to the flow span instead of any specific processor
 - Before certain outbound specific processors are invoked - this context is specific to the span of the processor being intercepted
 
-NOTE: In case interception needs to be disabled, set the system property **"mule.otel.interceptor.processor.enable"** to **"false"**. Disabling the interceptor processing can result in incorrect context propagation.
+.Supported Properties to control interceptor behavior
+|===
+|System Property |Environment Variable |Description |Default Value
+
+|mule.otel.interceptor.processor.enable
+|MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE
+|Enable or Disable the interceptor feature. Disabling the interceptor processing can result in incorrect context propagation.
+|`false`
+
+
+|mule.otel.interceptor.first.processor.only
+|MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY
+|When interception is enabled, intercept only the first processor in each flow
+|`false`
+
+|===
 
 [#_first_processor_interceptor]
 ====== First Processor Interceptor
