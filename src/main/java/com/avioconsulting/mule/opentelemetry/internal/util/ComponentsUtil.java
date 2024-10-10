@@ -1,19 +1,24 @@
 package com.avioconsulting.mule.opentelemetry.internal.util;
 
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.LocationPart;
+import org.mule.runtime.api.el.BindingContext;
+import org.mule.runtime.core.api.el.ExpressionManager;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_PROCESSOR_NAME;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.FLOW;
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.ROUTE;
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.SCOPE;
@@ -138,5 +143,60 @@ public class ComponentsUtil {
 
   public static boolean isAsyncScope(TypedComponentIdentifier identifier) {
     return SCOPE.equals(identifier.getType()) && identifier.getIdentifier().getName().equals("async");
+  }
+
+  /**
+   * Build a Trace component for sub-flow
+   * 
+   * @param subFlowComp
+   * @{@link ComponentLocation} of the target sub-flow
+   * @param traceComponent
+   *            of the flow-ref invoking the sub-flow
+   * @return {@link TraceComponent} for the sub-flow
+   */
+  public static TraceComponent getTraceComponent(ComponentLocation subFlowComp, TraceComponent traceComponent) {
+    return TraceComponent.of(subFlowComp)
+        .withTransactionId(traceComponent.getTransactionId())
+        .withSpanName(subFlowComp.getLocation())
+        .withSpanKind(SpanKind.INTERNAL)
+        .withTags(Collections.singletonMap(MULE_APP_SCOPE_SUBFLOW_NAME.getKey(),
+            subFlowComp.getLocation()))
+        .withStatsCode(traceComponent.getStatusCode())
+        .withStartTime(traceComponent.getStartTime())
+        .withContext(traceComponent.getContext())
+        .withEventContextId(traceComponent.getEventContextId());
+  }
+
+  /**
+   * Resolves the target flow name using given #expressionManager and updates it
+   * in {@link TraceComponent#tags}.
+   * Then it looks up the component location for the resolved flow using given
+   * #configurationComponentLocator.
+   * 
+   * @param expressionManager
+   *            {@link ExpressionManager} to resolve names
+   * @param traceComponent
+   *            {@link TraceComponent} of the flow-ref
+   * @param context
+   *            {@link BindingContext} to use with {@link ExpressionManager}
+   * @param configurationComponentLocator
+   *            {@link ConfigurationComponentLocator} to look up components
+   * @return ComponentLocation of resolved target flow
+   */
+  public static Optional<ComponentLocation> resolveFlowName(ExpressionManager expressionManager,
+      TraceComponent traceComponent, BindingContext context,
+      ConfigurationComponentLocator configurationComponentLocator) {
+    String targetFlowName = traceComponent.getTags().get("mule.app.processor.flowRef.name");
+    if (expressionManager
+        .isExpression(targetFlowName)) {
+      targetFlowName = expressionManager
+          .evaluate(targetFlowName, context).getValue().toString();
+      traceComponent.getTags().put("mule.app.processor.flowRef.name", targetFlowName);
+    }
+    Optional<ComponentLocation> subFlowLocation = findLocation(
+        targetFlowName,
+        configurationComponentLocator)
+            .filter(ComponentsUtil::isSubFlow);
+    return subFlowLocation;
   }
 }

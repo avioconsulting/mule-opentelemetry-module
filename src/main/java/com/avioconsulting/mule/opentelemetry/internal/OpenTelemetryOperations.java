@@ -1,9 +1,11 @@
 package com.avioconsulting.mule.opentelemetry.internal;
 
-import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
+import com.avioconsulting.mule.opentelemetry.api.traces.ComponentEventContext;
+import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration;
 import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
+import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.extension.api.annotation.Alias;
-import org.mule.runtime.extension.api.annotation.param.Connection;
+import org.mule.runtime.extension.api.annotation.param.Config;
 import org.mule.runtime.extension.api.annotation.param.Optional;
 import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
@@ -14,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-import java.util.function.Supplier;
 
 public class OpenTelemetryOperations {
 
@@ -24,8 +25,8 @@ public class OpenTelemetryOperations {
    * Deprecated: Use Get Current Trace Context instead. When OTEL_TRACE_CONTEXT
    * does not pre-exist, there is no way for users to get current transaction id.
    *
-   * @param openTelemetryConnection
-   *            {@link OpenTelemetryConnection} Instance
+   * @param config
+   *            {@link OpenTelemetryExtensionConfiguration} Instance
    * @param traceTransactionId
    *            provided by user
    * @param correlationInfo
@@ -35,18 +36,18 @@ public class OpenTelemetryOperations {
   @DisplayName("Get Trace Context")
   @Alias("get-trace-context")
   @Deprecated(message = "Use Get Current Trace Context instead. When OTEL_TRACE_CONTEXT does not pre-exist, there is no way for users to get current transaction id.", since = "2.3.0", toRemoveIn = "3.0.0")
-  public Map<String, String> getTraceContext(@Connection Supplier<OpenTelemetryConnection> openTelemetryConnection,
+  public Map<String, String> getTraceContext(@Config OpenTelemetryExtensionConfiguration config,
       @DisplayName("Trace Transaction Id") @Optional(defaultValue = "#[vars.OTEL_TRACE_CONTEXT.TRACE_TRANSACTION_ID]") ParameterResolver<String> traceTransactionId,
       CorrelationInfo correlationInfo) {
     LOGGER.warn("get-trace-context has been deprecated. Use get-current-trace-context instead");
-    return openTelemetryConnection.get().getTraceContext(traceTransactionId.resolve());
+    return config.getOpenTelemetryConnection().getTraceContext(traceTransactionId.resolve());
   }
 
   /**
    * Get the trace context for current trace transaction.
    *
-   * @param openTelemetryConnection
-   *            {@link OpenTelemetryConnection} Instance
+   * @param config
+   *            {@link OpenTelemetryExtensionConfiguration} Instance
    * @param correlationInfo
    *            {@link CorrelationInfo} (injected by runtime) to extract the
    *            current event id
@@ -56,22 +57,25 @@ public class OpenTelemetryOperations {
   @Alias("get-current-trace-context")
   @Summary("Gets the current trace context")
   public Map<String, String> getCurrentTraceContext(
-      @Connection Supplier<OpenTelemetryConnection> openTelemetryConnection,
-      CorrelationInfo correlationInfo) {
+      @Config OpenTelemetryExtensionConfiguration config,
+      CorrelationInfo correlationInfo, ComponentLocation location) {
     String eventTransactionId = OpenTelemetryUtil.getEventTransactionId(correlationInfo.getEventId());
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Getting current context for event Id: {}, correlationId: {}, trace transactionId: {}",
-          correlationInfo.getEventId(), correlationInfo.getCorrelationId(), eventTransactionId);
+      LOGGER.debug(
+          "Getting current context for event Id: {}, correlationId: {}, trace transactionId: {} at location {} in container {}",
+          correlationInfo.getEventId(), correlationInfo.getCorrelationId(), eventTransactionId,
+          location.getLocation(), location.getRootContainerName());
     }
-    return openTelemetryConnection.get().getTraceContext(eventTransactionId);
+    return config.getOpenTelemetryConnection().getTraceContext(eventTransactionId, ComponentEventContext
+        .contextScopedLocationFor(correlationInfo.getEventId(), location.getRootContainerName()));
   }
 
   /**
    * Deprecated: Use addTransactionTags instead. When OTEL_TRACE_CONTEXT does not
    * pre-exist,there is no way for users to get current transaction id.
    *
-   * @param openTelemetryConnection
-   *            {@link OpenTelemetryConnection} provided by the SDK
+   * @param config
+   *            {@link OpenTelemetryExtensionConfiguration} provided by the SDK
    * @param tags
    *            {@link Map} of {@link String} Keys and {@link String} Values
    *            containing the tags. Behavior of null values in the map is
@@ -81,12 +85,12 @@ public class OpenTelemetryOperations {
    */
   @DisplayName("Add Custom Tags")
   @Deprecated(message = "Use addTransactionTags instead. When OTEL_TRACE_CONTEXT does not pre-exist, there is no way for users to get current transaction id.", since = "2.3.0", toRemoveIn = "3.0.0")
-  public void addCustomTags(@Connection Supplier<OpenTelemetryConnection> openTelemetryConnection,
+  public void addCustomTags(@Config OpenTelemetryExtensionConfiguration config,
       @DisplayName("Trace Transaction Id") @Optional(defaultValue = "#[vars.OTEL_TRACE_CONTEXT.TRACE_TRANSACTION_ID]") ParameterResolver<String> traceTransactionId,
       Map<String, String> tags,
       CorrelationInfo correlationInfo) {
     LOGGER.warn("add-custom-tags has been deprecated. Use add-transaction-tags instead.");
-    openTelemetryConnection.get().getTransactionStore().addTransactionTags(traceTransactionId.resolve(),
+    config.getOpenTelemetryConnection().getTransactionStore().addTransactionTags(traceTransactionId.resolve(),
         "custom",
         tags);
   }
@@ -99,8 +103,8 @@ public class OpenTelemetryOperations {
    * If the transaction's root span previously contained a mapping for the key,
    * the old value is replaced by the new value.
    *
-   * @param openTelemetryConnection
-   *            {@link OpenTelemetryConnection} provided by the SDK
+   * @param config
+   *            {@link OpenTelemetryExtensionConfiguration} provided by the SDK
    * @param tags
    *            {@link Map} of {@link String} Keys and {@link String} Values
    *            containing the tags. Behavior of null values in the map is
@@ -109,7 +113,7 @@ public class OpenTelemetryOperations {
    *            {@link CorrelationInfo} from the runtime
    */
   @DisplayName("Add Transaction Tags")
-  public void addTransactionTags(@Connection Supplier<OpenTelemetryConnection> openTelemetryConnection,
+  public void addTransactionTags(@Config OpenTelemetryExtensionConfiguration config,
       Map<String, String> tags,
       CorrelationInfo correlationInfo) {
     String eventTransactionId = OpenTelemetryUtil.getEventTransactionId(correlationInfo.getEventId());
@@ -117,7 +121,7 @@ public class OpenTelemetryOperations {
       LOGGER.debug("Add Transaction Tags for event Id: {}, correlationId: {}, trace transactionId: {}",
           correlationInfo.getEventId(), correlationInfo.getCorrelationId(), eventTransactionId);
     }
-    openTelemetryConnection.get().getTransactionStore().addTransactionTags(eventTransactionId,
+    config.getOpenTelemetryConnection().getTransactionStore().addTransactionTags(eventTransactionId,
         "custom",
         tags);
   }

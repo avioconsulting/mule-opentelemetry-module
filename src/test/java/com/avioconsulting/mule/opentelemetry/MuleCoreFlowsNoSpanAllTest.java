@@ -102,21 +102,4 @@ public class MuleCoreFlowsNoSpanAllTest extends AbstractMuleArtifactTraceTest {
     System.out.println(groupedSpans);
   }
 
-  @NotNull
-  private Map<Object, Set<String>> groupSpanByParent() {
-    // Find the root span
-    DelegatedLoggingSpanTestExporter.Span root = spanQueue.stream()
-        .filter(span -> span.getParentSpanContext().getSpanId().equals("0000000000000000")).findFirst().get();
-
-    // Create a lookup of span id and name
-    Map<String, String> idNameMap = spanQueue.stream().collect(Collectors.toMap(
-        DelegatedLoggingSpanTestExporter.Span::getSpanId, DelegatedLoggingSpanTestExporter.Span::getSpanName));
-
-    Map<Object, Set<String>> groupedSpans = spanQueue.stream()
-        .collect(Collectors.groupingBy(
-            span -> idNameMap.getOrDefault(span.getParentSpanContext().getSpanId(), root.getSpanName()),
-            Collectors.mapping(DelegatedLoggingSpanTestExporter.Span::getSpanName, Collectors.toSet())));
-    return groupedSpans;
-  }
-
 }

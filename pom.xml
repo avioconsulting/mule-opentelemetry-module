@@ -15,6 +15,7 @@
   <description>Mule Extension for generating OpenTelemetry traces from Mule Applications</description>
   <url>https://github.com/avioconsulting/mule-opentelemetry-module</url>
 
+
   <developers>
     <developer>
       <name>Adam DesJardin</name>

@@ -99,7 +99,11 @@ public interface ComponentEventContext {
    * @return String
    */
   default String contextScopedLocation() {
-    return getEventContextId() + "/" + getLocation();
+    return contextScopedLocationFor(getEventContextId(), getLocation());
+  }
+
+  static String contextScopedLocationFor(String eventContextId, String location) {
+    return eventContextId + "/" + location;
   }
 
 }

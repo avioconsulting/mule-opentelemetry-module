@@ -13,6 +13,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.awaitility.Awaitility;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -28,11 +29,14 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter.spanQueue;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -88,6 +92,22 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
     System.setProperty(
         "otel.exporter.otlp.traces.endpoint", "http://localhost:55681/v1/traces");
     System.setProperty("otel.exporter.otlp.protocol", "http/protobuf");
+  }
+
+  @NotNull
+  protected Map<Object, Set<String>> groupSpanByParent() {
+    // Find the root span
+    DelegatedLoggingSpanTestExporter.Span root = spanQueue.stream()
+        .filter(span -> span.getParentSpanContext().getSpanId().equals("0000000000000000")).findFirst().get();
+
+    // Create a lookup of span id and name
+    Map<String, String> idNameMap = spanQueue.stream().collect(Collectors.toMap(
+        DelegatedLoggingSpanTestExporter.Span::getSpanId, DelegatedLoggingSpanTestExporter.Span::getSpanName));
+
+    return spanQueue.stream()
+        .collect(Collectors.groupingBy(
+            span -> idNameMap.getOrDefault(span.getParentSpanContext().getSpanId(), root.getSpanName()),
+            Collectors.mapping(DelegatedLoggingSpanTestExporter.Span::getSpanName, Collectors.toSet())));
   }
 
   /**
