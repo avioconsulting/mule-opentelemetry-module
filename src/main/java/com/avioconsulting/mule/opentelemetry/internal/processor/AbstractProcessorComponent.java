@@ -171,18 +171,18 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
         notification.getEvent().getContext().getOriginatingLocation().getLocation()).build());
   }
 
-  protected enum ContextMapGetter implements TextMapGetter<Map<String, String>> {
+  protected enum ContextMapGetter implements TextMapGetter<Map<String, ? super String>> {
     INSTANCE;
 
     @Override
-    public Iterable<String> keys(Map<String, String> map) {
+    public Iterable<String> keys(Map<String, ? super String> map) {
       return map.keySet();
     }
 
     @Nullable
     @Override
-    public String get(@Nullable Map<String, String> map, String s) {
-      return map == null ? null : map.get(s);
+    public String get(@Nullable Map<String, ? super String> map, String s) {
+      return (map == null || map.get(s) == null) ? null : map.get(s).toString();
     }
   }
 }

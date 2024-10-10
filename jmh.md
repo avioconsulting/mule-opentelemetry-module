@@ -8,7 +8,7 @@ JMH Annotations needs to be generated for running JMH tests. This generation is 
 
 JMH Tests do not have any assertions, these were used to manually run and see the performance.
 
-## Previous results 
+## Previous results
 
 Benchmark                                               Mode  Cnt       Score      Error   Units
 InMemoryTransactionStoreTest.getTraceContext           thrpt    6   26907.709 ± 2006.064  ops/ms

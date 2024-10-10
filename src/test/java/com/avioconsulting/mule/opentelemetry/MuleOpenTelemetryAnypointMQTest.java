@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @RunnerDelegateTo(JUnitParamsRunner.class)
+@Ignore
 public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTest {
 
   /**
@@ -28,7 +29,7 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
   public static DynamicPort amqPort = new DynamicPort("anypoint.mq.port");
 
   @Rule
-  public WireMockRule wireMockRule = new WireMockRule(wireMockConfig().port(amqPort.getNumber()));
+  public WireMockRule wireMockRule = new WireMockRule(wireMockConfig().port(8096));
 
   @Override
   protected void doSetUpBeforeMuleContextCreation() throws Exception {

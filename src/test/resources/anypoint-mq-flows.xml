@@ -10,7 +10,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	<import file="global-common.xml"/>
 
 	<anypoint-mq:config name="Anypoint_MQ_Config" doc:name="Anypoint MQ Config" doc:id="a047a18c-70b4-48ce-9239-204fdcab95f2" >
-		<anypoint-mq:connection clientId="2327057f85ab4340b2f27c7b1b20cb07" clientSecret="c5560F1a99D842a91234567894cf2DA7" url="http://localhost:${anypoint.mq.port}/api/v1" />
+		<anypoint-mq:connection clientId="2327057f85ab4340b2f27c7b1b20cb07" clientSecret="c5560F1a99D842a91234567894cf2DA7" url="http://localhost:8096/api/v1" />
 	</anypoint-mq:config>
 	<flow name="anypoint-mq-flowsFlow1" doc:id="8ac5b3aa-e00d-44c5-9114-6e8b1a593e25" >
 		<http:listener doc:name="Listener" doc:id="af2c890c-0866-4893-84ef-8fe91914ecf7" config-ref="HTTP_Listener_config" path="/test/amq/publish"/>

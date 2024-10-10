@@ -58,8 +58,109 @@
     "scenarioName" : "scenario-1-api-v1-authorize",
     "requiredScenarioState" : "Started",
     "newScenarioState" : "scenario-1-api-v1-authorize-2"
+  },{
+    "id" : "61d29761-7621-476e-9dc9-13e50cf16442",
+    "name" : "api_v1_serviceregistry",
+    "request" : {
+      "url" : "/api/v1/serviceRegistry",
+      "method" : "GET"
+    },
+    "response" : {
+      "status" : 200,
+      "body" : "{\n  \"authenticationServer\" : {\n    \"url\" : \"http://localhost:8096/accounts\"\n  },\n  \"mqServer\" : {\n    \"primaryFallbackRegionPairs\" : {\n      \"us-east-1\" : \"us-east-2\",\n      \"us-east-2\" : \"us-west-2\",\n      \"us-west-2\" : \"ca-central-1\",\n      \"ca-central-1\" : \"us-east-1\",\n      \"eu-west-1\" : \"eu-west-2\",\n      \"eu-west-2\" : \"eu-west-1\",\n      \"ap-southeast-1\" : \"ap-northeast-1\",\n      \"ap-southeast-2\" : \"ap-southeast-1\",\n      \"ap-northeast-1\" : \"ap-southeast-2\"\n    }\n  }\n}",
+      "headers" : {
+        "access-control-allow-credentials" : "true",
+        "access-control-allow-headers" : "Authorization, Origin, X-Requested-With, Content-Type, Accept",
+        "access-control-allow-methods" : "POST, GET, PUT, OPTIONS, DELETE",
+        "access-control-allow-origin" : "*",
+        "access-control-max-age" : "3600",
+        "content-type" : "application/json",
+        "date" : "Tue, 10 Sep 2024 08:59:28 GMT",
+        "server" : "istio-envoy",
+        "vary" : "Origin",
+        "x-anypnt-trx-id" : "d7c70a27-d53d-403e-80be-7efdb9886e53",
+        "x-envoy-decorator-operation" : "service-msg.anypoint-mq.svc.cluster.local:443/*",
+        "x-envoy-upstream-service-time" : "0",
+        "x-request-id" : "d0c2fcc0-9a70-4cea-8079-497b4842d069"
+      }
+    },
+    "uuid" : "61d29761-7621-476e-9dc9-13e50cf16442",
+    "persistent" : true
+  },{
+    "id" : "90a0d4b1-2a07-4ae9-9058-136122c20700",
+    "name" : "accounts_oauth2_token",
+    "request" : {
+      "url" : "/accounts/oauth2/token",
+      "method" : "POST",
+      "bodyPatterns" : [ {
+        "equalTo" : "client_id=2327057f85ab4340b2f27c7b1b20cb07&client_secret=c5560F1a99D842a91234567894cf2DA7&grant_type=client_credentials",
+        "caseInsensitive" : false
+      } ]
+    },
+    "response" : {
+      "status" : 200,
+      "body" : "{\"access_token\":\"aab0268c-f690-4f5c-9ee8-cc087d205c5b\",\"expires_in\":3445,\"token_type\":\"bearer\"}",
+      "headers" : {
+        "cache-control" : "no-store",
+        "Content-Type" : "application/json",
+        "Date" : "Tue, 10 Sep 2024 09:21:14 GMT",
+        "expires" : "-1",
+        "pragma" : "no-cache",
+        "Server" : "nginx",
+        "Strict-Transport-Security" : "max-age=31536000; includeSubDomains",
+        "vary" : "X-HTTP-Method-Override, Accept-Encoding",
+        "x-anypnt-trx-id" : "4da013f0-4fb3-4d8c-bf9f-6efd6fc93f7d",
+        "x-content-type-options" : "nosniff",
+        "x-dns-prefetch-control" : "off",
+        "x-download-options" : "noopen",
+        "x-frame-options" : [ "SAMEORIGIN", "SAMEORIGIN" ],
+        "x-ratelimit-limit" : "1000",
+        "x-ratelimit-remaining" : "998",
+        "x-ratelimit-reset" : "1725960120",
+        "x-request-id" : "4da013f0-4fb3-4d8c-bf9f-6efd6fc93f7d",
+        "x-xss-protection" : "1; mode=block"
+      }
+    },
+    "uuid" : "90a0d4b1-2a07-4ae9-9058-136122c20700",
+    "persistent" : true,
+    "scenarioName" : "scenario-1-accounts-oauth2-token",
+    "requiredScenarioState" : "scenario-1-accounts-oauth2-token-4"
+  }, {
+    "id" : "64f9abfb-c518-4157-86c6-f6883d8fa12b",
+    "name" : "accounts_api_me",
+    "request" : {
+      "url" : "/accounts/api/me",
+      "method" : "GET"
+    },
+    "response" : {
+      "status" : 200,
+      "body" : "{\n  \"client\": {\n    \"client_id\": \"2327057f85ab4340b2f27c7b1b20cb07\",\n    \"name\": \"observability-demo-client\",\n    \"redirect_uris\": [\n      \"https://anypoint.mulesoft.com/mq\"\n    ],\n    \"grant_types\": [\n      \"client_credentials\",\n      \"authorization_code\"\n    ],\n    \"properties\": {\n      \"environment\": \"c06ef9b7-19c0-4e87-add9-60ed58b20aad\"\n    },\n    \"org_id\": \"f2ea2cb4-c600-4bb5-88e8-e952ff5591ee\",\n    \"client_type\": \"runtime\"\n  }\n}",
+      "headers" : {
+        "cache-control" : "private, max-age=300, must-revalidate",
+        "Content-Type" : "application/json; charset=utf-8",
+        "Date" : "Tue, 10 Sep 2024 09:21:14 GMT",
+        "etag" : "W/\"1b7-xJ/5fhetCuUIrO1XUojRjg+0HFk\"",
+        "Server" : "nginx",
+        "Strict-Transport-Security" : "max-age=31536000; includeSubDomains",
+        "vary" : "Accept-Encoding",
+        "x-anypnt-trx-id" : "550d19ff-9189-475a-8218-4bc889336c30",
+        "x-content-type-options" : "nosniff",
+        "x-dns-prefetch-control" : "off",
+        "x-download-options" : "noopen",
+        "x-frame-options" : [ "SAMEORIGIN", "SAMEORIGIN" ],
+        "x-ratelimit-limit" : "400",
+        "x-ratelimit-remaining" : "399",
+        "x-ratelimit-reset" : "1725960120",
+        "x-request-id" : "550d19ff-9189-475a-8218-4bc889336c30",
+        "x-xss-protection" : "1; mode=block"
+      }
+    },
+    "uuid" : "64f9abfb-c518-4157-86c6-f6883d8fa12b",
+    "persistent" : true,
+    "scenarioName" : "scenario-2-accounts-api-me",
+    "requiredScenarioState" : "scenario-2-accounts-api-me-2"
   } ],
   "meta" : {
-    "total" : 5
+    "total" : 8
   }
 }
