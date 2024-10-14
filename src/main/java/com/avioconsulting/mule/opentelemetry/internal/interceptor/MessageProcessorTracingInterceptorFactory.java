@@ -4,6 +4,7 @@ import com.avioconsulting.mule.opentelemetry.api.config.MuleComponent;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleCoreProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
+import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
@@ -34,8 +35,14 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessorTracingInterceptorFactory.class);
   public static final String MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME = "mule.otel.interceptor.processor.enable";
-  private final boolean interceptorEnabled = Boolean
-      .parseBoolean(System.getProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME, "true"));
+  private final boolean interceptorEnabled = PropertiesUtil
+      .getBoolean(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME, true);
+
+  public static final String MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY = "mule.otel.interceptor.first.processor.only";
+  // Negating the property value since usage is negated
+  private final boolean NOT_FIRST_PROCESSOR_ONLY_MODE = !PropertiesUtil
+      .getBoolean(MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY, false);
+
   /**
    * {@link MuleNotificationProcessor} instance for getting opentelemetry
    * connection supplier by processor.
@@ -122,14 +129,15 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
       // included processor/namespaces OR
       // any processor/namespaces that are not excluded
       ComponentIdentifier identifier = location.getComponentIdentifier().getIdentifier();
-      boolean interceptConfigured = interceptInclusions.stream()
+      boolean interceptConfigured = NOT_FIRST_PROCESSOR_ONLY_MODE && (interceptInclusions.stream()
           .anyMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
               & (mc.getName().equalsIgnoreCase(identifier.getName())
                   || "*".equalsIgnoreCase(mc.getName())))
           || interceptExclusions.stream()
               .noneMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
                   & (mc.getName().equalsIgnoreCase(identifier.getName())
-                      || "*".equalsIgnoreCase(mc.getName())));
+                      || "*".equalsIgnoreCase(mc.getName()))));
+
       intercept = !muleNotificationProcessor.getOpenTelemetryConnection().isTurnOffTracing()
           && (isFirstProcessor(location)
               || interceptConfigured);
@@ -147,8 +155,9 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
         }
       }
     }
-    if (LOGGER.isTraceEnabled()) {
-      LOGGER.trace("Will Intercept '{}'?: {}", location, intercept);
+    if (LOGGER.isTraceEnabled() && intercept) {
+      LOGGER.trace("Will Intercept '{}::{}'?: {}", location.getRootContainerName(), location.getLocation(),
+          intercept);
     }
     return intercept;
   }
