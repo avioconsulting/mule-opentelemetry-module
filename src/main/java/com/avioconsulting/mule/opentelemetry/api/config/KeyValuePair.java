@@ -14,20 +14,30 @@ public abstract class KeyValuePair {
   @Parameter
   private String value;
 
-  public String getKey() {
-    return key;
-  }
-
-  public String getValue() {
-    return value;
-  }
-
   public KeyValuePair() {
   }
 
   public KeyValuePair(String key, String value) {
     this.key = key;
     this.value = value;
+  }
+
+  public String getKey() {
+    return key;
+  }
+
+  public KeyValuePair setKey(String key) {
+    this.key = key;
+    return this;
+  }
+
+  public String getValue() {
+    return value;
+  }
+
+  public KeyValuePair setValue(String value) {
+    this.value = value;
+    return this;
   }
 
   @Override
