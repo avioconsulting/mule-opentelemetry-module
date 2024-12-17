@@ -23,7 +23,6 @@ import io.opentelemetry.context.propagation.TextMapSetter;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.connection.ConnectionProvider;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.core.api.el.ExpressionManager;
 import org.slf4j.Logger;
@@ -99,6 +98,10 @@ public class OpenTelemetryConnection implements TraceContextHandler {
       if (openTelemetryConfigWrapper.getSpanProcessorConfiguration() != null) {
         configMap.putAll(openTelemetryConfigWrapper.getSpanProcessorConfiguration().getConfigMap());
       }
+      // Disable the resource providers that are handled by
+      // MuleAppHostResourceProvider
+      configMap.put("otel.java.disabled.resource.providers",
+          "io.opentelemetry.instrumentation.resources.HostResourceProvider,io.opentelemetry.instrumentation.resources.ContainerResourceProvider");
       builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
       logger.debug("Creating OpenTelemetryConnection with properties: [" + configMap + "]");
       turnOffTracing = openTelemetryConfigWrapper.isTurnOffTracing();

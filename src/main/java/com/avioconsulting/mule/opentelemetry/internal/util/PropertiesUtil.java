@@ -25,11 +25,18 @@ public class PropertiesUtil {
   }
 
   public static String getProperty(String name) {
+    return getProperty(name, null);
+  }
+
+  public static String getProperty(String name, String defaultValue) {
     if (name == null)
       return null;
     String value = System.getProperty(name);
     if (value == null) {
       value = System.getenv(toEnvName(name));
+    }
+    if (value == null) {
+      value = defaultValue;
     }
     return value;
   }
@@ -44,6 +51,14 @@ public class PropertiesUtil {
   private static String toEnvName(String propertyName) {
     return propertyName.toUpperCase(Locale.ROOT).replaceAll("\\.", "_")
         .replaceAll("-", "_");
+  }
+
+  public static boolean isCloudHubV1() {
+    return getProperty("fullDomain") != null;
+  }
+
+  public static boolean isCloudHubV2() {
+    return getProperty("NODE_NAME") != null;
   }
 
   public static boolean isUseAPIKitSpanNames() {

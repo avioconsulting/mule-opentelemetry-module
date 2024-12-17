@@ -1,5 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.util;
 
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.AttributesBuilder;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.event.EventContext;
 import org.slf4j.Logger;
@@ -64,6 +66,26 @@ public class OpenTelemetryUtil {
     // For child contexts, the primary id is appended with "_{timeInMillis}".
     // We remove time part to get a unique id across the event processing.
     return eventId.split("_")[0];
+  }
+
+  /**
+   * If given system property exists, this will set its value as an attribute to
+   * provided {@link AttributesBuilder}.
+   *
+   * @param property
+   *            Name of the system property to search for.
+   * @param builder
+   *            {@link AttributesBuilder} instance to add attribute
+   * @param attributeKey
+   *            {@link AttributeKey} to use for setting attribute in given
+   *            {@link AttributesBuilder}
+   */
+  public static void addAttribute(String property, AttributesBuilder builder,
+      AttributeKey<String> attributeKey) {
+    String value = PropertiesUtil.getProperty(property);
+    if (value != null) {
+      builder.put(attributeKey, value);
+    }
   }
 
 }

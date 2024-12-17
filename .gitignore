@@ -61,6 +61,6 @@ Thumbs.db
 bin
 .sdkmanrc
 mvn-temp
-
+docs/
 # Ignore flattened pom
 .flattened-pom.xml
