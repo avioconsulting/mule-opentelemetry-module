@@ -10,6 +10,7 @@ import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryCo
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.context.Context;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
@@ -25,10 +26,13 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
@@ -47,6 +51,9 @@ public class MuleNotificationProcessor {
 
   private static final Logger logger = LoggerFactory.getLogger(MuleNotificationProcessor.class);
   public static final String MULE_OTEL_SPAN_PROCESSORS_ENABLE_PROPERTY_NAME = "mule.otel.span.processors.enable";
+  public static final List<String> CONTEXT_EXPRESSIONS = Arrays.asList("#[attributes.headers]",
+      "#[attributes.properties]",
+      "#[attributes.properties.userProperties]", "#[payload.message.messageAttributes]");
 
   private Supplier<OpenTelemetryConnection> connectionSupplier;
   private boolean spanAllProcessors;
@@ -58,6 +65,11 @@ public class MuleNotificationProcessor {
   private final List<String> meteredComponentLocations = new ArrayList<>();
   private ProcessorComponentService processorComponentService;
   private final ProcessorComponent flowProcessorComponent;
+
+  /**
+   * Cache the context expressions for flows to avoid trial-and-error every time
+   */
+  private final ConcurrentHashMap<String, String> flowContextExpressions = new ConcurrentHashMap<>();
 
   /**
    * This {@link GenericProcessorComponent} will be used for processors that do
@@ -295,6 +307,7 @@ public class MuleNotificationProcessor {
           .getSourceStartTraceComponent(notification, openTelemetryConnection)
           .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()))
           .withEventContextId(notification.getEvent().getContext().getId());
+      traceComponent = attemptAddingTraceContextIfMissing(notification, traceComponent);
       openTelemetryConnection.startTransaction(traceComponent);
     } catch (Exception ex) {
       logger.error(
@@ -304,6 +317,51 @@ public class MuleNotificationProcessor {
           ex);
       throw ex;
     }
+  }
+
+  private TraceComponent attemptAddingTraceContextIfMissing(PipelineMessageNotification notification,
+      TraceComponent traceComponent) {
+    if (traceComponent.getContext() != null) {
+      return traceComponent;
+    }
+    if (flowContextExpressions.containsKey(notification.getResourceIdentifier())) {
+      String expression = flowContextExpressions.get(notification.getResourceIdentifier());
+      logger.info("Getting context for {} with {}", notification.getResourceIdentifier(), expression);
+      Context context = getContext(expression, notification);
+      traceComponent = traceComponent.withContext(context);
+    } else {
+      for (String expression : CONTEXT_EXPRESSIONS) {
+        if (traceComponent.getContext() == null) {
+          try {
+            Context context = getContext(expression, notification);
+            if (context != null) {
+              traceComponent = traceComponent.withContext(context);
+              logger.info("Got context for {} with {}, adding to cache",
+                  notification.getResourceIdentifier(), expression);
+              flowContextExpressions.put(notification.getResourceIdentifier(), expression);
+              break;
+            }
+          } catch (Exception ignored) {
+          }
+        }
+      }
+    }
+    return traceComponent;
+  }
+
+  private Context getContext(String expression, EnrichedServerNotification notification) {
+    try {
+      TypedValue<?> contextCarrier = openTelemetryConnection
+          .getExpressionManager().evaluate(
+              expression,
+              notification.getEvent().asBindingContext());
+      if (contextCarrier.getValue() != null && contextCarrier.getValue() instanceof Map) {
+        return openTelemetryConnection.getTraceContext(((Map) contextCarrier.getValue()),
+            AbstractProcessorComponent.ContextMapGetter.INSTANCE);
+      }
+    } catch (Exception ignored) {
+    }
+    return null;
   }
 
   public void handleFlowEndEvent(PipelineMessageNotification notification) {
