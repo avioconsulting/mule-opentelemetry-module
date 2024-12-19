@@ -28,6 +28,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -356,7 +357,16 @@ public class MuleNotificationProcessor {
               expression,
               notification.getEvent().asBindingContext());
       if (contextCarrier.getValue() != null && contextCarrier.getValue() instanceof Map) {
-        return openTelemetryConnection.getTraceContext(((Map) contextCarrier.getValue()),
+        Map<String, Object> resolved = new HashMap<>(((Map) contextCarrier.getValue()).size());
+        ((Map) contextCarrier.getValue()).forEach((key, value) -> {
+          if (value instanceof byte[]) {
+            // Some modules like Kafka serialize values in byte[]
+            resolved.put(key.toString(), new String((byte[]) value));
+          } else {
+            resolved.put(key.toString(), value.toString());
+          }
+        });
+        return openTelemetryConnection.getTraceContext(resolved,
             AbstractProcessorComponent.ContextMapGetter.INSTANCE);
       }
     } catch (Exception ignored) {

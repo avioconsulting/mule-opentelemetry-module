@@ -101,4 +101,53 @@ public class MuleNotificationProcessorContextExtractorTest extends AbstractProce
         .containsExactlyInAnyOrder("436b61977bfcd902672d651c1b84e2f3", "624994541baf73d4");
   }
 
+  @Test
+  public void handleFlowStartEvent_generic_context_extraction_bytearray() throws InitialisationException {
+    Event event = mock(Event.class);
+    when(event.getCorrelationId()).thenReturn("testCorrelationId");
+    EventContext eventContext = mock(EventContext.class);
+    when(eventContext.getId()).thenReturn("testEventContextId");
+    when(event.getContext()).thenReturn(eventContext);
+    BindingContext bindingContext = mock(BindingContext.class);
+    when(event.asBindingContext()).thenReturn(bindingContext);
+
+    Map<String, Object> contextHolderMap = new HashMap<>();
+    contextHolderMap.put("traceparent", "00-436b61977bfcd902672d651c1b84e2f3-624994541baf73d4-01".getBytes());
+
+    Map<String, Object> placeholder = new HashMap<>();
+    Message message = getMessage(placeholder);
+    when(event.getMessage()).thenReturn(message);
+    String flowName = "mule-sample-flow";
+    ComponentLocation componentLocation = getFlowLocation(flowName);
+    Component component = getComponent(componentLocation, Collections.emptyMap(), "mule", "flow");
+    Exception exception = mock(Exception.class);
+
+    EnrichedNotificationInfo info = EnrichedNotificationInfo.createInfo(event, exception, component);
+    PipelineMessageNotification pipelineMessageNotification = new PipelineMessageNotification(info, flowName,
+        PipelineMessageNotification.PROCESS_START);
+
+    OpenTelemetryConnection connection = getOpenTelemetryConnection();
+    ExpressionManager expressionManager = mock(ExpressionManager.class);
+    TypedValue<?> tTypedValue = TypedValue.of(contextHolderMap);
+    doReturn(tTypedValue).when(expressionManager).evaluate(eq(expressionText), any(BindingContext.class));
+    doReturn(expressionManager).when(connection).getExpressionManager();
+
+    ArgumentCaptor<TraceComponent> captor = ArgumentCaptor.forClass(TraceComponent.class);
+    doNothing().when(connection).startTransaction(captor.capture());
+
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+    notificationProcessor.init(connection, new TraceLevelConfiguration(false, Collections.emptyList()));
+    notificationProcessor.handleFlowStartEvent(pipelineMessageNotification);
+
+    TraceComponent value = captor.getValue();
+    assertThat(value).isNotNull();
+
+    Span span = Span.fromContext(value.getContext());
+    assertThat(span.getSpanContext())
+        .isNotNull()
+        .extracting("traceId", "spanId")
+        .as("Context extracted from " + expressionText)
+        .containsExactlyInAnyOrder("436b61977bfcd902672d651c1b84e2f3", "624994541baf73d4");
+  }
+
 }
