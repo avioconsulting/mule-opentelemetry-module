@@ -495,6 +495,7 @@ Remote_Request_configuration.otel.peer.service=my_remote_api
 This module supports context propagation in
 https://www.w3.org/TR/trace-context/#trace-context-http-headers-format[W3C Trace Context] and https://www.w3.org/TR/baggage/#baggage-http-header-format[W3C Baggage Context] formats.
 
+[#_otel_context_extraction]
 ===== Context Extraction
 Extension supports extracting Open Telemetry Trace context extraction for certain source components. For these components if the Context information is received in appropriate place, the module will establish the parent-child relation for the traces.
 
@@ -502,6 +503,18 @@ Source Components supporting context extraction:
 
 - *HTTP Listener*: Context information, if exists, is extracted from request headers
 - *Anypoint MQ Subscription*: Context information, if exists, is extracted from Anypoint MQ Message properties
+
+For any other source components, the module looks for the Context information in following locations of the event and in the order mentioned below -
+
+- `attributes.headers`
+ * Example components are Kafka, AMQP, WebSockets, etc.
+- `attributes.properties`
+ * For example, Anypoint MQ Module.
+- `attributes.properties.userProperties`
+ * Example components are JMS, IBM MQ etc.
+- `payload.message.messageAttributes`
+ * For example, Amazon SQS Module
+
 
 NOTE: OpenTelemetry Trace Context is extracted/injected using configured Propagators. The entries in the context may vary depending on the propagators used and validations it applies. All examples here are with *W3C Trace Context*.
 
@@ -662,6 +675,33 @@ When using Anypoint MQ, the `publish` operation can add `vars.OTEL_TRACE_CONTEXT
         <anypoint-mq:properties ><![CDATA[#[vars.OTEL_TRACE_CONTEXT]]]></anypoint-mq:properties>
     </anypoint-mq:publish>
 ----
+
+====== Context Injection to other modules
+
+The module supports extracting the Context from specific locations. Check link:module-config.adoc#_otel_context_extraction[Context Extraction] section for list of supported locations.
+
+Following example shows use of JMS User properties for sending the context information when publishing a message to the queue -
+
+[source,xml]
+----
+    <jms:publish doc:name="Publish" doc:id="ff1a9b50-b399-41b7-a43e-0b3b7403c93c" config-ref="JMS_Config" destination="mule.test">
+        <jms:message >
+            <jms:body ><![CDATA[#[output application/json
+---
+{
+    id: uuid(),
+    name: "Random"
+}]]]></jms:body>
+            <jms:properties ><![CDATA[#[output application/java
+---
+{
+    traceparent: vars.OTEL_TRACE_CONTEXT.traceparent as String default '',
+    tracestate: vars.OTEL_TRACE_CONTEXT.tracestate as String default '',
+}]]]></jms:properties>
+        </jms:message>
+    </jms:publish>
+----
+NOTE: If the consumer listener Mule App is also instrumented using this module, the context will be extracted appropriately to create a distributed trace.
 
 ==== Turn Off Tracing
 
