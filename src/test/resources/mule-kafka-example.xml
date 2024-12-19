@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:avio-logger="http://www.mulesoft.org/schema/mule/avio-logger" xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
+http://www.mulesoft.org/schema/mule/avio-logger http://www.mulesoft.org/schema/mule/avio-logger/current/mule-avio-logger.xsd">
+
+	<import file="global-common.xml"/>
+
+	<kafka:consumer-config name="Apache_Kafka_Consumer_configuration" doc:name="Apache Kafka Consumer configuration" doc:id="bd8d4c6d-cc4b-4756-9ad0-2c5214319012" >
+		<kafka:consumer-plaintext-connection >
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="localhost:6001" />
+			</kafka:bootstrap-servers>
+			<kafka:topic-patterns >
+				<kafka:topic-pattern value="mule-topic" />
+			</kafka:topic-patterns>
+		</kafka:consumer-plaintext-connection>
+	</kafka:consumer-config>
+	<kafka:producer-config name="Apache_Kafka_Producer_configuration" doc:name="Apache Kafka Producer configuration" doc:id="cd7a0078-fc7c-430e-b5b7-8e1f3e0b70de" >
+		<kafka:producer-plaintext-connection >
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="localhost:6001" />
+			</kafka:bootstrap-servers>
+		</kafka:producer-plaintext-connection>
+	</kafka:producer-config>
+	<avio-logger:config name="AVIO_Logger_Config" doc:name="AVIO Logger Config" doc:id="3691d56d-3da4-4e55-b9e1-31d31f89d2a1" applicationName="mule-kafka-example" applicationVersion="1.0.0" environment="local" formatAsJson="true" />
+	<flow name="mule-kafka-listener-flow" doc:id="551b414c-ee6e-4136-b28b-deaad08f340f" >
+		<kafka:message-listener doc:name="Message listener" doc:id="25633a92-4cd0-4f1e-991e-5c96c16fe82b" config-ref="Apache_Kafka_Consumer_configuration"/>
+		<avio-logger:log doc:name="Log" doc:id="0e856713-eed4-4004-9c44-6f31d79a82b9" config-ref="AVIO_Logger_Config" message="#['Received Message on Kafka']" payload="#[write(attributes, 'application/json')]"/>
+	</flow>
+	<flow name="mule-kafka-publisher-flow" doc:id="4f3d2acc-5f2b-41c5-b208-ba5cce0f4ab6" >
+
+		<avio-logger:log doc:name="Log" doc:id="2b647ffd-fce0-4ac6-9aff-d30ead7f7d0f" config-ref="AVIO_Logger_Config" message="#['Publishing Message to Kafka']"/>
+		<kafka:publish doc:name="Publish" doc:id="cf8a9376-200a-403a-94f8-5a490c69cfd7" config-ref="Apache_Kafka_Producer_configuration" topic="#['mule-topic']">
+			<kafka:message ><![CDATA[#[output application/json
+---
+{
+	id: uuid()
+}]]]></kafka:message>
+			<kafka:headers ><![CDATA[#[output application/java
+---
+{
+    traceparent: vars.OTEL_TRACE_CONTEXT.traceparent as String default '',
+    tracestate: vars.OTEL_TRACE_CONTEXT.tracestate as String default '',
+}]]]></kafka:headers>
+		</kafka:publish>
+		<avio-logger:log doc:name="Log" doc:id="26cb1a01-b4c4-4017-9f1e-47ab912df9d7" config-ref="AVIO_Logger_Config" message="#['Published Message to Kafka']" />
+	</flow>
+</mule>

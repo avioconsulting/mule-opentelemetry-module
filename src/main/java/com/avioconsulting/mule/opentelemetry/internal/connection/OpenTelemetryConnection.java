@@ -70,7 +70,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   private static final String INSTRUMENTATION_NAME = "mule-opentelemetry-module-DEV";
   private final TransactionStore transactionStore;
   private OpenTelemetryConnection openTelemetryConnection;
-  private final OpenTelemetry openTelemetry;
+  private OpenTelemetry openTelemetry;
   private final Tracer tracer;
   private boolean turnOffTracing = false;
   private boolean turnOffMetrics = false;
@@ -127,6 +127,11 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     transactionStore = InMemoryTransactionStore.getInstance();
     PropertiesUtil.init();
     openTelemetryConnection = this;
+  }
+
+  // For testing purpose only
+  public void withOpenTelemetry(OpenTelemetry openTelemetry) {
+    this.openTelemetry = openTelemetry;
   }
 
   private void installOpenTelemetryLogger() {
