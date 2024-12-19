@@ -1,11 +1,11 @@
 package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk;
 
-import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.sdk.resources.Resource;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
+import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.addAttribute;
 
 /**
  * Creates an OpenTelemetry {@link Resource} that adds Mule Runtime specific
@@ -44,26 +44,6 @@ public class MuleResource {
     addAttribute("application.aws.region", builder, MULE_ENVIRONMENT_AWS_REGION);
     Attributes build = builder.build();
     return Resource.create(build);
-  }
-
-  /**
-   * If given system property exists, this will set its value as an attribute to
-   * provided {@link AttributesBuilder}.
-   * 
-   * @param sysProperty
-   *            Name of the system property to search for.
-   * @param builder
-   *            {@link AttributesBuilder} instance to add attribute
-   * @param attributeKey
-   *            {@link AttributeKey} to use for setting attribute in given
-   *            {@link AttributesBuilder}
-   */
-  private static void addAttribute(String sysProperty, AttributesBuilder builder,
-      AttributeKey<String> attributeKey) {
-    String value = System.getProperty(sysProperty);
-    if (value != null) {
-      builder.put(attributeKey, value);
-    }
   }
 
   private MuleResource() {

@@ -92,6 +92,108 @@ Extension is aware of https://help.mulesoft.com/s/article/CloudHub-Reserved-Prop
 ----
 NOTE: CloudHub does not define any property for organization id. `mule.organization.id` refers to value of a system property  `csOrganization.id` defined by CloudHub.
 
+==== Mule Application Host Resource Attributes
+This extension (since 2.6.0) applies a custom resource attribute strategy for host and container related attributes. The values differ based on whether the applications are deployed to CloudHub V1 or V2 or other.
+
+Following table summarizes the attributes value strategy -
+
+.Mule Application Host and Container Resource Attributes
+|===
+|Deployment Target |Attribute Name |Value Strategy |Description| Example
+
+|CloudHub v1
+|host.name
+|Anypoint Environment Id
+|Uses environment id in which application is deployed
+|522689ad-f2c6-481b-9165-6af716cf0312
+
+|CloudHub v1
+|host.ip
+|Public IP of the worker
+|Uses CloudHub worker's public IP Address
+|30.40.50.60
+
+|CloudHub v1
+|container.id
+|Application domain + worker number
+|Uses the applications CloudHub domain name suffixed with the worker number
+|org-employee-xapi-dev-0, org-employee-xapi-dev-1
+
+|CloudHub v1
+|container.name
+|Application domain + worker number
+|Uses the applications CloudHub domain name suffixed with the worker number
+|org-employee-xapi-dev-0, org-employee-xapi-dev-1
+
+|CloudHub v2
+|host.name
+|RTF Node Name
+|Being a containerized environment, underlying RTF's Node name is used
+|ip-10-20-30-40-us-west-2-compute
+
+|CloudHub v2
+|host.ip
+|Not available
+|Not available
+|Not available
+
+
+|CloudHub v2
+|container.id
+|Actual container id of the application
+|Being a containerized environment, container id of the application is used
+|84e29fd130cbf32e5cb86ca75cbc6c847307ae02fa49c4b230d82490cd298602
+
+|CloudHub v2
+|container.name
+|Application replica name
+|Uses the individual replica name
+|org-employee-xapi-dev-9c5df98ff-x5xww, org-employee-xapi-dev-9c5df98ff-pdccr
+
+|===
+
+NOTE: To get telemetry data of an individual workers/replica, use `service.name` and `container.name` attributes to filter data.
+
+==== Cloud Resource Attributes
+The extension captures (since 2.6.0) following cloud attributes for CloudHub environment-
+
+
+.Mule CloudHub Resource Attributes
+|===
+|Deployment Target |Attribute Name |Value Strategy |Description| Example
+
+|Any
+|cloud.provider
+|mulesoft
+|Static value
+|`mulesoft`
+
+|CloudHub v1
+|cloud.region
+|Application AWS Region
+|AWS region as available from CloudHub reserved properties
+|us-west-2
+
+|CloudHub v1
+|cloud.platform
+|mulesoft_cloudhub_v1
+|Static value
+|`mulesoft_cloudhub_v1`
+
+|CloudHub v2
+|cloud.platform
+|mulesoft_cloudhub_v2
+|Static value
+|`mulesoft_cloudhub_v2`
+
+|CloudHub v1/v2
+|cloud.account.id
+|Anypoint Organization Id
+|Uses organization id in which application is deployed
+|`81517987-fd9f-4035-b579-c2caa87b36aa`
+
+|===
+
 === Exporters
 
 Extension supports following exporter configurations -

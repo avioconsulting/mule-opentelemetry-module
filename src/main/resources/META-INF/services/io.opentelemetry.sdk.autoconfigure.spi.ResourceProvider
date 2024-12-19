@@ -1,1 +1,3 @@
 com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.MuleResourceProvider
+com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.MuleAppHostResourceProvider
+com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.MuleCloudHubResourceProvider
