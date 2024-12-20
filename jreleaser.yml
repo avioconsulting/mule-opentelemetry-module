@@ -32,7 +32,7 @@ release:
     skipTag: false
     milestone:
       close: false
-        changelog:
+    changelog:
       skipMergeCommits: true
       formatted: ALWAYS
       preset: conventional-commits
