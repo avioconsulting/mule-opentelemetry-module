@@ -321,4 +321,22 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
               .containsExactly("/api/remote/invalid", "CLIENT");
         }));
   }
+
+  @Test
+  public void testHTTPSpanNames_withExpression() throws Exception {
+    Throwable throwable = catchThrowable(() -> flowRunner("flow-call-remote-with-expression")
+        .withVariable("resourcePath", "/expression/secrets")
+        .run());
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .hasSize(2)
+        .element(0).as("Span for http:request flow")
+        .extracting("spanName", "spanKind")
+        .containsOnly("/expression/secrets", "CLIENT"));
+    DelegatedLoggingSpanTestExporter.Span client = getSpan("CLIENT", "/expression/secrets");
+    assertThat(client).isNotNull()
+        .extracting("attributes", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+        .containsEntry("http.route", "/expression/secrets");
+
+  }
+
 }
