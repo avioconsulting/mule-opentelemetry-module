@@ -19,6 +19,7 @@ import org.mule.runtime.api.event.EventContext;
 import org.mule.runtime.api.interception.InterceptionAction;
 import org.mule.runtime.api.interception.InterceptionEvent;
 import org.mule.runtime.api.metadata.TypedValue;
+import org.mule.runtime.core.api.el.ExpressionManager;
 
 import java.util.Collections;
 import java.util.Map;
@@ -239,8 +240,11 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
   public void verifyVariableResetOnTraceComponentFound() {
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
     TransactionStore transactionStore = mock(TransactionStore.class);
+    ExpressionManager expressionManager = mock(ExpressionManager.class);
+    when(expressionManager.isExpression(anyString())).thenReturn(false);
     when(connection.getTransactionStore()).thenReturn(transactionStore);
     when(transactionStore.transactionIdFor(any())).thenReturn("random-id");
+    when(connection.getExpressionManager()).thenReturn(expressionManager);
 
     Map<String, String> traceparentMap = Collections.singletonMap("traceparent", "some-value");
     ComponentLocation location = mock(ComponentLocation.class);

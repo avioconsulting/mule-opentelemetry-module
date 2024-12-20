@@ -146,4 +146,7 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 	<sub-flow name="sub-flow-call-remote-target"  >
 		<http:request method="GET" doc:name="Request" config-ref="SELF_HTTP_Request_configuration" path="/test/remote/target"/>
 	</sub-flow>
+	<flow name="flow-call-remote-with-expression"  >
+		<http:request method="GET" doc:name="Request" config-ref="SELF_HTTP_Request_configuration" path="#[vars.resourcePath]"/>
+	</flow>
 </mule>

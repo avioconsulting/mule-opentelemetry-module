@@ -4,7 +4,6 @@ import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
-import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
@@ -24,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.getEventTransactionId;
+import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.resolveExpressions;
 
 /**
  * Interceptor to set tracing context information in flow a variable
@@ -102,6 +102,8 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
         }
         LOGGER.trace("Creating Span in the interceptor for {} at {}",
             location.getComponentIdentifier().getIdentifier(), location.getLocation());
+        resolveExpressions(traceComponent,
+            muleNotificationProcessor.getOpenTelemetryConnection().getExpressionManager(), event);
         muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(traceComponent,
             getLocationParent(location.getLocation()));
         final String transactionId = getEventTransactionId(event);
