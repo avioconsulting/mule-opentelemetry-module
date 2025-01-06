@@ -64,3 +64,6 @@ mvn-temp
 docs/
 # Ignore flattened pom
 .flattened-pom.xml
+
+docs/
+out/

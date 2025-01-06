@@ -1,7 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor.util;
 
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
-import io.opentelemetry.semconv.SemanticAttributes;
+import io.opentelemetry.semconv.HttpAttributes;
 
 import java.util.Locale;
 import java.util.Map;
@@ -19,9 +19,7 @@ public class HttpSpanUtil {
    * @return String HTTP Method name
    */
   public static String method(Map<String, String> tags) {
-    String method = tags
-        .getOrDefault(SemanticAttributes.HTTP_METHOD.getKey(),
-            tags.get(SemanticAttributes.HTTP_REQUEST_METHOD.getKey()));
+    String method = tags.get(HttpAttributes.HTTP_REQUEST_METHOD.getKey());
     Objects.requireNonNull(method, "HTTP Method must not be null");
     return method;
   }
