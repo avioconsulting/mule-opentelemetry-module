@@ -1,14 +1,19 @@
 package com.avioconsulting.mule.opentelemetry.internal.util;
 
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.AttributesBuilder;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.event.EventContext;
+import org.mule.runtime.api.metadata.TypedValue;
+import org.mule.runtime.core.api.el.ExpressionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class OpenTelemetryUtil {
 
@@ -88,4 +93,39 @@ public class OpenTelemetryUtil {
     }
   }
 
+  /**
+   * Resolves any expressions in the TraceComponent's spanName and tags using the
+   * provided ExpressionManager
+   * based on the given Event.
+   *
+   * @param traceComponent
+   *            the TraceComponent containing spanName and tags to resolve
+   * @param expressionManager
+   *            the ExpressionManager used to evaluate expressions
+   * @param event
+   *            the Event used for context in expression evaluation
+   */
+  public static void resolveExpressions(TraceComponent traceComponent, ExpressionManager expressionManager,
+      Event event) {
+    try {
+      if (expressionManager
+          .isExpression(traceComponent.getSpanName())) {
+        TypedValue<String> evaluatedSpanName = (TypedValue<String>) expressionManager
+            .evaluate(traceComponent.getSpanName(), event.asBindingContext());
+        if (evaluatedSpanName.getValue() != null) {
+          traceComponent.withSpanName(evaluatedSpanName.getValue());
+        }
+      }
+      List<Map.Entry<String, String>> expressionTags = traceComponent.getTags().entrySet().stream()
+          .filter(e -> expressionManager.isExpression(e.getValue())).collect(Collectors.toList());
+      for (Map.Entry<String, String> expressionTag : expressionTags) {
+        TypedValue<String> evaluate = (TypedValue<String>) expressionManager.evaluate(expressionTag.getValue(),
+            event.asBindingContext());
+        if (evaluate.getValue() != null) {
+          traceComponent.getTags().replace(expressionTag.getKey(), evaluate.getValue());
+        }
+      }
+    } catch (Exception ignored) {
+    }
+  }
 }
