@@ -43,11 +43,23 @@
   </scm>
 
   <properties>
+    <!-- ${opentelemetry.version} is used d asciidoc generation -->
     <opentelemetry.version>1.45.0</opentelemetry.version>
-    <opentelemetry.semconv.version>1.29.0</opentelemetry.semconv.version>
     <opentelemetry-instrumentation.version>2.11.0</opentelemetry-instrumentation.version>
     <jmh.version>1.36</jmh.version>
   </properties>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.opentelemetry.instrumentation</groupId>
+        <!-- This BOM imports OTEL, OTEL-alpha, Semantic Conventions, and Instrumentation Dependencies -->
+        <artifactId>opentelemetry-instrumentation-bom-alpha</artifactId>
+        <version>${opentelemetry-instrumentation.version}-alpha</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>org.mule.runtime</groupId>
@@ -65,49 +77,40 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-api</artifactId>
-      <version>${opentelemetry.version}</version>
     </dependency>
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-api-incubator</artifactId>
-      <version>${opentelemetry.version}-alpha</version>
     </dependency>
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
-      <version>${opentelemetry.version}</version>
     </dependency>
     <dependency>
       <!--Adds Resources such as Host, Os, Process etc.-->
       <groupId>io.opentelemetry.instrumentation</groupId>
       <artifactId>opentelemetry-resources</artifactId>
-      <version>${opentelemetry-instrumentation.version}-alpha</version>
     </dependency>
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-sdk-extension-autoconfigure-spi</artifactId>
-      <version>${opentelemetry.version}</version>
     </dependency>
     <dependency>
       <groupId>io.opentelemetry.semconv</groupId>
       <artifactId>opentelemetry-semconv</artifactId>
-      <version>${opentelemetry.semconv.version}-alpha</version>
     </dependency>
     <dependency>
       <groupId>io.opentelemetry.semconv</groupId>
       <artifactId>opentelemetry-semconv-incubating</artifactId>
-      <version>${opentelemetry.semconv.version}-alpha</version>
     </dependency>
 
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-exporter-otlp</artifactId>
-      <version>${opentelemetry.version}</version>
     </dependency>
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-exporter-logging</artifactId>
-      <version>${opentelemetry.version}</version>
     </dependency>
     <dependency>
       <!--Needed by HttpProcessorComponent-->
@@ -199,7 +202,6 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-sdk-testing</artifactId>
-      <version>${opentelemetry.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
