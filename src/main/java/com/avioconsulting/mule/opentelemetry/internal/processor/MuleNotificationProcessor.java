@@ -41,6 +41,7 @@ import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.getTraceComponent;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.isFlowRef;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.resolveFlowName;
+import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.resolveExpressions;
 
 /**
  * Notification Processor bean. This is injected through registry-bootstrap into
@@ -180,6 +181,8 @@ public class MuleNotificationProcessor {
             .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()))
             .withEventContextId(notification.getEvent().getContext().getId())
             .withComponentLocation(notification.getComponent().getLocation());
+        resolveExpressions(traceComponent, openTelemetryConnection.getExpressionManager(),
+            notification.getEvent());
         openTelemetryConnection.addProcessorSpan(traceComponent,
             ComponentsUtil.getLocationParent(notification.getComponent().getLocation().getLocation()));
         processFlowRef(traceComponent, notification.getEvent());
