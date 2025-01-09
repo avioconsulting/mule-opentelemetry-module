@@ -139,7 +139,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
         .containsExactly("/test", componentLocation.getLocation(), SpanKind.CLIENT);
     assertThat(endTraceComponent.getTags())
         .hasSize(7)
-        .containsEntry("http.method", "GET")
+        .containsEntry("http.request.method", "GET")
         .containsEntry("mule.app.processor.configRef", "test-config")
         .containsEntry("http.route", "/test")
         .containsEntry("mule.app.processor.docName", "HTTP Request")
@@ -162,6 +162,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
     when(requestAttributes.getScheme()).thenReturn("HTTP");
     when(requestAttributes.getListenerPath()).thenReturn("/test");
     when(requestAttributes.getRequestPath()).thenReturn("/test");
+    when(requestAttributes.getQueryString()).thenReturn("a=b&c=d");
     when(requestAttributes.getVersion()).thenReturn("HTTP/1.1");
 
     Map<String, String> headers = new HashMap<>();
@@ -192,14 +193,13 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
         .isNotNull()
         .extracting("name", "spanName").containsExactly("test-flow", "GET /test");
     assertThat(sourceTraceComponent.getTags())
-        .hasSize(7)
-        .containsEntry("http.method", "GET")
-        .containsEntry("http.flavor", "1.1")
+        .hasSize(6)
+        .containsEntry("http.request.method", "GET")
         .containsEntry("http.route", "/test")
-        .containsEntry("http.host", "localhost")
-        .containsEntry("http.scheme", "HTTP")
-        .containsEntry("http.target", "/test")
-        .containsEntry("http.user_agent", "test-unit");
+        .containsEntry("url.scheme", "HTTP")
+        .containsEntry("url.path", "/test")
+        .containsEntry("url.query", "a=b&c=d")
+        .containsEntry("user_agent.original", "test-unit");
   }
 
 }

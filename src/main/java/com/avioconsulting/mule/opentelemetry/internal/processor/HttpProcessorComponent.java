@@ -5,6 +5,9 @@ import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHan
 import com.avioconsulting.mule.opentelemetry.internal.processor.util.HttpSpanUtil;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.semconv.HttpAttributes;
+import io.opentelemetry.semconv.ServerAttributes;
+import io.opentelemetry.semconv.UserAgentAttributes;
 import org.mule.extension.http.api.HttpRequestAttributes;
 import org.mule.extension.http.api.HttpResponseAttributes;
 import org.mule.runtime.api.component.Component;
@@ -25,7 +28,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.opentelemetry.semconv.SemanticAttributes.*;
+import static io.opentelemetry.semconv.HttpAttributes.*;
+import static io.opentelemetry.semconv.ServerAttributes.*;
+import static io.opentelemetry.semconv.UrlAttributes.*;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 
@@ -92,20 +97,19 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
             .withStatsCode(getSpanStatus(false, 500)));
     if (responseAttributes.getValue() == null
         || !(responseAttributes.getValue() instanceof HttpResponseAttributes)) {
-      // When HTTP Requester executes successfully (eg. 200), notification event DOES
+      // When HTTP Requester executes successfully (e.g. 200), notification event DOES
       // NOT include the response attribute.
       // Instead, it includes the original input event. In that case, the attribute
       // may not be http response attributes.
       return endTraceComponent;
     }
-    // If HTTP Requester generates an error (eg. 404), then error message does
+    // If HTTP Requester generates an error (e.g. 404), then error message does
     // include the HTTP Response attributes.
     HttpResponseAttributes attributes = responseAttributes.getValue();
     Map<String, String> tags = new HashMap<>();
-    tags.put(HTTP_STATUS_CODE.getKey(), Integer.toString(attributes.getStatusCode()));
+    tags.put(HTTP_RESPONSE_STATUS_CODE.getKey(), Integer.toString(attributes.getStatusCode()));
     endTraceComponent.withStatsCode(getSpanStatus(false, attributes.getStatusCode()));
-    tags.put(
-        HTTP_RESPONSE_CONTENT_LENGTH.getKey(),
+    tags.put("http.response.header.content-length",
         attributes.getHeaders().get("content-length"));
     if (endTraceComponent.getTags() != null)
       tags.putAll(endTraceComponent.getTags());
@@ -158,11 +162,9 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     String path = componentWrapper.getParameters().get("path");
     Map<String, String> connectionParameters = componentWrapper.getConfigConnectionParameters();
     if (!connectionParameters.isEmpty()) {
-      tags.put(HTTP_SCHEME.getKey(), connectionParameters.getOrDefault("protocol", "").toLowerCase());
-      tags.put(HTTP_HOST.getKey(), connectionParameters.getOrDefault("host", "").concat(":")
-          .concat(connectionParameters.getOrDefault("port", "")));
-      tags.put(NET_PEER_NAME.getKey(), connectionParameters.getOrDefault("host", ""));
-      tags.put(NET_PEER_PORT.getKey(), connectionParameters.getOrDefault("port", ""));
+      tags.put(URL_SCHEME.getKey(), connectionParameters.getOrDefault("protocol", "").toLowerCase());
+      tags.put(ServerAttributes.SERVER_ADDRESS.getKey(), connectionParameters.getOrDefault("host", ""));
+      tags.put(SERVER_PORT.getKey(), connectionParameters.getOrDefault("port", ""));
     }
     Map<String, String> configParameters = componentWrapper.getConfigParameters();
     if (!configParameters.isEmpty()) {
@@ -172,7 +174,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
       }
     }
     tags.put(HTTP_ROUTE.getKey(), path);
-    tags.put(HTTP_METHOD.getKey(), componentWrapper.getParameters().get("method"));
+    tags.put(HttpAttributes.HTTP_REQUEST_METHOD.getKey(), componentWrapper.getParameters().get("method"));
     return tags;
   }
 
@@ -211,7 +213,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
           statusCode = TypedValue.unwrap(httpStatus).toString();
         }
         TraceComponent traceComponent = getTraceComponentBuilderFor(notification);
-        traceComponent.withTags(singletonMap(HTTP_STATUS_CODE.getKey(), statusCode));
+        traceComponent.withTags(singletonMap(HTTP_RESPONSE_STATUS_CODE.getKey(), statusCode));
         traceComponent.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
         return traceComponent;
       }
@@ -224,15 +226,16 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
 
   private Map<String, String> attributesToTags(HttpRequestAttributes attributes) {
     Map<String, String> tags = new HashMap<>();
-    tags.put(HTTP_HOST.getKey(), attributes.getHeaders().get("host"));
-    tags.put(HTTP_USER_AGENT.getKey(), attributes.getHeaders().get("user-agent"));
-    tags.put(HTTP_METHOD.getKey(), attributes.getMethod());
-    tags.put(HTTP_SCHEME.getKey(), attributes.getScheme());
+    // TODO: Server span should have client.address
+    // tags.put(SERVER_ADDRESS.getKey(), attributes.getHeaders().get("host"));
+    tags.put(UserAgentAttributes.USER_AGENT_ORIGINAL.getKey(), attributes.getHeaders().get("user-agent"));
+    tags.put(HTTP_REQUEST_METHOD.getKey(), attributes.getMethod());
+    tags.put(URL_SCHEME.getKey(), attributes.getScheme());
     tags.put(HTTP_ROUTE.getKey(), attributes.getListenerPath());
-    tags.put(HTTP_TARGET.getKey(), attributes.getRequestPath());
-    tags.put(
-        HTTP_FLAVOR.getKey(),
-        attributes.getVersion().substring(attributes.getVersion().lastIndexOf("/") + 1));
+    tags.put(URL_PATH.getKey(), attributes.getRequestPath());
+    if (attributes.getQueryString() != null) {
+      tags.put(URL_QUERY.getKey(), attributes.getQueryString());
+    }
     // TODO: Support additional request headers to be added in
     // http.request.header.<key>=<header-value> attribute.
     return tags;
