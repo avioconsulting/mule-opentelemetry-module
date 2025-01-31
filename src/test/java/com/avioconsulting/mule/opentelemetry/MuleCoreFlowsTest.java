@@ -9,6 +9,7 @@ import java.util.*;
 
 import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter.spanQueue;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.awaitility.Awaitility.await;
 
@@ -17,6 +18,31 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
   @Override
   protected String getConfigFile() {
     return "mule-core-flows.xml";
+  }
+
+  @Test
+  public void testRootSpanStatus_OnError() throws Exception {
+    Throwable throwable = catchThrowable(() -> flowRunner("mule-core-error-flow")
+        .run());
+    await().untilAsserted(() -> assertThat(spanQueue)
+        .hasSize(3));
+    assertThat(spanQueue).anySatisfy(span -> assertThat(span).extracting("spanName", "spanKind", "spanStatus")
+        .containsExactlyInAnyOrder("mule-core-error-flow", "SERVER", "ERROR"));
+  }
+
+  @Test
+  public void testRootSpanStatus_FlowRef_OnError() throws Exception {
+    Throwable throwable = catchThrowable(() -> flowRunner("mule-core-call-error-flow")
+        .run());
+    await().untilAsserted(() -> assertThat(spanQueue)
+        .hasSize(7));
+    assertThat(spanQueue).anySatisfy(span -> assertThat(span).as("flow span with exception raised")
+        .extracting("spanName", "spanKind", "spanStatus")
+        .containsExactlyInAnyOrder("mule-core-error-flow", "SERVER", "ERROR"));
+    assertThat(spanQueue)
+        .anySatisfy(span -> assertThat(span).as("Parent flow with on-error-continue to suppress exception")
+            .extracting("spanName", "spanKind", "spanStatus")
+            .containsExactlyInAnyOrder("mule-core-call-error-flow", "SERVER", "UNSET"));
   }
 
   @Test
