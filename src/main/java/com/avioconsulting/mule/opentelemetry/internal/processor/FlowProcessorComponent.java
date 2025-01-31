@@ -6,6 +6,7 @@ import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
@@ -116,6 +117,9 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
   public TraceComponent getSourceEndTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
     TraceComponent traceComponent = getEndTraceComponent(notification).withSpanKind(SpanKind.SERVER);
+    if (notification.getException() != null) {
+      traceComponent.withStatsCode(StatusCode.ERROR);
+    }
     ComponentIdentifier sourceIdentifier = getSourceIdentifier(notification);
     if (sourceIdentifier == null) {
       return traceComponent;
