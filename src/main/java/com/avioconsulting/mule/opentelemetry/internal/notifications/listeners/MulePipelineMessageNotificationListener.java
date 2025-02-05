@@ -20,11 +20,7 @@ public class MulePipelineMessageNotificationListener extends AbstractMuleNotific
 
   @Override
   public void onNotification(PipelineMessageNotification notification) {
-    LOGGER.trace(
-        "===> Received "
-            + notification.getClass().getName()
-            + ":"
-            + notification.getActionName());
+    LOGGER.trace("===> Received {}:{}", notification.getClass().getName(), notification.getActionName());
 
     switch (Integer.parseInt(notification.getAction().getIdentifier())) {
       case PipelineMessageNotification.PROCESS_START:

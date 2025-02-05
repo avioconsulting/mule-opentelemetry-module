@@ -1,11 +1,8 @@
 package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 
-import com.avioconsulting.mule.opentelemetry.api.config.MuleComponent;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration;
-import com.avioconsulting.mule.opentelemetry.internal.processor.MuleCoreProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
-import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.interception.ProcessorInterceptor;
@@ -15,10 +12,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Stream;
 
+import static com.avioconsulting.mule.opentelemetry.internal.interceptor.InterceptorProcessorConfig.MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY;
+import static com.avioconsulting.mule.opentelemetry.internal.interceptor.InterceptorProcessorConfig.MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.isFirstProcessor;
 
 /**
@@ -34,11 +30,9 @@ import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil
 public class MessageProcessorTracingInterceptorFactory implements ProcessorInterceptorFactory {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessorTracingInterceptorFactory.class);
-  public static final String MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME = "mule.otel.interceptor.processor.enable";
   private final boolean interceptorEnabled = PropertiesUtil
       .getBoolean(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME, true);
 
-  public static final String MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY = "mule.otel.interceptor.first.processor.only";
   // Negating the property value since usage is negated
   private final boolean NOT_FIRST_PROCESSOR_ONLY_MODE = !PropertiesUtil
       .getBoolean(MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY, false);
@@ -48,50 +42,12 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
    * connection supplier by processor.
    */
   private final ProcessorTracingInterceptor processorTracingInterceptor;
-  private final MuleNotificationProcessor muleNotificationProcessor;;
-
-  private final List<MuleComponent> interceptExclusions = new ArrayList<>();
-
-  private final List<MuleComponent> interceptInclusions = new ArrayList<>();
 
   @Inject
   public MessageProcessorTracingInterceptorFactory(MuleNotificationProcessor muleNotificationProcessor,
       ConfigurationComponentLocator configurationComponentLocator) {
     processorTracingInterceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
         configurationComponentLocator);
-    this.muleNotificationProcessor = muleNotificationProcessor;
-    setupInterceptableComponents(muleNotificationProcessor);
-  }
-
-  /**
-   * Exclude following {@link MuleComponent}s -
-   * 
-   * <pre>
-   * - {@code ee:* } - All components such as cache, transform component, dynamic evaluate from ee namespace
-   * - {@code mule:*} - All components from mule namespace except from {@link #interceptInclusions}
-   *
-   * </pre>
-   */
-  private void setupInterceptableComponents(MuleNotificationProcessor muleNotificationProcessor) {
-
-    String excludedNamespaces = "ee,mule,validations,aggregators,json,oauth,scripting,tracing,oauth2-provider,xml,wss,spring,java,avio-logger";
-
-    Stream.of(excludedNamespaces.split(","))
-        .forEach(ns -> interceptExclusions.add(new MuleComponent(ns, "*")));
-
-    MuleCoreProcessorComponent.CORE_INTERCEPT_SCOPE_ROUTERS
-        .forEach(c -> interceptInclusions.add(new MuleComponent("mule", c)));
-
-    if (muleNotificationProcessor.getTraceLevelConfiguration() != null) {
-      if (muleNotificationProcessor.getTraceLevelConfiguration().getInterceptionDisabledComponents() != null)
-        interceptExclusions
-            .addAll(muleNotificationProcessor.getTraceLevelConfiguration()
-                .getInterceptionDisabledComponents());
-      if (muleNotificationProcessor.getTraceLevelConfiguration().getInterceptionEnabledComponents() != null)
-        interceptInclusions
-            .addAll(muleNotificationProcessor.getTraceLevelConfiguration()
-                .getInterceptionEnabledComponents());
-    }
   }
 
   @Override
@@ -99,20 +55,18 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
     return processorTracingInterceptor;
   }
 
-  public List<MuleComponent> getInterceptExclusions() {
-    return interceptExclusions;
-  }
-
-  public List<MuleComponent> getInterceptInclusions() {
-    return interceptInclusions;
-  }
-
   /**
    * This intercepts the first processor of root container which can be a flow or
    * sub-flow.
    *
-   * This will not intercept if "mule.otel.interceptor.processor.enable" is set to
-   * `true` Or {@link MuleNotificationProcessor} does not have a valid connection
+   * When `mule.otel.interceptor.first.processor.only` is NOT set to 'true', every
+   * processor will be intercepted.
+   * See {@link InterceptorProcessorConfig#interceptEnabled(ComponentLocation)}
+   * for how intercepting decisions are made at runtime for each location.
+   *
+   * This will not intercept ANY processor if
+   * "mule.otel.interceptor.processor.enable" is set to
+   * `false` Or {@link MuleNotificationProcessor} does not have a valid connection
    * due to disabled tracing. See
    * {@link OpenTelemetryExtensionConfiguration#start()}.
    *
@@ -123,41 +77,12 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
   @Override
   public boolean intercept(ComponentLocation location) {
     boolean intercept = false;
-    if (interceptorEnabled &&
-        muleNotificationProcessor.hasConnection()) {
-      // Intercept the first processor of the flow OR
-      // included processor/namespaces OR
-      // any processor/namespaces that are not excluded
-      ComponentIdentifier identifier = location.getComponentIdentifier().getIdentifier();
-      boolean interceptConfigured = NOT_FIRST_PROCESSOR_ONLY_MODE && (interceptInclusions.stream()
-          .anyMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
-              & (mc.getName().equalsIgnoreCase(identifier.getName())
-                  || "*".equalsIgnoreCase(mc.getName())))
-          || interceptExclusions.stream()
-              .noneMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
-                  & (mc.getName().equalsIgnoreCase(identifier.getName())
-                      || "*".equalsIgnoreCase(mc.getName()))));
-
-      intercept = !muleNotificationProcessor.getOpenTelemetryConnection().isTurnOffTracing()
-          && (isFirstProcessor(location)
-              || interceptConfigured);
-
-      if (intercept) {
-        // This factory executes during application initialization.
-        // Let's reuse the intercept decisions for excluding span creation in
-        // notification processor.
-        // This will let us avoid the lookup for each component in notification
-        // processor.
-        muleNotificationProcessor.addInterceptSpannedComponents(location.getLocation());
-        if (interceptConfigured) {
-          // Exclude any first processors that are generic processors such as loggers
-          muleNotificationProcessor.addMeteredComponentLocation(location.getLocation());
-        }
-      }
+    if (interceptorEnabled) {
+      intercept = (isFirstProcessor(location)
+          || NOT_FIRST_PROCESSOR_ONLY_MODE);
     }
     if (LOGGER.isTraceEnabled() && intercept) {
-      LOGGER.trace("Will Intercept '{}::{}'?: {}", location.getRootContainerName(), location.getLocation(),
-          intercept);
+      LOGGER.trace("Will Intercept '{}::{}'", location.getRootContainerName(), location.getLocation());
     }
     return intercept;
   }

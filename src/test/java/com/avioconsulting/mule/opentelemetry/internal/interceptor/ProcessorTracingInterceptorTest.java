@@ -44,6 +44,8 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(location.getLocation()).thenReturn("test-location");
     when(location.getRootContainerName()).thenReturn("test-flow-name");
     ComponentIdentifier ci = mock(ComponentIdentifier.class);
+    when(ci.getNamespace()).thenReturn("http");
+    when(ci.getName()).thenReturn("request");
     TypedComponentIdentifier tci = mock(TypedComponentIdentifier.class);
     when(tci.getIdentifier()).thenReturn(ci);
     when(location.getComponentIdentifier()).thenReturn(tci);
@@ -52,7 +54,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
     when(muleNotificationProcessor.getOpenTelemetryConnection()).thenReturn(connection);
     when(muleNotificationProcessor.hasConnection()).thenReturn(true);
-
+    when(muleNotificationProcessor.getInterceptorProcessorConfig()).thenReturn(new InterceptorProcessorConfig());
     ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
     ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
         configurationComponentLocator);
@@ -91,7 +93,8 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(location.getLocation()).thenReturn("test-location");
     when(location.getRootContainerName()).thenReturn("test-flow-name");
     ComponentIdentifier ci = mock(ComponentIdentifier.class);
-    when(ci.getName()).thenReturn("some");
+    when(ci.getNamespace()).thenReturn("http");
+    when(ci.getName()).thenReturn("request");
     TypedComponentIdentifier tci = mock(TypedComponentIdentifier.class);
     when(tci.getIdentifier()).thenReturn(ci);
     when(location.getComponentIdentifier()).thenReturn(tci);
@@ -100,7 +103,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
     when(muleNotificationProcessor.getOpenTelemetryConnection()).thenReturn(connection);
     when(muleNotificationProcessor.hasConnection()).thenReturn(true);
-
+    when(muleNotificationProcessor.getInterceptorProcessorConfig()).thenReturn(new InterceptorProcessorConfig());
     ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
     ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
         configurationComponentLocator);
@@ -136,7 +139,8 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(location.getLocation()).thenReturn("test-location");
     when(location.getRootContainerName()).thenReturn("test-flow-name");
     ComponentIdentifier ci = mock(ComponentIdentifier.class);
-    when(ci.getName()).thenReturn("some");
+    when(ci.getNamespace()).thenReturn("http");
+    when(ci.getName()).thenReturn("request");
     TypedComponentIdentifier tci = mock(TypedComponentIdentifier.class);
     when(tci.getIdentifier()).thenReturn(ci);
     when(location.getComponentIdentifier()).thenReturn(tci);
@@ -149,6 +153,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(muleNotificationProcessor.getOpenTelemetryConnection()).thenReturn(connection);
     when(muleNotificationProcessor.hasConnection()).thenReturn(true);
     when(muleNotificationProcessor.getProcessorComponent(ci)).thenReturn(processorComponent);
+    when(muleNotificationProcessor.getInterceptorProcessorConfig()).thenReturn(new InterceptorProcessorConfig());
 
     // Component not found
     ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
@@ -203,7 +208,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(muleNotificationProcessor.getOpenTelemetryConnection()).thenReturn(connection);
     when(muleNotificationProcessor.hasConnection()).thenReturn(true);
     when(muleNotificationProcessor.getProcessorComponent(ci)).thenReturn(processorComponent);
-
+    when(muleNotificationProcessor.getInterceptorProcessorConfig()).thenReturn(new InterceptorProcessorConfig());
     Component component = mock(Component.class);
     ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
     when(configurationComponentLocator.find(any(Location.class))).thenReturn(Optional.of(component));
@@ -251,7 +256,8 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(location.getLocation()).thenReturn("test-location");
     when(location.getRootContainerName()).thenReturn("test-flow-name");
     ComponentIdentifier ci = mock(ComponentIdentifier.class);
-    when(ci.getName()).thenReturn("something");
+    when(ci.getNamespace()).thenReturn("http");
+    when(ci.getName()).thenReturn("request");
     TypedComponentIdentifier tci = mock(TypedComponentIdentifier.class);
     when(tci.getIdentifier()).thenReturn(ci);
     when(location.getComponentIdentifier()).thenReturn(tci);
@@ -271,7 +277,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(muleNotificationProcessor.hasConnection()).thenReturn(true);
     when(muleNotificationProcessor.getProcessorComponent(any(ComponentIdentifier.class)))
         .thenReturn(processorComponent);
-
+    when(muleNotificationProcessor.getInterceptorProcessorConfig()).thenReturn(new InterceptorProcessorConfig());
     Component component = mock(Component.class);
     ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
     when(configurationComponentLocator.find(any(Location.class))).thenReturn(Optional.of(component));

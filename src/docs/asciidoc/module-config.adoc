@@ -577,17 +577,20 @@ For the context propagation accuracy, certain processors are intercepted to inje
 
 NOTE: *OTEL_TRACE_CONTEXT.spanId* will be of the span of the intercepted component.
 
-By default, any processors in the `ee,mule,validations,aggregators,json,oauth,scripting,tracing,oauth2-provider,xml,wss,spring,java,avio-logger` namespaces are excluded from this context injection, with one exception.
+The connector is pre-configured to intercept following connector operations -
 
-There is one exception in `mule` namespace - `flow-ref`. All `flow-ref` 's are intercepted for context injection. Module's flow processing is capable of extracting this flow-ref context to create accurate parent-child span relationship between calling and referenced flows.
-
-All other processors such as `http:request`, `anypoint-mq:publish` etc. are intercepted and context is injected.
+.List of intercepted operations
+,===
+include::../../main/resources/com/avioconsulting/mule/opentelemetry/internal/interceptor/intercept-components.txt[lines=5..-1]
+,===
 
 As a result of this, for example, when `http:request` makes an outbound request and context is link:module-config.adoc#_http_request_context_injection[injected], `http:request` processor's span is propagated as a prent span.
 
 image::span-parent-child-elastic-view.png[600, 600, title="Span View in Elastic APM", align="center"]
 
 If the intercepted processors needs fine-tuning such as including or excluding certain processors then it can be done in the Trace Level global configuration.
+
+WARNING: Excluding the intercepted components may affect the context propagation.
 
 image::processor-interceptor-configuration.png[600, 600, title="Trace Level - Processor Interception Configuration", align="center"]
 

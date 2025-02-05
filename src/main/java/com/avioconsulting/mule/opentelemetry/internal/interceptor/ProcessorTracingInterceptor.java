@@ -59,6 +59,9 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
       ComponentLocation location,
       Map<String, ProcessorParameterValue> parameters,
       InterceptionEvent event) {
+    if (!muleNotificationProcessor.getInterceptorProcessorConfig().interceptEnabled(location)) {
+      return;
+    }
     // Using an instance of MuleNotificationProcessor here.
     // If the tracing is disabled, the module configuration will not initialize
     // connection supplier.

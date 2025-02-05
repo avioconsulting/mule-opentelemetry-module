@@ -7,6 +7,7 @@ import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
+import com.avioconsulting.mule.opentelemetry.internal.interceptor.InterceptorProcessorConfig;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import io.opentelemetry.api.trace.SpanKind;
@@ -25,7 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -63,11 +63,9 @@ public class MuleNotificationProcessor {
   private OpenTelemetryConnection openTelemetryConnection;
 
   ConfigurationComponentLocator configurationComponentLocator;
-  private final List<String> interceptSpannedComponents = new ArrayList<>();
-  private final List<String> meteredComponentLocations = new ArrayList<>();
   private ProcessorComponentService processorComponentService;
   private final ProcessorComponent flowProcessorComponent;
-
+  private final InterceptorProcessorConfig interceptorProcessorConfig = new InterceptorProcessorConfig();
   /**
    * Cache the context expressions for flows to avoid trial-and-error every time
    */
@@ -88,27 +86,8 @@ public class MuleNotificationProcessor {
         .withConfigurationComponentLocator(configurationComponentLocator);
   }
 
-  /**
-   * Locations that are intercepted for span creation. These will be excluded from
-   * span creation from notifications.
-   * 
-   * @param location
-   *            {@link String} value of target processor
-   */
-  public void addInterceptSpannedComponents(String location) {
-    interceptSpannedComponents.add(location);
-  }
-
-  /**
-   * Locations that are intercepted and eligible for capturing metrics.
-   * 
-   * @param location
-   *            {@link String} value of target processor
-   */
-  public void addMeteredComponentLocation(String location) {
-    if (openTelemetryConnection != null && !openTelemetryConnection.isTurnOffMetrics()) {
-      openTelemetryConnection.getMetricsProviders().addMeteredComponent(location);
-    }
+  public InterceptorProcessorConfig getInterceptorProcessorConfig() {
+    return interceptorProcessorConfig;
   }
 
   public boolean hasConnection() {
@@ -123,16 +102,16 @@ public class MuleNotificationProcessor {
     return connectionSupplier;
   }
 
-  public TraceLevelConfiguration getTraceLevelConfiguration() {
-    return traceLevelConfiguration;
-  }
-
   public void init(OpenTelemetryConnection connection,
       TraceLevelConfiguration traceLevelConfiguration) {
     this.openTelemetryConnection = connection;
     this.spanAllProcessors = Boolean.parseBoolean(System.getProperty(MULE_OTEL_SPAN_PROCESSORS_ENABLE_PROPERTY_NAME,
         Boolean.toString(traceLevelConfiguration.isSpanAllProcessors())));
     this.traceLevelConfiguration = traceLevelConfiguration;
+    interceptorProcessorConfig
+        .setTurnOffTracing(openTelemetryConnection.isTurnOffTracing())
+        .updateTraceConfiguration(traceLevelConfiguration);
+
     processorComponentService = ProcessorComponentService.getInstance();
   }
 
@@ -143,7 +122,7 @@ public class MuleNotificationProcessor {
       // Creating one here will create duplicate spans
       return;
     }
-    if (interceptSpannedComponents.contains(location)) {
+    if (interceptorProcessorConfig.interceptEnabled(notification.getComponent().getLocation())) {
       logger.trace(
           "Component {} will be processed by interceptor, skipping notification processing to create span",
           location);
