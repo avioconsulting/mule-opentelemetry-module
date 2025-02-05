@@ -198,6 +198,7 @@ public class OpenTelemetryExtensionConfiguration
     appIdentifier = AppIdentifier.fromEnvironment(expressionManager);
     openTelemetryConnection = OpenTelemetryConnection
         .getInstance(new OpenTelemetryConfigWrapper(this));
+    getTraceLevelConfiguration().initMuleComponentsMap();
     muleNotificationProcessor.init(openTelemetryConnection,
         getTraceLevelConfiguration());
 
