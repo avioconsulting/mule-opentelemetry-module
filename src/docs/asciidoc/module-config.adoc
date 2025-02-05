@@ -424,6 +424,31 @@ To disable span generation for all processors in a specific namespace, set the `
 <opentelemetry:mule-component namespace="os" name="*" />
 ----
 
+Instead of enabling span generation for all processors, if some additional processors need to be included in span generation,
+then `opentelemetry:span-additional-mule-components` can be used to include those in generic span generation process.
+
+[source,xml]
+.OpenTelemetry Config additional mule components to generate spans for
+----
+<opentelemetry:config name="OpenTelemetry_Generic" doc:name="OpenTelemetry Config" serviceName="app1" spanAllProcessors="false"> // <1>
+    <opentelemetry:exporter >
+        <opentelemetry:generic-exporter >
+            <opentelemetry:config-properties >
+                <opentelemetry:config-property key="otel.traces.exporter" value="zipkin" />
+                <opentelemetry:config-property key="otel.exporter.zipkin.endpoint" value="http://localhost:9411/api/v2/spans" />
+            </opentelemetry:config-properties>
+        </opentelemetry:generic-exporter>
+    </opentelemetry:exporter>
+    <opentelemetry:span-additional-mule-components >        // <2>
+        <opentelemetry:mule-component namespace="custom" name="operation" />
+        <opentelemetry:mule-component namespace="mule" name="remove-variable" />
+    </opentelemetry:span-additional-mule-components>
+</opentelemetry:config>
+----
+
+<1> Span All processors is set false to reduce span generation for common components
+<2> Add `opentelemetry:span-additional-mule-components` to generate spans for a sample `custom:operation` and `mule:remove-variable` processors
+
 ==== Add Custom Transaction Tags
 In addition to all the trace attributes captured by the module, it is possible to add custom tags to the current trace using an *operation* `opentelemetry:add-transaction-tags`.
 

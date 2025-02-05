@@ -2,7 +2,9 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.config.MuleComponent;
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
+import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
@@ -110,4 +112,32 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
     verifyNoMoreInteractions(connection);
   }
 
+  @Test
+  public void getProcessorComponent_additional_span_components() {
+    Event event = mock(Event.class);
+    when(event.getCorrelationId()).thenReturn("testCorrelationId");
+    Message message = getMessage(null);
+    when(event.getMessage()).thenReturn(message);
+    ComponentLocation componentLocation = getComponentLocation("mule", "remove-variable");
+    Component component = getComponent(componentLocation, Collections.emptyMap(), "mule", "remove-variable");
+
+    OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+
+    TraceLevelConfiguration traceLevelConfiguration = new TraceLevelConfiguration(false, Collections.emptyList(),
+        Collections.emptyList());
+    notificationProcessor.init(connection, traceLevelConfiguration);
+
+    ProcessorComponent processorComponent = notificationProcessor.getProcessorComponent(component.getIdentifier());
+    Assertions.assertThat(processorComponent).as("Processor without the additional list to create span").isNull();
+
+    List<MuleComponent> additionalSpans = new ArrayList<>();
+    additionalSpans.add(new MuleComponent("mule", "remove-variable"));
+    traceLevelConfiguration = new TraceLevelConfiguration(false, Collections.emptyList(), additionalSpans);
+    notificationProcessor.init(connection, traceLevelConfiguration);
+    processorComponent = notificationProcessor.getProcessorComponent(component.getIdentifier());
+    Assertions.assertThat(processorComponent).as("Processor with the additional list to create span").isNotNull()
+        .isInstanceOf(GenericProcessorComponent.class);
+
+  }
 }

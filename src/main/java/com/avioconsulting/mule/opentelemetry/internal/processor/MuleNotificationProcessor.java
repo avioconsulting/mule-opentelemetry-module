@@ -21,6 +21,7 @@ import org.mule.runtime.api.notification.AsyncMessageNotification;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.PipelineMessageNotification;
+import org.mule.runtime.api.util.MultiMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -206,19 +207,25 @@ public class MuleNotificationProcessor {
   }
 
   public ProcessorComponent getProcessorComponent(ComponentIdentifier identifier) {
-    boolean ignored = traceLevelConfiguration.getIgnoreMuleComponents().stream()
-        .anyMatch(mc -> mc.getNamespace().equalsIgnoreCase(identifier.getNamespace())
-            & (mc.getName().equalsIgnoreCase(identifier.getName()) || "*".equalsIgnoreCase(mc.getName())));
+    boolean ignored = multiMapContains(identifier.getNamespace(), identifier.getName(), "*",
+        traceLevelConfiguration.getIgnoreMuleComponentsMap());
     if (spanAllProcessors && ignored)
       return null;
 
     ProcessorComponent processorComponent = processorComponentService
         .getProcessorComponentFor(identifier, configurationComponentLocator);
 
-    if (processorComponent == null && spanAllProcessors) {
+    if (processorComponent == null && (spanAllProcessors
+        || multiMapContains(identifier.getNamespace(), identifier.getName(), "*",
+            traceLevelConfiguration.getSpanAdditionalMuleComponentsMap()))) {
       processorComponent = genericProcessorComponent;
     }
     return processorComponent;
+  }
+
+  private boolean multiMapContains(String key, String value, String alternate, MultiMap<String, String> multiMap) {
+    List<String> values = multiMap.getAll(key);
+    return values.contains(value) || values.contains(alternate);
   }
 
   public void handleProcessorEndEvent(EnrichedServerNotification notification) {
