@@ -37,6 +37,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
     MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
     notificationProcessor.init(connection, new TraceLevelConfiguration(false, Collections.emptyList()));
     notificationProcessor.handleProcessorStartEvent(notification);
+    verify(connection).isTurnOffTracing();
     verifyNoMoreInteractions(connection);
   }
 
@@ -61,7 +62,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
 
     notificationProcessor.init(connection, traceLevelConfiguration);
     notificationProcessor.handleProcessorStartEvent(notification);
-
+    verify(connection).isTurnOffTracing();
     verifyNoMoreInteractions(connection);
   }
 
@@ -85,7 +86,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
 
     notificationProcessor.init(connection, traceLevelConfiguration);
     notificationProcessor.handleProcessorStartEvent(notification);
-
+    verify(connection).isTurnOffTracing();
     verifyNoMoreInteractions(connection);
   }
 
@@ -105,6 +106,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
     MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
     notificationProcessor.init(connection, new TraceLevelConfiguration(false, Collections.emptyList()));
     notificationProcessor.handleProcessorEndEvent(notification);
+    verify(connection).isTurnOffTracing();
     verifyNoMoreInteractions(connection);
   }
 

@@ -23,14 +23,6 @@ public interface OpenTelemetryMetricsProvider<T extends OpenTelemetryMetricsConf
   void stop();
 
   /**
-   * Add a single component location for capturing metrics.
-   *
-   * @param location
-   *            {@link String} value of target processor
-   */
-  void addMeteredComponent(String location);
-
-  /**
    * This method is called for capturing Mule Processor event metrics such as
    * start
    * or end of the execution.

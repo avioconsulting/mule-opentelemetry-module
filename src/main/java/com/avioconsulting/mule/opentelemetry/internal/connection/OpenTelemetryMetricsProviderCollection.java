@@ -26,11 +26,6 @@ public class OpenTelemetryMetricsProviderCollection
   }
 
   @Override
-  public void addMeteredComponent(String location) {
-    this.forEach(provider -> provider.addMeteredComponent(location));
-  }
-
-  @Override
   public void captureProcessorMetrics(Component component, Error error, String location, SpanMeta spanMeta) {
     this.forEach(provider -> provider.captureProcessorMetrics(component, error, location, spanMeta));
   }
