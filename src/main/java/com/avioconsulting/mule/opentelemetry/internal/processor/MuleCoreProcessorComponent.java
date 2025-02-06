@@ -9,6 +9,8 @@ import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import java.util.*;
 
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_PROCESSOR_FLOW_REF_NAME;
+
 /**
  * This processor handles any specific operations or sources from Mule Core
  * namespace that are needed for overall tracing.
@@ -58,7 +60,8 @@ public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
     ComponentWrapper componentWrapper = new ComponentWrapper(component,
         configurationComponentLocator);
     if (ComponentsUtil.isFlowRef(component.getLocation())) {
-      tags.put("mule.app.processor.flowRef.name", componentWrapper.getParameter("name"));
+      tags.put(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(),
+          componentWrapper.getParameter("name"));
     }
     return tags;
   }
@@ -69,7 +72,8 @@ public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
     ComponentWrapper componentWrapper = new ComponentWrapper(notification.getComponent(),
         configurationComponentLocator);
     if (ComponentsUtil.isFlowRef(notification.getComponent().getLocation())) {
-      endTraceComponent.getTags().put("mule.app.processor.flowRef.name", componentWrapper.getParameter("name"));
+      endTraceComponent.getTags().put(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(),
+          componentWrapper.getParameter("name"));
     }
     return endTraceComponent;
   }

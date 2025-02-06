@@ -11,6 +11,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
+
 public class WSCProcessorComponent extends AbstractProcessorComponent {
   @Override
   protected String getNamespace() {
@@ -41,12 +43,12 @@ public class WSCProcessorComponent extends AbstractProcessorComponent {
   protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
     ComponentWrapper componentWrapper = new ComponentWrapper(component, configurationComponentLocator);
     Map<String, String> tags = new HashMap<>();
-    tags.put("mule.wsc.consumer.operation", componentWrapper.getParameter("operation"));
+    tags.put(WSC_CONSUMER_OPERATION.getKey(), componentWrapper.getParameter("operation"));
     Map<String, String> configConnectionParameters = componentWrapper.getConfigConnectionParameters();
-    tags.put("mule.wsc.config.service", configConnectionParameters.get("service"));
-    tags.put("mule.wsc.config.port", configConnectionParameters.get("port"));
+    tags.put(WSC_CONFIG_SERVICE.getKey(), configConnectionParameters.get("service"));
+    tags.put(WSC_CONFIG_PORT.getKey(), configConnectionParameters.get("port"));
     if (configConnectionParameters.containsKey("address")) {
-      tags.put("mule.wsc.config.address", configConnectionParameters.get("address"));
+      tags.put(WSC_CONFIG_ADDRESS.getKey(), configConnectionParameters.get("address"));
     }
     return tags;
   }
