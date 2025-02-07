@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.internal.processor.util.HttpSpanUtil;
@@ -28,6 +29,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.HTTP_RESPONSE_STATUS_CODE_SA;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.SERVER_PORT_SA;
 import static io.opentelemetry.semconv.HttpAttributes.*;
 import static io.opentelemetry.semconv.ServerAttributes.*;
 import static io.opentelemetry.semconv.UrlAttributes.*;
@@ -107,9 +110,9 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     // include the HTTP Response attributes.
     HttpResponseAttributes attributes = responseAttributes.getValue();
     Map<String, String> tags = new HashMap<>();
-    tags.put(HTTP_RESPONSE_STATUS_CODE.getKey(), Integer.toString(attributes.getStatusCode()));
+    tags.put(HTTP_RESPONSE_STATUS_CODE_SA.getKey(), Integer.toString(attributes.getStatusCode()));
     endTraceComponent.withStatsCode(getSpanStatus(false, attributes.getStatusCode()));
-    tags.put("http.response.header.content-length",
+    tags.put(SemanticAttributes.HTTP_RESPONSE_HEADER_CONTENT_LENGTH.getKey(),
         attributes.getHeaders().get("content-length"));
     if (endTraceComponent.getTags() != null)
       tags.putAll(endTraceComponent.getTags());
@@ -164,7 +167,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     if (!connectionParameters.isEmpty()) {
       tags.put(URL_SCHEME.getKey(), connectionParameters.getOrDefault("protocol", "").toLowerCase());
       tags.put(ServerAttributes.SERVER_ADDRESS.getKey(), connectionParameters.getOrDefault("host", ""));
-      tags.put(SERVER_PORT.getKey(), connectionParameters.getOrDefault("port", ""));
+      tags.put(SERVER_PORT_SA.getKey(), connectionParameters.getOrDefault("port", ""));
     }
     Map<String, String> configParameters = componentWrapper.getConfigParameters();
     if (!configParameters.isEmpty()) {
@@ -213,7 +216,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
           statusCode = TypedValue.unwrap(httpStatus).toString();
         }
         TraceComponent traceComponent = getTraceComponentBuilderFor(notification);
-        traceComponent.withTags(singletonMap(HTTP_RESPONSE_STATUS_CODE.getKey(), statusCode));
+        traceComponent.withTags(singletonMap(HTTP_RESPONSE_STATUS_CODE_SA.getKey(), statusCode));
         traceComponent.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
         return traceComponent;
       }

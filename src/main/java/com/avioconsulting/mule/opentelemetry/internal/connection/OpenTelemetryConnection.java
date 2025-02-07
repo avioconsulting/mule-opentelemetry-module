@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.connection;
 import com.avioconsulting.mule.opentelemetry.api.AppIdentifier;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigProvider;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsProvider;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.AttributesKeyCache;
 import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
@@ -37,7 +38,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.ERROR_TYPE;
@@ -55,6 +55,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   private OpenTelemetryMetricsConfigProvider metricsProvider;
   private AppIdentifier appIdentifier;
   private ExpressionManager expressionManager;
+  private final AttributesKeyCache attributesKeyCache = new AttributesKeyCache();
   /**
    * Instrumentation version must be picked from the module's artifact version.
    * This is a fallback for any dev testing.
@@ -308,7 +309,8 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     OpenTelemetryUtil.addGlobalConfigSystemAttributes(
         traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF.getKey()),
         traceComponent.getTags(), OTEL_SYSTEM_PROPERTIES_MAP);
-    traceComponent.getTags().forEach(spanBuilder::setAttribute);
+    traceComponent.getTags()
+        .forEach((k, v) -> spanBuilder.setAttribute(attributesKeyCache.getAttributeKey(k), v));
 
     String parentLocation = getRouteContainerLocation(traceComponent);
     if (parentLocation != null) {
@@ -356,7 +358,8 @@ public class OpenTelemetryConnection implements TraceContextHandler {
           }
           setSpanStatus(traceComponent, span);
           if (traceComponent.getTags() != null)
-            traceComponent.getTags().forEach(span::setAttribute);
+            traceComponent.getTags()
+                .forEach((k, v) -> span.setAttribute(attributesKeyCache.getAttributeKey(k), v));
         },
         traceComponent.getEndTime());
   }
@@ -372,7 +375,8 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         traceComponent.getTags().get(SemanticAttributes.MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey()),
         traceComponent.getTags(), openTelemetryConnection.OTEL_SYSTEM_PROPERTIES_MAP);
 
-    traceComponent.getTags().forEach(spanBuilder::setAttribute);
+    traceComponent.getTags()
+        .forEach((k, v) -> spanBuilder.setAttribute(attributesKeyCache.getAttributeKey(k), v));
     getTransactionStore().startTransaction(
         traceComponent, traceComponent.getName(), spanBuilder);
   }
@@ -384,7 +388,8 @@ public class OpenTelemetryConnection implements TraceContextHandler {
     return openTelemetryConnection.getTransactionStore().endTransaction(
         traceComponent,
         rootSpan -> {
-          traceComponent.getTags().forEach(rootSpan::setAttribute);
+          traceComponent.getTags()
+              .forEach((k, v) -> rootSpan.setAttribute(attributesKeyCache.getAttributeKey(k), v));
           openTelemetryConnection.setSpanStatus(traceComponent, rootSpan);
           if (exception != null) {
             rootSpan.recordException(exception);
@@ -392,6 +397,8 @@ public class OpenTelemetryConnection implements TraceContextHandler {
           }
         });
   }
+
+  private final Object lock = new Object();
 
   public void setSpanStatus(TraceComponent traceComponent, Span span) {
     if (traceComponent.getStatusCode() != null
