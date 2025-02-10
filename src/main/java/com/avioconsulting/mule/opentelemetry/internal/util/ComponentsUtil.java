@@ -149,7 +149,7 @@ public class ComponentsUtil {
    * Build a Trace component for sub-flow
    * 
    * @param subFlowComp
-   * @{@link ComponentLocation} of the target sub-flow
+   *            {@link ComponentLocation} of the target sub-flow
    * @param traceComponent
    *            of the flow-ref invoking the sub-flow
    * @return {@link TraceComponent} for the sub-flow

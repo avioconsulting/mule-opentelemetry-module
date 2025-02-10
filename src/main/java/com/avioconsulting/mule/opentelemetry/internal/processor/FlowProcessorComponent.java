@@ -96,7 +96,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     // If exists, allow it to process notification and build any additional tags to
     // include in a trace.
     ProcessorComponent processorComponentFor = ProcessorComponentService.getInstance()
-        .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator);
+        .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator, expressionManager);
     if (processorComponentFor != null) {
       TraceComponent sourceTrace = processorComponentFor.getSourceStartTraceComponent(notification,
           traceContextHandler);
@@ -129,7 +129,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     // If exists, allow it to process notification and build any additional tags to
     // include in a trace.
     ProcessorComponent processorComponent = ProcessorComponentService.getInstance()
-        .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator);
+        .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator, expressionManager);
     if (processorComponent != null) {
       TraceComponent sourceTrace = processorComponent.getSourceEndTraceComponent(notification,
           traceContextHandler);

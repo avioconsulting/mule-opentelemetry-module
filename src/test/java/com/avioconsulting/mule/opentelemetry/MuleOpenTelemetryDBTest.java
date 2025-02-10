@@ -53,13 +53,16 @@ public class MuleOpenTelemetryDBTest extends AbstractMuleArtifactTraceTest {
     assertThat(span.getAttributes())
         .containsEntry("mule.app.processor.configRef", "Database_Config")
         .containsEntry("mule.app.processor.name", docName.toLowerCase())
-        .containsEntry("db.jdbc.driver_classname", "org.apache.derby.jdbc.EmbeddedDriver")
-        .containsEntry("db.statement", statement)
-        .containsEntry("db.system", "other_sql")
+        .containsEntry("db.query.text", statement)
+        .containsEntry("db.system", "derby")
         .containsEntry("mule.app.processor.namespace", "db")
-        .containsEntry("db.operation", docName.toLowerCase())
+        .containsEntry("db.operation.name", docName.toLowerCase())
         .containsEntry("mule.app.processor.docName", docName)
         .as("System set property").containsEntry("db.system.fromprop", "derby_Sys");
+    if (!docName.equalsIgnoreCase("select")) {
+      assertThat(span.getAttributes())
+          .containsEntry("db.operation.parameter.userId", "500");
+    }
   }
 
   @Test
@@ -75,10 +78,11 @@ public class MuleOpenTelemetryDBTest extends AbstractMuleArtifactTraceTest {
 
   private Object[] CRUD_Parameters() {
     return new Object[] {
-        new Object[] { "delete", "Delete", "delete from testdb.users where userId = 500" },
-        new Object[] { "update", "Update", "UPDATE testdb.users set username = 'User500' where userId = 500" },
+        new Object[] { "delete", "Delete", "delete from testdb.users where userId = :userId" },
+        new Object[] { "update", "Update",
+            "UPDATE testdb.users set username = 'User500' where userId = :userId" },
         new Object[] { "insert", "Insert",
-            "INSERT INTO testdb.users (userId, username) values (500, 'User5')" },
+            "INSERT INTO testdb.users (userId, username) values (:userId, 'User5')" },
         new Object[] { "select", "Select", "select * from testdb.users" }
     };
   }

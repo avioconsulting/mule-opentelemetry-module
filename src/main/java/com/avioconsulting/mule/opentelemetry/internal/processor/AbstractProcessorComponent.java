@@ -13,6 +13,7 @@ import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
+import org.mule.runtime.core.api.el.ExpressionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,11 +32,18 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractProcessorComponent.class);
 
   protected ConfigurationComponentLocator configurationComponentLocator;
+  protected ExpressionManager expressionManager;
 
   @Override
   public ProcessorComponent withConfigurationComponentLocator(
       ConfigurationComponentLocator configurationComponentLocator) {
     this.configurationComponentLocator = configurationComponentLocator;
+    return this;
+  }
+
+  @Override
+  public ProcessorComponent withExpressionManager(ExpressionManager expressionManager) {
+    this.expressionManager = expressionManager;
     return this;
   }
 

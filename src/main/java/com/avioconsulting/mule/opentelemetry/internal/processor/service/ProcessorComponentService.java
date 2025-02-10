@@ -4,6 +4,7 @@ import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.util.LazyValue;
+import org.mule.runtime.core.api.el.ExpressionManager;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,10 +29,11 @@ public class ProcessorComponentService {
   }
 
   public ProcessorComponent getProcessorComponentFor(ComponentIdentifier identifier,
-      ConfigurationComponentLocator configurationComponentLocator) {
+      ConfigurationComponentLocator configurationComponentLocator, ExpressionManager expressionManager) {
     for (ProcessorComponent pc : processorComponents) {
       if (pc.canHandle(identifier)) {
-        pc.withConfigurationComponentLocator(configurationComponentLocator);
+        pc.withConfigurationComponentLocator(configurationComponentLocator)
+            .withExpressionManager(expressionManager);
         return pc;
       }
     }

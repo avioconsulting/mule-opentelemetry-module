@@ -22,12 +22,13 @@ import static org.mockito.Mockito.*;
 public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
 
   @Test
-  @Parameters({ "generic-connection, other_sql, database",
-      "my-sql-connection, mysql, database",
-      "mssql-connection, mssql, databaseName",
-      "oracle-connection, oracle, serviceName",
-      "data-source-connection, other_sql, dataSourceRef" })
-  public void testDBProcessorTagExtraction(String connectionType, String expectedDbSysName, String dbNameKey) {
+  @Parameters({ "generic-connection, postgresql, database, testdb",
+      "my-sql-connection, mysql, database, testDb",
+      "mssql-connection, mssql, databaseName, localhost\\testInstanceName/testDb",
+      "oracle-connection, oracle, serviceName, localhost:2004/testDb:testInstance",
+      "data-source-connection, other_sql, dataSourceRef, testDb" })
+  public void testDBProcessorTagExtraction(String connectionType, String expectedDbSysName, String dbNameKey,
+      String expectedDBNamespace) {
 
     ConfigurationComponentLocator componentLocator = mock(ConfigurationComponentLocator.class);
 
@@ -36,6 +37,7 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     ComponentLocation configComponentLocation = getComponentLocation();
     Map<String, String> connectionConfig = new HashMap<>();
     connectionConfig.put(dbNameKey, "testDb");
+    connectionConfig.put("url", "jdbc:postgresql://localhost:2004/testdb");
     connectionConfig.put("host", "localhost");
     connectionConfig.put("port", "2004");
     connectionConfig.put("user", "test");
@@ -51,30 +53,23 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     dbProcessorComponent.withConfigurationComponentLocator(componentLocator);
     ComponentLocation componentLocation = getComponentLocation();
     Map<String, String> config = new HashMap<>();
-    config.put("sql", "select * from test");
+    config.put("sql", "select * from test where id = :id");
     config.put("config-ref", "Database_Config");
+    config.put("inputParameters", "#[{id: 1}]");
     Component component = getComponent(componentLocation, config, "db", "select");
 
     Map<String, String> attributes = dbProcessorComponent.getAttributes(component, null);
 
     assertThat(attributes)
         .containsEntry("db.system", expectedDbSysName)
-        .containsEntry("net.peer.name", "localhost")
-        .containsEntry("net.peer.port", "2004")
-        .containsEntry("db.user", "test")
-        .containsEntry("db.mssql.instance_name", "testInstanceName")
-        .containsEntry("db.oracle.instance", "testInstance")
-        .containsEntry("db.jdbc.driver_classname", "testDriverClassName");
-
-    if (dbNameKey.equalsIgnoreCase("serviceName")) {
+        .containsEntry("db.operation.name", "select")
+        .containsEntry("db.query.text", "select * from test where id = :id")
+        .containsEntry("db.namespace", expectedDBNamespace)
+        .containsEntry("inputParameters", "#[{id: 1}]");
+    if (!dbNameKey.equalsIgnoreCase("dataSourceRef")) {
       assertThat(attributes)
-          .containsEntry("db.oracle.serviceName", "testDb");
-    } else if (dbNameKey.equalsIgnoreCase("dataSourceRef")) {
-      assertThat(attributes)
-          .containsEntry("db.datasource", "testDb");
-    } else {
-      assertThat(attributes)
-          .containsEntry("db.name", "testDb");
+          .containsEntry("server.address", "localhost")
+          .containsEntry("server.port", "2004");
     }
   }
 
@@ -97,7 +92,7 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
 
     assertThat(attributes)
         .containsEntry("db.system", "other_sql")
-        .containsEntry("db.statement", "select * from test")
-        .containsEntry("db.operation", "select");
+        .containsEntry("db.query.text", "select * from test")
+        .containsEntry("db.operation.name", "select");
   }
 }
