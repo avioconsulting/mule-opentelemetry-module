@@ -1,0 +1,90 @@
+extensions:
+  # See for auth config - https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/configauth/README.md
+  #bearertokenauth:
+  #  scheme: Bearer
+  #  token: SOME_SECRET_VALUE
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: "0.0.0.0:4318"
+        auth:
+          authenticator: bearertokenauth
+      grpc:
+        endpoint: "0.0.0.0:4317"
+        auth:
+          authenticator: bearertokenauth
+
+  # The hostmetrics receiver is required to get correct infrastructure metrics in Datadog.
+  hostmetrics:
+    collection_interval: 10s
+    scrapers:
+      paging:
+        metrics:
+          system.paging.utilization:
+            enabled: true
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+      disk:
+      filesystem:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
+      load:
+      memory:
+      network:
+      processes:
+
+connectors:
+  datadog/connector:
+
+processors:
+  batch:
+    send_batch_max_size: 100
+    send_batch_size: 10
+    timeout: 10s
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 1000
+  resource/delete_process:
+    attributes:
+      - key: process.command_line
+        action: delete
+      - key: process.command_args
+        action: delete
+  transform/log_context:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["logger.name"], instrumentation_scope.name)
+
+
+exporters:
+  datadog/exporter:
+    api:
+      key: ${DD_API_KEY}
+      site: ${DD_SITE}
+
+service:
+  extensions: [bearertokenauth]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [transform/log_context,resource/delete_process,batch]
+      exporters: [datadog/connector, datadog/exporter]
+    metrics:
+      receivers: [datadog/connector, otlp]
+      processors: [transform/log_context,resource/delete_process,batch]
+      exporters: [datadog/exporter]
+    metrics/hostmetrics:
+      receivers: [hostmetrics]
+      processors: [batch]
+      exporters: [datadog/exporter]
+    logs:
+      receivers: [otlp]
+      processors: [transform/log_context,resource/delete_process,batch]
+      exporters: [datadog/exporter]
