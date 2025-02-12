@@ -43,7 +43,7 @@ public class MuleOpenTelemetryAPIKitTest extends AbstractMuleArtifactTraceTest {
           assertThat(span)
               .as("Span for http:listener apikit flow")
               .extracting("spanName", "spanKind", "spanStatus")
-              .containsOnly("get:\\orders\\(orderId):order-exp-config", "SERVER", "UNSET");
+              .containsOnly("get:\\orders\\(orderId):order-exp-config", "INTERNAL", "UNSET");
         }));
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .anySatisfy(span -> {
@@ -104,7 +104,7 @@ public class MuleOpenTelemetryAPIKitTest extends AbstractMuleArtifactTraceTest {
           assertThat(span)
               .as("Span for http:listener apikit flow")
               .extracting("spanName", "spanKind", "spanStatus")
-              .containsOnly("post:\\orders:application\\json:order-exp-config", "SERVER", "UNSET");
+              .containsOnly("post:\\orders:application\\json:order-exp-config", "INTERNAL", "UNSET");
         }));
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .anySatisfy(span -> {

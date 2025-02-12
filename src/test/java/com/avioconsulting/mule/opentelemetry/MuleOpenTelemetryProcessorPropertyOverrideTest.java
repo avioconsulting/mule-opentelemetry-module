@@ -66,14 +66,14 @@ public class MuleOpenTelemetryProcessorPropertyOverrideTest extends AbstractMule
 
     DelegatedLoggingSpanTestExporter.Span flowRefTargetServer = getSpan("INTERNAL",
         "flow-ref:mule-opentelemetry-app-flow-ref-target");
-    DelegatedLoggingSpanTestExporter.Span targetServer = getSpan("SERVER",
+    DelegatedLoggingSpanTestExporter.Span targetServer = getSpan("INTERNAL",
         "mule-opentelemetry-app-flow-ref-target");
     assertParentSpan(flowRefTargetServer, "Flow ref of target 1 should have source as parent", sourceServer);
     assertParentSpan(targetServer, "Parent flow must be a span of flow-ref of first target", flowRefTargetServer);
 
     DelegatedLoggingSpanTestExporter.Span flowRefTargetServer2 = getSpan("INTERNAL",
         "flow-ref:mule-opentelemetry-app-flow-ref-target-2");
-    DelegatedLoggingSpanTestExporter.Span targetServer2 = getSpan("SERVER",
+    DelegatedLoggingSpanTestExporter.Span targetServer2 = getSpan("INTERNAL",
         "mule-opentelemetry-app-flow-ref-target-2");
     assertParentSpan(flowRefTargetServer2, "Flow ref of target 2 should have target 1 as parent", targetServer);
     assertParentSpan(targetServer2, "Parent flow must be a span of flow-ref of second target",

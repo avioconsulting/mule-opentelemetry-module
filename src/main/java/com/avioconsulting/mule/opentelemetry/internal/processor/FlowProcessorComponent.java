@@ -15,7 +15,6 @@ import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -75,6 +74,8 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     TraceComponent startTraceComponent = getStartTraceComponent(notification).withSpanKind(SpanKind.SERVER);
     ComponentIdentifier sourceIdentifier = getSourceIdentifier(notification);
     if (sourceIdentifier == null) {
+      // Private flows should be treated as internal spans
+      startTraceComponent.withSpanKind(SpanKind.INTERNAL);
       if (notification.getEvent().getVariables().containsKey(TransactionStore.TRACE_CONTEXT_MAP_KEY)) {
         // When flows are called using flow-ref, the variables may contain the parent
         // span information
@@ -116,7 +117,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
   @Override
   public TraceComponent getSourceEndTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
-    TraceComponent traceComponent = getEndTraceComponent(notification).withSpanKind(SpanKind.SERVER);
+    TraceComponent traceComponent = getEndTraceComponent(notification);
     if (notification.getException() != null) {
       traceComponent.withStatsCode(StatusCode.ERROR);
     }
