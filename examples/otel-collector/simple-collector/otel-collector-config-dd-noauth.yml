@@ -1,20 +1,11 @@
-extensions:
-  # See for auth config - https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/configauth/README.md
-  bearertokenauth:
-    scheme: Bearer
-    token: SOME_SECRET_VALUE
 
 receivers:
   otlp:
     protocols:
       http:
         endpoint: "0.0.0.0:4318"
-        auth:
-          authenticator: bearertokenauth
       grpc:
         endpoint: "0.0.0.0:4317"
-        auth:
-          authenticator: bearertokenauth
 
   # The hostmetrics receiver is required to get correct infrastructure metrics in Datadog.
   hostmetrics:
@@ -70,7 +61,6 @@ exporters:
       site: ${DD_SITE}
 
 service:
-  extensions: [bearertokenauth]
   pipelines:
     traces:
       receivers: [otlp]
