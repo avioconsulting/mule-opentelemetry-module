@@ -21,7 +21,6 @@ public class AttributesKeyCache {
   }
 
   static {
-    mapFields(io.opentelemetry.semconv.SemanticAttributes.class.getDeclaredFields());
     mapFields(HttpAttributes.class.getDeclaredFields());
     mapFields(UrlAttributes.class.getDeclaredFields());
     mapFields(UserAgentAttributes.class.getDeclaredFields());

@@ -1,18 +1,18 @@
 package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk;
 
-import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.instrumentation.resources.ContainerResource;
 import io.opentelemetry.instrumentation.resources.HostResource;
 import io.opentelemetry.sdk.resources.Resource;
-import io.opentelemetry.semconv.ResourceAttributes;
+import io.opentelemetry.semconv.incubating.HostIncubatingAttributes;
 
 import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.addAttribute;
 import static com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil.getProperty;
-import static io.opentelemetry.semconv.ResourceAttributes.CONTAINER_NAME;
-import static io.opentelemetry.semconv.ResourceAttributes.HOST_NAME;
+import static io.opentelemetry.semconv.incubating.ContainerIncubatingAttributes.CONTAINER_ID;
+import static io.opentelemetry.semconv.incubating.ContainerIncubatingAttributes.CONTAINER_NAME;
+import static io.opentelemetry.semconv.incubating.HostIncubatingAttributes.HOST_NAME;
 
 /**
  * Provides Host and Container Resource attributes based on deployment target -
@@ -48,16 +48,16 @@ public final class MuleAppHostResource {
       String workerId = getProperty("worker.id", "na");
       String container = String.format("%s-%s", getProperty("domain"), workerId);
       if (getProperty("worker.publicIP") != null) {
-        attributes.put(ResourceAttributes.HOST_IP, getProperty("worker.publicIP"));
+        attributes.put(HostIncubatingAttributes.HOST_IP, getProperty("worker.publicIP"));
       }
       attributes.put(CONTAINER_NAME, container);
-      attributes.put(ResourceAttributes.CONTAINER_ID, container);
+      attributes.put(CONTAINER_ID, container);
     } else {
       // Default Host attributes
       Resource hostResource = HostResource.get();
       attributes.putAll(hostResource.getAttributes());
     }
-    return Resource.create(attributes.build(), ResourceAttributes.SCHEMA_URL);
+    return Resource.create(attributes.build());
   }
 
   private MuleAppHostResource() {
