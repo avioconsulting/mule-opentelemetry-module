@@ -37,7 +37,7 @@ public class MuleOpenTelemetryDBTest extends AbstractMuleArtifactTraceTest {
             .isNotEmpty()
             .anySatisfy(span -> assertThat(span)
                 .extracting("spanName", "spanKind")
-                .containsOnly("init-db", "SERVER"));
+                .containsOnly("init-db", "INTERNAL"));
       });
       DelegatedLoggingSpanTestExporter.spanQueue.clear();
       dbInitialized = true;

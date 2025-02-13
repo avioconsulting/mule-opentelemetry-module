@@ -27,7 +27,7 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
     await().untilAsserted(() -> assertThat(spanQueue)
         .hasSize(3));
     assertThat(spanQueue).anySatisfy(span -> assertThat(span).extracting("spanName", "spanKind", "spanStatus")
-        .containsExactlyInAnyOrder("mule-core-error-flow", "SERVER", "ERROR"));
+        .containsExactlyInAnyOrder("mule-core-error-flow", "INTERNAL", "ERROR"));
   }
 
   @Test
@@ -38,11 +38,11 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
         .hasSize(7));
     assertThat(spanQueue).anySatisfy(span -> assertThat(span).as("flow span with exception raised")
         .extracting("spanName", "spanKind", "spanStatus")
-        .containsExactlyInAnyOrder("mule-core-error-flow", "SERVER", "ERROR"));
+        .containsExactlyInAnyOrder("mule-core-error-flow", "INTERNAL", "ERROR"));
     assertThat(spanQueue)
         .anySatisfy(span -> assertThat(span).as("Parent flow with on-error-continue to suppress exception")
             .extracting("spanName", "spanKind", "spanStatus")
-            .containsExactlyInAnyOrder("mule-core-call-error-flow", "SERVER", "UNSET"));
+            .containsExactlyInAnyOrder("mule-core-call-error-flow", "INTERNAL", "UNSET"));
   }
 
   @Test
@@ -271,7 +271,7 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
     assertThat(spanQueue)
         .extracting("spanName")
         .contains("mule-core-flow-1", "mule-core-flow-2", "mule-core-flow-3");
-    assertThat(getSpan("SERVER", "mule-core-flow-3").getAttributes())
+    assertThat(getSpan("INTERNAL", "mule-core-flow-3").getAttributes())
         .containsEntry("error.type", "org.mule.runtime.core.internal.exception.MessagingException");
   }
 
