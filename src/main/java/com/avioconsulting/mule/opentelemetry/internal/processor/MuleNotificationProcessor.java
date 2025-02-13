@@ -213,7 +213,8 @@ public class MuleNotificationProcessor {
       return null;
 
     ProcessorComponent processorComponent = processorComponentService
-        .getProcessorComponentFor(identifier, configurationComponentLocator);
+        .getProcessorComponentFor(identifier, configurationComponentLocator,
+            openTelemetryConnection.getExpressionManager());
 
     if (processorComponent == null && (spanAllProcessors
         || multiMapContains(identifier.getNamespace(), identifier.getName(), "*",

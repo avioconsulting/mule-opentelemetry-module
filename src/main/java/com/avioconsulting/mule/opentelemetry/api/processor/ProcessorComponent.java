@@ -7,6 +7,7 @@ import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
+import org.mule.runtime.core.api.el.ExpressionManager;
 
 public interface ProcessorComponent {
   boolean canHandle(ComponentIdentifier componentIdentifier);
@@ -77,4 +78,12 @@ public interface ProcessorComponent {
     return null;
   }
 
+  /**
+   * Sets the ExpressionManager for any expression evaluations
+   *
+   * @param expressionManager
+   *            the ExpressionManager to be set
+   * @return the updated ProcessorComponent
+   */
+  ProcessorComponent withExpressionManager(ExpressionManager expressionManager);
 }

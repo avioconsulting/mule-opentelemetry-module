@@ -36,8 +36,12 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 				<http:body ><![CDATA[#[output text/plain --- 'Failed']]]></http:body>
 			</http:error-response>
 		</http:listener>
+		<set-variable value="#[500]" variableName="userId"/>
 		<db:insert doc:name="Insert" doc:id="3d66ff38-2d52-4397-8b09-be018770227a" config-ref="Database_Config">
-			<db:sql ><![CDATA[INSERT INTO testdb.users (userId, username) values (500, 'User5')]]></db:sql>
+			<db:sql ><![CDATA[INSERT INTO testdb.users (userId, username) values (:userId, 'User5')]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+   userId: vars.userId
+}]]]></db:input-parameters>
 		</db:insert>
 		<set-payload value="#[output applicaton/json --- payload]" doc:name="Set Payload" doc:id="f5b6ab5f-a2f5-4f75-a17b-59da8e8a2dcd" />
 	</flow>
@@ -48,8 +52,12 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 				<http:body ><![CDATA[#[output text/plain --- 'Failed']]]></http:body>
 			</http:error-response>
 		</http:listener>
+		<set-variable value="#[500]" variableName="userId"/>
 		<db:update doc:name="Update" doc:id="7286e4ed-eee5-4278-b000-449b1b2485d2" config-ref="Database_Config">
-			<db:sql ><![CDATA[UPDATE testdb.users set username = 'User500' where userId = 500]]></db:sql>
+			<db:sql ><![CDATA[UPDATE testdb.users set username = 'User500' where userId = :userId]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+   userId: vars.userId
+}]]]></db:input-parameters>
 		</db:update>
 		<set-payload value="#[output applicaton/json --- payload]" doc:name="Set Payload" doc:id="f5b6ab5f-a2f5-4f75-a17b-59da8e8a2dcd" />
 	</flow>
@@ -60,8 +68,12 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 				<http:body ><![CDATA[#[output text/plain --- 'Failed']]]></http:body>
 			</http:error-response>
 		</http:listener>
+		<set-variable value="#[500]" variableName="userId"/>
 		<db:delete doc:name="Delete" doc:id="ab5a80fe-6735-4edc-a15c-5d5104c78c2b" config-ref="Database_Config">
-			<db:sql ><![CDATA[delete from testdb.users where userId = 500]]></db:sql>
+			<db:sql ><![CDATA[delete from testdb.users where userId = :userId]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+   userId: vars.userId
+}]]]></db:input-parameters>
 		</db:delete>
 		<set-payload value="#[output applicaton/json --- payload]" doc:name="Set Payload" doc:id="f5b6ab5f-a2f5-4f75-a17b-59da8e8a2dcd" />
 	</flow>
