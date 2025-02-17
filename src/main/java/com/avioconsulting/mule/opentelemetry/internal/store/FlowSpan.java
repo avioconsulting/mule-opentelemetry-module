@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -36,6 +37,7 @@ public class FlowSpan implements Serializable {
   private final Map<String, ProcessorSpan> childSpans = new ConcurrentHashMap<>();
   private Map<String, String> tags = new HashMap<>();
   private String apikitConfigName;
+  private final AtomicInteger childFlowCounter = new AtomicInteger();
 
   public FlowSpan(String flowName, Span span, String transactionId) {
     this.flowName = flowName;
@@ -101,6 +103,25 @@ public class FlowSpan implements Serializable {
         span.getSpanContext().getSpanId());
     childSpans.putIfAbsent(traceComponent.contextScopedLocation(), ps);
     return ps;
+  }
+
+  public void addChildFlow(TraceComponent traceComponent, SpanBuilder spanBuilder) {
+    addProcessorSpan(null, traceComponent, spanBuilder);
+    childFlowCounter.incrementAndGet();
+  }
+
+  public ProcessorSpan endChildFlow(TraceComponent traceComponent, Consumer<Span> endSpan) {
+    ProcessorSpan processorSpan = findSpan(traceComponent.contextScopedPath(traceComponent.getName()));
+    if (processorSpan != null) {
+      endSpan.accept(processorSpan.getSpan());
+      processorSpan.setEndTime(traceComponent.getEndTime());
+      childFlowCounter.decrementAndGet();
+      LOGGER.trace("Ended a span of a flow {} invoked with flow-ref for transaction {} ",
+          traceComponent.getName(), traceComponent.getTransactionId());
+    } else {
+      LOGGER.trace("No Processor span found for Tracecomponent {} ", traceComponent);
+    }
+    return processorSpan;
   }
 
   private ProcessorSpan getParentSpan(ComponentEventContext context, String container) {
@@ -212,7 +233,10 @@ public class FlowSpan implements Serializable {
   }
 
   public ProcessorSpan findSpan(String location) {
-    return childSpans.get(location);
+    ProcessorSpan processorSpan = childSpans.get(location);
+    if (processorSpan == null)
+      LOGGER.trace("Could not find span for location {}  in the list {}", location, childSpans);
+    return processorSpan;
   }
 
   public Map<String, String> getTags() {
@@ -231,5 +255,9 @@ public class FlowSpan implements Serializable {
   public FlowSpan setRootSpanName(String rootSpanName) {
     this.rootSpanName = rootSpanName;
     return this;
+  }
+
+  public boolean childFlowsEnded() {
+    return childFlowCounter.get() <= 0;
   }
 }

@@ -158,4 +158,22 @@ public class TraceComponent implements ComponentEventContext {
     return statusCode;
   }
 
+  @Override
+  public String toString() {
+    return "TraceComponent{" +
+        "tags=" + tags +
+        ", name='" + name + '\'' +
+        ", transactionId='" + transactionId + '\'' +
+        ", spanName='" + spanName + '\'' +
+        ", location='" + location + '\'' +
+        ", context=" + context +
+        ", spanKind=" + spanKind +
+        ", errorMessage='" + errorMessage + '\'' +
+        ", statusCode=" + statusCode +
+        ", startTime=" + startTime +
+        ", endTime=" + endTime +
+        ", eventContextId='" + eventContextId + '\'' +
+        ", componentLocation=" + componentLocation +
+        '}';
+  }
 }

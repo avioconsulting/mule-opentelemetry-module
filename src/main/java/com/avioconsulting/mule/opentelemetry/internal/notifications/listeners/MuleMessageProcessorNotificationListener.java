@@ -16,6 +16,7 @@ public class MuleMessageProcessorNotificationListener extends AbstractMuleNotifi
 
   @Override
   public void onNotification(MessageProcessorNotification notification) {
+    replaceMDCEntry(notification.getEvent());
     LOGGER.trace("===> Received {}:{}", notification.getClass().getName(), notification.getActionName());
 
     switch (Integer.parseInt(notification.getAction().getIdentifier())) {

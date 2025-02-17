@@ -381,6 +381,7 @@ public class MuleNotificationProcessor {
         TypedValue<String> contextId = (TypedValue<String>) notification.getEvent().getVariables()
             .get(TransactionStore.OTEL_FLOW_CONTEXT_ID);
         if (contextId != null && contextId.getValue() != null) {
+          logger.trace("Attempting to find {} by {}", traceComponent, contextId.getValue());
           traceComponent = traceComponent.withEventContextId(contextId.getValue());
         }
         transactionMeta = openTelemetryConnection.endTransaction(traceComponent,

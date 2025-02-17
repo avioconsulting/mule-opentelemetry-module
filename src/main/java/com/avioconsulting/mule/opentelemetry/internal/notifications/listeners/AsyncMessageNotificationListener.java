@@ -24,6 +24,7 @@ public class AsyncMessageNotificationListener extends AbstractMuleNotificationLi
 
   @Override
   public void onNotification(AsyncMessageNotification notification) {
+    replaceMDCEntry(notification.getEvent());
     LOGGER.trace("===> Received {}:{}", notification.getClass().getName(), notification.getActionName());
     switch (Integer.parseInt(notification.getAction().getIdentifier())) {
       case AsyncMessageNotification.PROCESS_ASYNC_SCHEDULED:
