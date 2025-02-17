@@ -22,6 +22,7 @@ public class MetricEventNotificationListener extends AbstractMuleNotificationLis
 
   @Override
   public void onNotification(ExtensionNotification notification) {
+    replaceMDCEntry(notification.getEvent());
     LOGGER.trace(
         "===> Received in module "
             + notification.getClass().getName()
