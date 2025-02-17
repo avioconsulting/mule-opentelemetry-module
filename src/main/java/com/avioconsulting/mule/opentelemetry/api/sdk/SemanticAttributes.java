@@ -12,13 +12,13 @@ public final class SemanticAttributes {
   }
 
   /**
-   * Override {@link io.opentelemetry.semconv.SemanticAttributes#SERVER_PORT} type
+   * Override {@link io.opentelemetry.semconv.ServerAttributes#SERVER_PORT} type
    * from Long to String
    */
   public static final AttributeKey<String> SERVER_PORT_SA = stringKey("server.port");
   /**
    * Override
-   * {@link io.opentelemetry.semconv.SemanticAttributes#HTTP_RESPONSE_STATUS_CODE}
+   * {@link io.opentelemetry.semconv.HttpAttributes#HTTP_RESPONSE_STATUS_CODE}
    * type from Long to String
    */
   public static final AttributeKey<String> HTTP_RESPONSE_STATUS_CODE_SA = stringKey("http.response.status_code");
@@ -144,4 +144,5 @@ public final class SemanticAttributes {
   public static final AttributeKey<String> WSC_CONFIG_SERVICE = stringKey("mule.wsc.config.service");
   public static final AttributeKey<String> WSC_CONFIG_PORT = stringKey("mule.wsc.config.port");
   public static final AttributeKey<String> WSC_CONFIG_ADDRESS = stringKey("mule.wsc.config.address");
+
 }
