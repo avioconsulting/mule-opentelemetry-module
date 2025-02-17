@@ -45,7 +45,7 @@ public class InMemoryTransactionStore implements TransactionStore {
           "Start transaction {} for flow '{}' - Adding to existing transaction",
           transactionId,
           rootFlowName);
-      transaction.getRootFlowSpan().addProcessorSpan(null, traceComponent, rootFlowSpanBuilder);
+      transaction.getRootFlowSpan().addChildFlow(traceComponent, rootFlowSpanBuilder);
     } else {
       Span span = rootFlowSpanBuilder.startSpan();
       LOGGER.trace(
@@ -108,7 +108,6 @@ public class InMemoryTransactionStore implements TransactionStore {
   public TransactionMeta endTransaction(
       TraceComponent traceComponent,
       Consumer<Span> spanUpdater) {
-    LOGGER.trace("End transaction {} for flow '{}'", traceComponent, traceComponent.getName());
     Consumer<Span> endSpan = (span) -> {
       if (spanUpdater != null)
         spanUpdater.accept(span);
@@ -121,24 +120,30 @@ public class InMemoryTransactionStore implements TransactionStore {
           span.getSpanContext().getTraceId());
     };
     Transaction transaction = getTransaction(traceComponent.getTransactionId());
+    TransactionMeta transactionMeta = transaction;
     if (transaction != null) {
       if (transaction.getRootFlowName().equals(traceComponent.getName())) {
-        Transaction removed = transactionMap.remove(traceComponent.getTransactionId());
-        endSpan.accept(removed.getRootFlowSpan().getSpan());
-        removed.setEndTime(traceComponent.getEndTime());
+        LOGGER.trace("Marking the end time of transaction {} from map for {} - Context Id {}",
+            traceComponent.getTransactionId(),
+            traceComponent.getName(), traceComponent.getEventContextId());
+        transaction.endRootFlow(traceComponent, endSpan);
       } else {
         // This is a flow invoked by a flow-ref and not the main flow
-        ProcessorSpan processorSpan = transaction.getRootFlowSpan()
-            .findSpan(traceComponent.contextScopedPath(traceComponent.getName()));
-        if (processorSpan != null) {
-          endSpan.accept(processorSpan.getSpan());
-          processorSpan.setEndTime(traceComponent.getEndTime());
-        }
-
-        return processorSpan;
+        transactionMeta = transaction.getRootFlowSpan().endChildFlow(traceComponent, endSpan);
       }
+      if (transaction.hasEnded()) {
+        LOGGER.trace("Removed transaction {} from map for {} - Context Id {}",
+            traceComponent.getTransactionId(),
+            traceComponent.getName(), traceComponent.getEventContextId());
+        transactionMap.remove(transaction.getTransactionId());
+      }
+    } else {
+      LOGGER.trace("No transaction found for transaction {}", traceComponent.getTransactionId());
     }
-    return transaction;
+    if (transactionMeta == null) {
+      LOGGER.trace("No transaction meta found for {} ", traceComponent);
+    }
+    return transactionMeta;
   }
 
   @Override
