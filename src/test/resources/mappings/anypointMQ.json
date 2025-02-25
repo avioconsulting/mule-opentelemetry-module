@@ -123,8 +123,7 @@
     },
     "uuid" : "90a0d4b1-2a07-4ae9-9058-136122c20700",
     "persistent" : true,
-    "scenarioName" : "scenario-1-accounts-oauth2-token",
-    "requiredScenarioState" : "scenario-1-accounts-oauth2-token-4"
+    "scenarioName" : "scenario-1-accounts-oauth2-token"
   }, {
     "id" : "64f9abfb-c518-4157-86c6-f6883d8fa12b",
     "name" : "accounts_api_me",

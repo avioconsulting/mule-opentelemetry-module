@@ -32,7 +32,6 @@ import java.util.Map;
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.HTTP_RESPONSE_STATUS_CODE_SA;
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.SERVER_PORT_SA;
 import static io.opentelemetry.semconv.HttpAttributes.*;
-import static io.opentelemetry.semconv.ServerAttributes.*;
 import static io.opentelemetry.semconv.UrlAttributes.*;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;

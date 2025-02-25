@@ -1,18 +1,13 @@
 package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk;
 
-import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.sdk.resources.Resource;
-import io.opentelemetry.semconv.ResourceAttributes;
-import io.opentelemetry.semconv.SemanticAttributes;
+import io.opentelemetry.semconv.incubating.CloudIncubatingAttributes;
 
 import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.addAttribute;
-import static com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil.getProperty;
 import static com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil.isCloudHubV1;
 import static com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil.isCloudHubV2;
-import static io.opentelemetry.semconv.ResourceAttributes.CLOUD_ACCOUNT_ID;
-import static io.opentelemetry.semconv.ResourceAttributes.CLOUD_REGION;
 
 /**
  * Provides the semantic attributes of Mule CloudHub as a cloud resource -
@@ -38,19 +33,20 @@ public class MuleCloudHubResource {
 
   static Resource buildResource() {
     AttributesBuilder builder = Attributes.builder();
-    builder.put(ResourceAttributes.CLOUD_PROVIDER, "mulesoft");
+    builder.put(CloudIncubatingAttributes.CLOUD_PROVIDER, "mulesoft");
     if (isCloudHubV1()) {
       // Cloudhub v1
-      addAttribute("application.aws.region", builder, CLOUD_REGION);
-      builder.put(ResourceAttributes.CLOUD_PLATFORM, "mulesoft_cloudhub_v1");
-      addAttribute("csorganization.id", builder, CLOUD_ACCOUNT_ID);
+      addAttribute("application.aws.region", builder, CloudIncubatingAttributes.CLOUD_REGION);
+      builder.put(CloudIncubatingAttributes.CLOUD_PLATFORM, "mulesoft_cloudhub_v1");
+      addAttribute("csorganization.id", builder, CloudIncubatingAttributes.CLOUD_ACCOUNT_ID);
     } else if (isCloudHubV2()) {
       // Cloudhub v2
-      builder.put(ResourceAttributes.CLOUD_PLATFORM, "mulesoft_cloudhub_v2");
-      addAttribute("ORG_ID", builder, CLOUD_ACCOUNT_ID);
+      builder.put(CloudIncubatingAttributes.CLOUD_PLATFORM, "mulesoft_cloudhub_v2");
+      addAttribute("csorganization.id", builder, CloudIncubatingAttributes.CLOUD_ACCOUNT_ID);
+      addAttribute("ORG_ID", builder, CloudIncubatingAttributes.CLOUD_ACCOUNT_ID);
     }
 
-    return Resource.create(builder.build(), SemanticAttributes.SCHEMA_URL);
+    return Resource.create(builder.build());
   }
 
   private MuleCloudHubResource() {

@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @RunnerDelegateTo(JUnitParamsRunner.class)
-@Ignore
 public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTest {
 
   /**
@@ -68,15 +67,10 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
 
     assertThat(span.getAttributes())
         .containsEntry("messaging.system", "anypointmq")
-        .containsEntry("messaging.destination_kind", "queue")
-        .containsEntry("messaging.destination.kind", "queue")
-        .containsEntry("messaging.url", "http://localhost:" + wireMockRule.port() + "/api/v1")
-        .containsEntry("messaging.consumer_id", "2327057f85ab4340b2f27c7b1b20cb07")
-        .containsEntry("messaging.consumer.id", "2327057f85ab4340b2f27c7b1b20cb07")
-        .containsEntry("messaging.destination", "otel-test-queue-1")
+        .containsEntry("url.full", "http://localhost:" + wireMockRule.port()
+            + "/api/v1/organizations/f2ea2cb4-c600-4bb5-88e8-e952ff5591ee/environments/c06ef9b7-19c0-4e87-add9-60ed58b20aad")
         .containsEntry("messaging.destination.name", "otel-test-queue-1")
-
-        .containsEntry("messaging.protocol", "http")
+        .containsEntry("messaging.client.id", "2327057f85ab4340b2f27c7b1b20cb07")
         .as("System set property").containsEntry("mq.system.fromprop", "AnypointMQ_Sys");
     ;
     if (spanKind.equalsIgnoreCase("PRODUCER")) {
