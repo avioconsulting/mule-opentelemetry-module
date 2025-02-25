@@ -387,12 +387,11 @@ public class MuleNotificationProcessor {
         transactionMeta = openTelemetryConnection.endTransaction(traceComponent,
             notification.getException());
       }
-
-      openTelemetryConnection.getMetricsProviders().captureFlowMetrics(
-          Objects.requireNonNull(transactionMeta,
-              "Transaction for " + traceComponent.contextScopedLocation() + " cannot be null"),
-          notification.getResourceIdentifier(),
-          notification.getException());
+      if (transactionMeta != null) {
+        openTelemetryConnection.getMetricsProviders().captureFlowMetrics(transactionMeta,
+            notification.getResourceIdentifier(),
+            notification.getException());
+      }
 
     } catch (Exception ex) {
       logger.error(

@@ -112,6 +112,11 @@ public class FlowSpan implements Serializable {
 
   public ProcessorSpan endChildFlow(TraceComponent traceComponent, Consumer<Span> endSpan) {
     ProcessorSpan processorSpan = findSpan(traceComponent.contextScopedPath(traceComponent.getName()));
+    if (processorSpan == null) {
+      LOGGER.trace("Attempting to find in parent scopes for {} in list {}", traceComponent,
+          childSpans);
+      processorSpan = getParentSpan(traceComponent, traceComponent.getName());
+    }
     if (processorSpan != null) {
       endSpan.accept(processorSpan.getSpan());
       processorSpan.setEndTime(traceComponent.getEndTime());
@@ -119,7 +124,7 @@ public class FlowSpan implements Serializable {
       LOGGER.trace("Ended a span of a flow {} invoked with flow-ref for transaction {} ",
           traceComponent.getName(), traceComponent.getTransactionId());
     } else {
-      LOGGER.trace("No Processor span found for Tracecomponent {} ", traceComponent);
+      LOGGER.trace("No Processor span found for {} ", traceComponent);
     }
     return processorSpan;
   }
