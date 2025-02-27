@@ -86,4 +86,18 @@ public class ProcessorSpan implements SpanMeta {
     this.tags = tags;
     return this;
   }
+
+  @Override
+  public String toString() {
+    return "ProcessorSpan{" +
+        "span=" + span +
+        ", location='" + location + '\'' +
+        ", transactionId='" + transactionId + '\'' +
+        ", startTime=" + startTime +
+        ", endTime=" + endTime +
+        ", flowName='" + flowName + '\'' +
+        ", context=" + context +
+        ", tags=" + tags +
+        '}';
+  }
 }

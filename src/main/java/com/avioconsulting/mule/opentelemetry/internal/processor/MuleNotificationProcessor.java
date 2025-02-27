@@ -381,17 +381,17 @@ public class MuleNotificationProcessor {
         TypedValue<String> contextId = (TypedValue<String>) notification.getEvent().getVariables()
             .get(TransactionStore.OTEL_FLOW_CONTEXT_ID);
         if (contextId != null && contextId.getValue() != null) {
+          logger.trace("Attempting to find {} by {}", traceComponent, contextId.getValue());
           traceComponent = traceComponent.withEventContextId(contextId.getValue());
         }
         transactionMeta = openTelemetryConnection.endTransaction(traceComponent,
             notification.getException());
       }
-
-      openTelemetryConnection.getMetricsProviders().captureFlowMetrics(
-          Objects.requireNonNull(transactionMeta,
-              "Transaction for " + traceComponent.contextScopedLocation() + " cannot be null"),
-          notification.getResourceIdentifier(),
-          notification.getException());
+      if (transactionMeta != null) {
+        openTelemetryConnection.getMetricsProviders().captureFlowMetrics(transactionMeta,
+            notification.getResourceIdentifier(),
+            notification.getException());
+      }
 
     } catch (Exception ex) {
       logger.error(
