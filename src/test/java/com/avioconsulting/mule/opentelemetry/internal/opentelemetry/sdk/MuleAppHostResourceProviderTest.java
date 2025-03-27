@@ -3,26 +3,34 @@ package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk;
 import io.opentelemetry.instrumentation.resources.HostResource;
 import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;
 import io.opentelemetry.sdk.resources.Resource;
+import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.Properties;
 
-import static io.opentelemetry.semconv.ResourceAttributes.CLOUD_ACCOUNT_ID;
-import static io.opentelemetry.semconv.ResourceAttributes.CLOUD_PLATFORM;
-import static io.opentelemetry.semconv.ResourceAttributes.CLOUD_PROVIDER;
-import static io.opentelemetry.semconv.ResourceAttributes.CLOUD_REGION;
-import static io.opentelemetry.semconv.ResourceAttributes.CONTAINER_ID;
-import static io.opentelemetry.semconv.ResourceAttributes.CONTAINER_NAME;
-import static io.opentelemetry.semconv.ResourceAttributes.HOST_IP;
-import static io.opentelemetry.semconv.ResourceAttributes.HOST_NAME;
+import static io.opentelemetry.semconv.incubating.ContainerIncubatingAttributes.CONTAINER_ID;
+import static io.opentelemetry.semconv.incubating.ContainerIncubatingAttributes.CONTAINER_NAME;
+import static io.opentelemetry.semconv.incubating.HostIncubatingAttributes.HOST_IP;
+import static io.opentelemetry.semconv.incubating.HostIncubatingAttributes.HOST_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class MuleAppHostResourceProviderTest {
 
+  private ConfigProperties configProperties;
+
+  @Before
+  public void setup() {
+    this.configProperties = mock(ConfigProperties.class);
+    when(configProperties.getString(eq("otel.service.name"))).thenReturn("test-app");
+    when(configProperties.getBoolean("mule.otel.service.host.chv1.env_id", false)).thenReturn(Boolean.FALSE);
+  }
+
   @Test
-  public void get_cloudhub_v1() {
+  public void get_cloudhub_v1_default_host() {
     Properties props = new Properties();
     props.setProperty("fullDomain", "test.fullDomain");
     props.setProperty("domain", "test");
@@ -31,9 +39,33 @@ public class MuleAppHostResourceProviderTest {
     props.setProperty("worker.publicIP", "30.40.50.60");
 
     props.forEach((key, value) -> System.setProperty(key.toString(), value.toString()));
-    MuleAppHostResource.refresh();
+    MuleAppHostResource.refresh(configProperties);
     MuleAppHostResourceProvider provider = new MuleAppHostResourceProvider();
-    ConfigProperties configProperties = Mockito.mock(ConfigProperties.class);
+    Resource resource = provider.createResource(configProperties);
+    assertThat(resource)
+        .isNotNull();
+    assertThat(resource.getAttributes().asMap())
+        .hasSize(4)
+        .containsEntry(HOST_NAME, "test-app")
+        .containsEntry(HOST_IP, Arrays.asList("30.40.50.60"))
+        .containsEntry(CONTAINER_ID, "test-0")
+        .containsEntry(CONTAINER_NAME, "test-0");
+    props.forEach((key, value) -> System.clearProperty(key.toString()));
+  }
+
+  @Test
+  public void get_cloudhub_v1_host_override() {
+    Properties props = new Properties();
+    props.setProperty("fullDomain", "test.fullDomain");
+    props.setProperty("domain", "test");
+    props.setProperty("environment.id", "test-env-id");
+    props.setProperty("worker.id", "0");
+    props.setProperty("worker.publicIP", "30.40.50.60");
+
+    props.forEach((key, value) -> System.setProperty(key.toString(), value.toString()));
+    when(configProperties.getBoolean("mule.otel.service.host.chv1.env_id", false)).thenReturn(Boolean.TRUE);
+    MuleAppHostResource.refresh(configProperties);
+    MuleAppHostResourceProvider provider = new MuleAppHostResourceProvider();
     Resource resource = provider.createResource(configProperties);
     assertThat(resource)
         .isNotNull();
@@ -53,9 +85,8 @@ public class MuleAppHostResourceProviderTest {
     props.setProperty("HOSTNAME", "test-host-name");
 
     props.forEach((key, value) -> System.setProperty(key.toString(), value.toString()));
-    MuleAppHostResource.refresh();
+    MuleAppHostResource.refresh(configProperties);
     MuleAppHostResourceProvider provider = new MuleAppHostResourceProvider();
-    ConfigProperties configProperties = Mockito.mock(ConfigProperties.class);
     Resource resource = provider.createResource(configProperties);
     assertThat(resource)
         .isNotNull();
@@ -71,9 +102,8 @@ public class MuleAppHostResourceProviderTest {
   public void get_no_cloudhub() {
     System.clearProperty("NODE_NAME");
     System.clearProperty("fullDomain");
-    MuleAppHostResource.refresh();
+    MuleAppHostResource.refresh(configProperties);
     MuleAppHostResourceProvider provider = new MuleAppHostResourceProvider();
-    ConfigProperties configProperties = Mockito.mock(ConfigProperties.class);
     Resource resource = provider.createResource(configProperties);
     assertThat(resource)
         .isNotNull();
