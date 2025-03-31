@@ -7,6 +7,6 @@ import io.opentelemetry.sdk.resources.Resource;
 public class MuleAppHostResourceProvider implements ResourceProvider {
   @Override
   public Resource createResource(ConfigProperties config) {
-    return MuleAppHostResource.get();
+    return MuleAppHostResource.get(config);
   }
 }
