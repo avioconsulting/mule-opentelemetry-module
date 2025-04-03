@@ -37,6 +37,9 @@ public class MuleOpenTelemetryAPIKitTest extends AbstractMuleArtifactTraceTest {
               .as("Span for http:listener source flow")
               .extracting("spanName", "spanKind", "spanStatus")
               .containsOnly("GET /api/orders/{orderId}", "SERVER", "UNSET");
+          assertThat(span.getAttributes())
+              .as("Attributes for http:listener source flow")
+              .containsEntry("http.route", "/api/orders/{orderId}");
         }));
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .anySatisfy(span -> {

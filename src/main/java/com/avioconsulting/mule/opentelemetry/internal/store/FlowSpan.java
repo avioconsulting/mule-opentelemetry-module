@@ -4,6 +4,7 @@ import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.traces.ComponentEventContext;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.processor.HttpProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.api.trace.Span;
@@ -25,6 +26,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import static com.avioconsulting.mule.opentelemetry.internal.processor.util.HttpSpanUtil.apiKitRoutePath;
+import static io.opentelemetry.semconv.HttpAttributes.HTTP_ROUTE;
 
 public class FlowSpan implements Serializable {
 
@@ -144,8 +146,11 @@ public class FlowSpan implements Serializable {
     if (apikitConfigName != null && ComponentsUtil.isFlowTrace(traceComponent)
         && traceComponent.getName().endsWith(":" + apikitConfigName)) {
       if (rootSpanName.endsWith("/*")) { // Wildcard listener for HTTP APIKit Router
-        String spanName = apiKitRoutePath(traceComponent.getTags(), getRootSpanName());
+        String apiKitRoutePath = apiKitRoutePath(traceComponent.getTags());
+        String spanName = getRootSpanName().replace("/*", apiKitRoutePath);
         getSpan().updateName(spanName);
+        // HTTP Span Name of the format '{METHOD} {ROUTE}'
+        getSpan().setAttribute(HTTP_ROUTE, spanName.substring(spanName.lastIndexOf(" ") + 1));
       }
     }
   }
