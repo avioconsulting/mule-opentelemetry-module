@@ -103,9 +103,9 @@ Following table summarizes the attributes value strategy -
 
 |CloudHub v1
 |host.name
-|Anypoint Environment Id
-|Uses environment id in which application is deployed
-|522689ad-f2c6-481b-9165-6af716cf0312
+|Default Worker IP
+|Uses the Worker Public IP address
+|ip-30-40-50-60
 
 |CloudHub v1
 |host.ip
