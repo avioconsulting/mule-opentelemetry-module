@@ -26,7 +26,7 @@ public class MuleAppHostResourceProviderTest {
   public void setup() {
     this.configProperties = mock(ConfigProperties.class);
     when(configProperties.getString(eq("otel.service.name"))).thenReturn("test-app");
-    when(configProperties.getBoolean("mule.otel.service.host.chv1.env_id", false)).thenReturn(Boolean.FALSE);
+    when(configProperties.getString("mule.otel.service.host.chv1.strategy", "")).thenReturn("");
   }
 
   @Test
@@ -46,7 +46,7 @@ public class MuleAppHostResourceProviderTest {
         .isNotNull();
     assertThat(resource.getAttributes().asMap())
         .hasSize(4)
-        .containsEntry(HOST_NAME, "test-app")
+        .containsEntry(HOST_NAME, "ip-30-40-50-60")
         .containsEntry(HOST_IP, Arrays.asList("30.40.50.60"))
         .containsEntry(CONTAINER_ID, "test-0")
         .containsEntry(CONTAINER_NAME, "test-0");
@@ -54,7 +54,7 @@ public class MuleAppHostResourceProviderTest {
   }
 
   @Test
-  public void get_cloudhub_v1_host_override() {
+  public void get_cloudhub_v1_host_override_service_name() {
     Properties props = new Properties();
     props.setProperty("fullDomain", "test.fullDomain");
     props.setProperty("domain", "test");
@@ -63,7 +63,32 @@ public class MuleAppHostResourceProviderTest {
     props.setProperty("worker.publicIP", "30.40.50.60");
 
     props.forEach((key, value) -> System.setProperty(key.toString(), value.toString()));
-    when(configProperties.getBoolean("mule.otel.service.host.chv1.env_id", false)).thenReturn(Boolean.TRUE);
+    when(configProperties.getString("mule.otel.service.host.chv1.strategy", "")).thenReturn("service_name");
+    MuleAppHostResource.refresh(configProperties);
+    MuleAppHostResourceProvider provider = new MuleAppHostResourceProvider();
+    Resource resource = provider.createResource(configProperties);
+    assertThat(resource)
+        .isNotNull();
+    assertThat(resource.getAttributes().asMap())
+        .hasSize(4)
+        .containsEntry(HOST_NAME, "test-app")
+        .containsEntry(HOST_IP, Arrays.asList("30.40.50.60"))
+        .containsEntry(CONTAINER_ID, "test-0")
+        .containsEntry(CONTAINER_NAME, "test-0");
+    props.forEach((key, value) -> System.clearProperty(key.toString()));
+  }
+
+  @Test
+  public void get_cloudhub_v1_host_override_env_id() {
+    Properties props = new Properties();
+    props.setProperty("fullDomain", "test.fullDomain");
+    props.setProperty("domain", "test");
+    props.setProperty("environment.id", "test-env-id");
+    props.setProperty("worker.id", "0");
+    props.setProperty("worker.publicIP", "30.40.50.60");
+
+    props.forEach((key, value) -> System.setProperty(key.toString(), value.toString()));
+    when(configProperties.getString("mule.otel.service.host.chv1.strategy", "")).thenReturn("env_id");
     MuleAppHostResource.refresh(configProperties);
     MuleAppHostResourceProvider provider = new MuleAppHostResourceProvider();
     Resource resource = provider.createResource(configProperties);

@@ -8,6 +8,8 @@ import io.opentelemetry.instrumentation.resources.HostResource;
 import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.semconv.incubating.HostIncubatingAttributes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.addAttribute;
 import static com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil.getProperty;
@@ -22,6 +24,7 @@ import static io.opentelemetry.semconv.incubating.HostIncubatingAttributes.HOST_
 public final class MuleAppHostResource {
 
   private static Resource INSTANCE = null;
+  private static final Logger LOGGER = LoggerFactory.getLogger(MuleAppHostResource.class);
 
   public static Resource get(ConfigProperties config) {
     return getInternal(config);
@@ -52,17 +55,31 @@ public final class MuleAppHostResource {
       addAttribute("HOSTNAME", attributes, CONTAINER_NAME);
     } else if (PropertiesUtil.isCloudHubV1()) {
       // Cloudhub V1
-      boolean useEnvIdHost = config.getBoolean("mule.otel.service.host.chv1.env_id", false);
-      String hostname = useEnvIdHost ? getProperty("environment.id")
-          : config.getString("otel.service.name");
+      Resource hostResource = HostResource.get();
+      String workerPublicIP = getProperty("worker.publicIP");
+      String hostname = hostResource.getAttribute(HOST_NAME);
+      if (workerPublicIP != null) {
+        attributes.put(HostIncubatingAttributes.HOST_IP, workerPublicIP);
+        hostname = "ip-" + workerPublicIP.replace(".", "-");
+      }
+      String hostStrategy = config.getString("mule.otel.service.host.chv1.strategy", "");
+      switch (hostStrategy) {
+        case "service_name":
+          hostname = config.getString("otel.service.name");
+          break;
+        case "env_id":
+          hostname = getProperty("environment.id");
+          break;
+        case "":
+          break;
+        default:
+          LOGGER.warn("Invalid mule.otel.service.host.chv1.strategy value: {}", hostStrategy);
+      }
       if (hostname != null) {
         attributes.put(HOST_NAME, hostname);
       }
       String workerId = getProperty("worker.id", "na");
       String container = String.format("%s-%s", getProperty("domain"), workerId);
-      if (getProperty("worker.publicIP") != null) {
-        attributes.put(HostIncubatingAttributes.HOST_IP, getProperty("worker.publicIP"));
-      }
       attributes.put(CONTAINER_NAME, container);
       attributes.put(CONTAINER_ID, container);
     } else {
