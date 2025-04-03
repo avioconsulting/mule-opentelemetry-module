@@ -55,21 +55,17 @@ public class HttpSpanUtil {
   }
 
   /**
-   * Uses flow names to build a new span name
+   * Extracts the APIKit route path from the flow name
    * 
    * @param tags
    *            {@link Map} containing span tags
-   * @param rootSpanName
-   *            {@link String}
-   * @return String name of the span using apikit route path
+   * @return String apikit route path
    */
-  public static String apiKitRoutePath(Map<String, String> tags, String rootSpanName) {
-    Objects.requireNonNull(rootSpanName, "Root span name must not be null");
+  public static String apiKitRoutePath(Map<String, String> tags) {
     String flowName = tags.get(MULE_APP_FLOW_NAME.getKey());
     Objects.requireNonNull(flowName, "Flow name must not be null");
-    String pathName = (flowName.split(":")[1]).replace(":", "")
+    return (flowName.split(":")[1]).replace(":", "")
         .replaceAll("\\\\", "/")
         .replaceAll("\\(", "{").replaceAll("\\)", "}");
-    return rootSpanName.replace("/*", pathName);
   }
 }
