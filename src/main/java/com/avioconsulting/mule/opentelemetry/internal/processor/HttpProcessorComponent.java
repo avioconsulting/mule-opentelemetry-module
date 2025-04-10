@@ -4,6 +4,7 @@ import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.internal.processor.util.HttpSpanUtil;
+import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.semconv.HttpAttributes;
@@ -207,13 +208,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     try {
       TypedValue<?> httpStatus = notification.getEvent().getVariables().get("httpStatus");
       if (httpStatus != null) {
-        String statusCode = null;
-        if (httpStatus.getDataType().getMediaType().withoutParameters().equals(MediaType.APPLICATION_JSON)) {
-          statusCode = IOUtils.toString(
-              (CursorStreamProvider) StreamingUtils.consumeRepeatableValue(httpStatus).getValue());
-        } else {
-          statusCode = TypedValue.unwrap(httpStatus).toString();
-        }
+        String statusCode = OpenTelemetryUtil.typedValueToString(httpStatus);
         TraceComponent traceComponent = getTraceComponentBuilderFor(notification);
         traceComponent.withTags(singletonMap(HTTP_RESPONSE_STATUS_CODE_SA.getKey(), statusCode));
         traceComponent.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
