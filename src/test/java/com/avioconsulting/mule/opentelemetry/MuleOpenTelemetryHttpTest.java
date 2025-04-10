@@ -336,4 +336,40 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
 
   }
 
+  @Test
+  public void testHTTPAttributes_Hostname_withExpression() throws Exception {
+    // GitHub# issues/257
+    Throwable throwable = catchThrowable(() -> flowRunner("flow-call-remote-with-host-static-expression")
+        .withVariable("resourcePath", "/expression/secrets")
+        .run());
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .hasSize(2)
+        .element(0).as("Span for http:request flow")
+        .extracting("spanName", "spanKind")
+        .containsOnly("/expression/secrets", "CLIENT"));
+    DelegatedLoggingSpanTestExporter.Span client = getSpan("CLIENT", "/expression/secrets");
+    assertThat(client).isNotNull()
+        .extracting("attributes", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+        .containsEntry("http.route", "/expression/secrets")
+        .containsEntry("server.address", "0.0.0.0");
+  }
+
+  @Test
+  public void testHTTPAttributes_Hostname_withExpressionJSONStream() throws Exception {
+    // GitHub# issues/257
+    Throwable throwable = catchThrowable(() -> flowRunner("flow-call-remote-with-host-dynamic-json-expression")
+        .withVariable("resourcePath", "/expression/secrets")
+        .run());
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .hasSize(2)
+        .element(0).as("Span for http:request flow")
+        .extracting("spanName", "spanKind")
+        .containsOnly("/expression/secrets", "CLIENT"));
+    DelegatedLoggingSpanTestExporter.Span client = getSpan("CLIENT", "/expression/secrets");
+    assertThat(client).isNotNull()
+        .extracting("attributes", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+        .containsEntry("http.route", "/expression/secrets")
+        .containsEntry("server.address", "localhost");
+  }
+
 }

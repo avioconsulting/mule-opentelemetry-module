@@ -3,13 +3,17 @@ package com.avioconsulting.mule.opentelemetry.internal.util;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.AttributesBuilder;
+import org.mule.runtime.api.metadata.DataType;
+import org.mule.runtime.core.api.util.IOUtils;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.event.EventContext;
 import org.mule.runtime.api.metadata.TypedValue;
+import org.mule.runtime.api.streaming.bytes.CursorStreamProvider;
 import org.mule.runtime.core.api.el.ExpressionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -110,22 +114,53 @@ public class OpenTelemetryUtil {
     try {
       if (expressionManager
           .isExpression(traceComponent.getSpanName())) {
-        TypedValue<String> evaluatedSpanName = (TypedValue<String>) expressionManager
-            .evaluate(traceComponent.getSpanName(), event.asBindingContext());
-        if (evaluatedSpanName.getValue() != null) {
-          traceComponent.withSpanName(evaluatedSpanName.getValue());
+        String value = resolveExpression(traceComponent.getSpanName(), expressionManager, event);
+        if (value != null) {
+          traceComponent.withSpanName(value);
         }
       }
       List<Map.Entry<String, String>> expressionTags = traceComponent.getTags().entrySet().stream()
           .filter(e -> expressionManager.isExpression(e.getValue())).collect(Collectors.toList());
       for (Map.Entry<String, String> expressionTag : expressionTags) {
-        TypedValue<String> evaluate = (TypedValue<String>) expressionManager.evaluate(expressionTag.getValue(),
-            event.asBindingContext());
-        if (evaluate.getValue() != null) {
-          traceComponent.getTags().replace(expressionTag.getKey(), evaluate.getValue());
+        String value = resolveExpression(expressionTag.getValue(), expressionManager, event);
+        if (value != null) {
+          traceComponent.getTags().replace(expressionTag.getKey(), value);
         }
       }
     } catch (Exception ignored) {
     }
   }
+
+  public static String resolveExpression(String expression, ExpressionManager expressionManager, Event event)
+      throws Exception {
+    TypedValue evaluate = expressionManager.evaluate(expression, DataType.STRING, event.asBindingContext());
+    return typedValueToString(evaluate);
+  }
+
+  /**
+   * Converts a given TypedValue into a String representation.
+   * The method handles different types of input including CursorStreamProvider,
+   * InputStream,
+   * and other generic object types.
+   *
+   * @param typedValue
+   *            The TypedValue object to be converted to a String.
+   * @return A String representation of the TypedValue.
+   * @throws Exception
+   *             If an error occurs during the conversion process, such as IO
+   *             errors.
+   */
+  public static String typedValueToString(TypedValue typedValue) throws Exception {
+    String value = "";
+    Object input = typedValue.getValue();
+    if (input instanceof CursorStreamProvider) {
+      value = IOUtils.toString(((CursorStreamProvider) input).openCursor());
+    } else if (input instanceof InputStream) {
+      value = IOUtils.toString((InputStream) input);
+    } else {
+      value = TypedValue.unwrap(typedValue).toString();
+    }
+    return value;
+  }
+
 }
