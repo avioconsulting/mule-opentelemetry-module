@@ -142,7 +142,7 @@ public class InMemoryTransactionStore implements TransactionStore {
     }
     if (transactionMeta == null) {
       LOGGER.trace("No transaction meta found for {} ", traceComponent);
-    } else if (transactionMeta.getTags() != null && transactionMeta.getTags() != null) {
+    } else if (traceComponent.getTags() != null && transactionMeta.getTags() != null) {
       transactionMeta.getTags().putAll(traceComponent.getTags());
     }
     return transactionMeta;
