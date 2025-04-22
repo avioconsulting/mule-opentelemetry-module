@@ -123,10 +123,13 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
 
   @Test
   public void testSubscriberTrace() throws Exception {
-    runFlow("anypoint-mq-flowsFlow");
+    // Wait for subscribe source to receive a message from mock server
+    // manually invoking the flow will not set the source element on the component
+    // and thus will not trigger
+    // Anypoint MQ source specific processor
     await().untilAsserted(() -> {
       assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
-          .hasSizeGreaterThanOrEqualTo(2)
+          .hasSizeGreaterThanOrEqualTo(1)
           .filteredOn(span -> span.getSpanKind().equals("CONSUMER"))
           .allSatisfy(span -> assertSpan(span, "Subscriber", "CONSUMER"));
     });
