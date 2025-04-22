@@ -104,7 +104,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
       configMap.put("otel.java.disabled.resource.providers",
           "io.opentelemetry.instrumentation.resources.HostResourceProvider,io.opentelemetry.instrumentation.resources.ContainerResourceProvider");
       builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
-      logger.debug("Creating OpenTelemetryConnection with properties: [" + configMap + "]");
+      logger.debug("Creating OpenTelemetryConnection with properties: [{}]", configMap);
       turnOffTracing = openTelemetryConfigWrapper.isTurnOffTracing();
       turnOffMetrics = openTelemetryConfigWrapper.isTurnOffMetrics();
       appIdentifier = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getAppIdentifier();
