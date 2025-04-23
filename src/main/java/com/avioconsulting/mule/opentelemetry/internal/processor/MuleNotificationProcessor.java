@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -301,11 +300,7 @@ public class MuleNotificationProcessor {
       traceComponent = attemptAddingTraceContextIfMissing(notification, traceComponent);
       openTelemetryConnection.startTransaction(traceComponent);
     } catch (Exception ex) {
-      logger.error(
-          "Error in handling "
-              + notification.getResourceIdentifier()
-              + " flow start event",
-          ex);
+      logger.error("Error in handling {} flow start event", notification.getResourceIdentifier(), ex);
       throw ex;
     }
   }
@@ -394,9 +389,7 @@ public class MuleNotificationProcessor {
       }
 
     } catch (Exception ex) {
-      logger.error(
-          "Error in handling " + notification.getResourceIdentifier() + " flow end event",
-          ex);
+      logger.error("Error in handling {} flow end event", notification.getResourceIdentifier(), ex);
       throw ex;
     }
   }

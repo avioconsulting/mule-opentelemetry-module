@@ -79,7 +79,7 @@ public class Transaction implements TransactionMeta {
 
   /**
    * Ends the root flow associated with this transaction and sets the
-   * {@link this#endTime} of the transaction.
+   * {@link #endTime} of the transaction.
    * Ending a transaction does not necessarily mean that all child flows
    * associated with the processing of the root flow have ended.
    * Check {@link #hasEnded()} to validate if the full transaction has ended.
@@ -90,7 +90,8 @@ public class Transaction implements TransactionMeta {
    * @param traceComponent
    *            {@link TraceComponent} for the root flow span
    * @param endSpan
-   *            {@link Consumer<Span>} to let caller's make changes to the
+   *            {@link Consumer} of a {@link Span} to let caller's make changes to
+   *            the
    *            associated {@link Span} for root flow
    */
   public void endRootFlow(TraceComponent traceComponent, Consumer<Span> endSpan) {

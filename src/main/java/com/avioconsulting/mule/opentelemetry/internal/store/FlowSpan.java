@@ -4,7 +4,6 @@ import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.traces.ComponentEventContext;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
-import com.avioconsulting.mule.opentelemetry.internal.processor.HttpProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.api.trace.Span;
