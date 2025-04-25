@@ -31,7 +31,16 @@ release:
     releaseName: '{{tagName}}'
     skipTag: false
     milestone:
-      close: false
+      close: true
+      name: '{{tagName}}'
+    issues:
+      enabled: true
+      comment: '🎉 This issue has been resolved in `{{tagName}}` ([Release Notes]({{releaseNotesUrl}}))'
+      applyMilestone: ALWAYS
+      label:
+        name: released
+        color: '#008000'
+        description: Issue has been released
     changelog:
       skipMergeCommits: true
       formatted: ALWAYS
