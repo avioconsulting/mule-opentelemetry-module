@@ -147,9 +147,12 @@ public class FlowSpan implements Serializable {
       if (rootSpanName.endsWith("/*")) { // Wildcard listener for HTTP APIKit Router
         String apiKitRoutePath = apiKitRoutePath(traceComponent.getTags());
         String spanName = getRootSpanName().replace("/*", apiKitRoutePath);
+        setRootSpanName(spanName);
         getSpan().updateName(spanName);
         // HTTP Span Name of the format '{METHOD} {ROUTE}'
-        getSpan().setAttribute(HTTP_ROUTE, spanName.substring(spanName.lastIndexOf(" ") + 1));
+        String httpRoute = spanName.substring(spanName.lastIndexOf(" ") + 1);
+        getTags().put(HTTP_ROUTE.getKey(), httpRoute);
+        getSpan().setAttribute(HTTP_ROUTE, httpRoute);
       }
     }
   }
