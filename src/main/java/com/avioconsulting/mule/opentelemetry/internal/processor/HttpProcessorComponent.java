@@ -39,6 +39,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
   public static final String NAMESPACE = "http";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpProcessorComponent.class);
+  private static final char DOUBLE_QUOTE = '"';
 
   @Override
   protected String getNamespace() {
@@ -205,14 +206,26 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
       TypedValue<?> httpStatus = notification.getEvent().getVariables().get("httpStatus");
       if (httpStatus != null) {
         String statusCode = OpenTelemetryUtil.typedValueToString(httpStatus);
+        if (statusCode.charAt(0) == DOUBLE_QUOTE
+            && statusCode.charAt(statusCode.length() - 1) == DOUBLE_QUOTE) {
+          // When httpStatus is set as JSON string, DW wraps it under additional quotes.
+          LOGGER.warn(
+              "Received HTTP status code as a String '{}', removing the quotes. It is recommended to set the HTTP status to a number.",
+              statusCode);
+          statusCode = statusCode.substring(1, statusCode.length() - 1);
+        }
         TraceComponent traceComponent = getTraceComponentBuilderFor(notification);
         traceComponent.withTags(singletonMap(HTTP_RESPONSE_STATUS_CODE_SA.getKey(), statusCode));
         traceComponent.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
         return traceComponent;
       }
+    } catch (NumberFormatException nfe) {
+      LOGGER.error(
+          "Failed to parse httpStatus value to a valid status code - {}", nfe.getLocalizedMessage());
     } catch (Exception ex) {
       LOGGER.warn(
-          "Failed to extract httpStatus variable value. Resulted span may not have http status code attribute.");
+          "Failed to extract httpStatus variable value. Resulted span may not have http status code attribute. - {}",
+          ex.getLocalizedMessage());
     }
     return null;
   }
