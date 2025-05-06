@@ -14,11 +14,18 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 	<http:request-config name="SELF_EXPRESSION_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="c18eed36-eb42-4c29-abc9-9e7a2c6049e1" >
 		<http:request-connection host="#[vars.hostname]" port="${http.port}" />
 	</http:request-config>
-	<flow name="http-json-status"  >
-		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test-json-status"/>
+	<flow name="http-json-number-status"  >
+		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test-json-number-status"/>
 		<logger level="INFO" doc:name="Logger"  />
 		<set-payload value="Received in App2" doc:name="Set Payload"  />
 		<set-variable variableName="httpStatus" value="#[output json --- 200]"/>
+		<logger level="INFO" doc:name="Logger"  />
+	</flow>
+	<flow name="http-json-string-status"  >
+		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test-json-string-status"/>
+		<logger level="INFO" doc:name="Logger"  />
+		<set-payload value="Received in App2" doc:name="Set Payload"  />
+		<set-variable variableName="httpStatus" value="#[output json --- '200']"/>
 		<logger level="INFO" doc:name="Logger"  />
 	</flow>
 	<flow name="http-bad-status"  >

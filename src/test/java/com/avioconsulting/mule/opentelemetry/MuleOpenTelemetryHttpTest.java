@@ -30,13 +30,27 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
   }
 
   @Test
-  public void testHttpTracing_WithJsonStatus() throws Exception {
-    sendRequest(CORRELATION_ID, "/test-json-status", 200);
+  public void testHttpTracing_WithJsonStatus_Number() throws Exception {
+    sendRequest(CORRELATION_ID, "/test-json-number-status", 200);
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .hasSize(1)
         .element(0)
         .extracting("spanName", "spanKind", "spanStatus")
-        .containsOnly("GET /test-json-status", "SERVER", "UNSET"));
+        .containsOnly("GET /test-json-number-status", "SERVER", "UNSET"));
+    assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .element(0)
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
+        .containsEntry("http.response.status_code", "200");
+  }
+
+  @Test
+  public void testHttpTracing_WithJsonStatus_String() throws Exception {
+    sendRequest(CORRELATION_ID, "/test-json-string-status", 200);
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .hasSize(1)
+        .element(0)
+        .extracting("spanName", "spanKind", "spanStatus")
+        .containsOnly("GET /test-json-string-status", "SERVER", "UNSET"));
     assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
         .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
