@@ -142,4 +142,30 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
         .isInstanceOf(GenericProcessorComponent.class);
 
   }
+
+  @Test
+  public void handleProcessorStartEvent_doesNotPropagateException() {
+
+    Event event = mock(Event.class);
+    when(event.getCorrelationId()).thenReturn("testCorrelationId");
+    Message message = getMessage(null);
+    when(event.getMessage()).thenReturn(message);
+    ComponentLocation componentLocation = getComponentLocation("mule", "logger");
+    Component component = getComponent(componentLocation, Collections.emptyMap(), "mule", "logger");
+    Exception exception = mock(Exception.class);
+    MessageProcessorNotification notification = MessageProcessorNotification.createFrom(event, componentLocation,
+        component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
+    OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
+    when(connection.getExpressionManager()).thenReturn(null); // cause NPE
+
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+    notificationProcessor.init(connection, new TraceLevelConfiguration(true, Collections.emptyList()));
+
+    Throwable any = Assertions.catchThrowable(
+        () -> notificationProcessor.handleProcessorStartEvent(notification));
+
+    Assertions.assertThat(any).as("An exception was not thrown").isNull();
+
+  }
+
 }

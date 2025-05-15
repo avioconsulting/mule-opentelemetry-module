@@ -7,6 +7,7 @@ import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotification
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.test.util.TestInterceptionEvent;
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
@@ -304,4 +305,32 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
         .doesNotContainKey(TransactionStore.TRACE_PREV_CONTEXT_MAP_KEY);
   }
 
+  @Test
+  public void verifyInterceptorDoesNotRaiseExceptionInBefore() {
+
+    // Give an interceptor with no muleNotificationProcessor resulting in NPE
+    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(null,
+        null);
+
+    ComponentLocation location = mock(ComponentLocation.class);
+    when(location.getLocation()).thenReturn("test-location");
+    when(location.getRootContainerName()).thenReturn("test-flow-name");
+    ComponentIdentifier ci = mock(ComponentIdentifier.class);
+    when(ci.getNamespace()).thenReturn("http");
+    when(ci.getName()).thenReturn("request");
+    TypedComponentIdentifier tci = mock(TypedComponentIdentifier.class);
+    when(tci.getIdentifier()).thenReturn(ci);
+    when(location.getComponentIdentifier()).thenReturn(tci);
+
+    TestInterceptionEvent interceptionEvent = new TestInterceptionEvent("random-id");
+    TypedValue<String> preContext = TypedValue.of("prev-context-map");
+    interceptionEvent.getVariables().put(TRACE_CONTEXT_MAP_KEY, preContext);
+
+    // when intercepting
+    Throwable any = Assertions
+        .catchThrowable(() -> interceptor.before(location, Collections.emptyMap(), interceptionEvent));
+
+    // must not propagate NPE exception
+    assertThat(any).as("Exception from method invocation").isNull();
+  }
 }
