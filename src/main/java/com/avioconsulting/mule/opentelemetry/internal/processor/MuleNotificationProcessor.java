@@ -167,8 +167,11 @@ public class MuleNotificationProcessor {
         processFlowRef(traceComponent, notification.getEvent());
       }
     } catch (Exception ex) {
-      logger.error("Error in handling processor start event", ex);
-      throw ex;
+      logger.trace(
+          "Failed to intercept processor {} at {}, span may not be captured for this processor. Error - {}",
+          notification.getComponent().getIdentifier().toString(),
+          notification.getComponent().getLocation().getLocation(),
+          ex.getLocalizedMessage(), ex);
     }
   }
 
