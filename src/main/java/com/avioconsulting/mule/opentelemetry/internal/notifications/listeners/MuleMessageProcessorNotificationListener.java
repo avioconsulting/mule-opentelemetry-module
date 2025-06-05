@@ -18,7 +18,6 @@ public class MuleMessageProcessorNotificationListener extends AbstractMuleNotifi
   public void onNotification(MessageProcessorNotification notification) {
     replaceMDCEntry(notification.getEvent());
     LOGGER.trace("===> Received {}:{}", notification.getClass().getName(), notification.getActionName());
-
     switch (Integer.parseInt(notification.getAction().getIdentifier())) {
       case MessageProcessorNotification.MESSAGE_PROCESSOR_PRE_INVOKE:
         muleNotificationProcessor.handleProcessorStartEvent(notification);

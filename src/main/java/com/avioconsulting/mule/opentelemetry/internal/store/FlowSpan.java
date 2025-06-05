@@ -77,6 +77,7 @@ public class FlowSpan implements Serializable {
         traceComponent.contextScopedLocation(),
         this.getRootSpanName(),
         this.transactionId, this.getSpan().getSpanContext().toString());
+    ProcessorSpan parentSpan = null;
     if (containerName != null) {
       if (getFlowName().equals(containerName)) {
         spanBuilder.setParent(getSpan().storeInContext(Context.current()));
@@ -84,7 +85,7 @@ public class FlowSpan implements Serializable {
         String contextScopedContainer = traceComponent.contextScopedPath(containerName);
         ProcessorSpan ps = new ProcessorSpan(getSpan(), traceComponent.getLocation(), transactionId,
             traceComponent.getStartTime(), flowName).setTags(getTags());
-        ProcessorSpan parentSpan = getParentSpan(traceComponent, containerName);
+        parentSpan = getParentSpan(traceComponent, containerName);
         if (parentSpan == null) {
           LOGGER.debug("Parent span not found for {}. Child span keys - {}", contextScopedContainer,
               childSpans.keySet());
@@ -99,16 +100,19 @@ public class FlowSpan implements Serializable {
     resetSpanNameIfNeeded(traceComponent);
     Span span = spanBuilder.startSpan();
     ProcessorSpan ps = new ProcessorSpan(span, traceComponent.getLocation(), transactionId,
-        traceComponent.getStartTime(), flowName).setTags(traceComponent.getTags());
+        traceComponent.getStartTime(), flowName, traceComponent.getSiblings())
+            .setTags(traceComponent.getTags());
+    ps.setParentSpan(parentSpan);
     LOGGER.trace("Adding span for {}:{} - {}", traceComponent.contextScopedLocation(), traceComponent.getSpanName(),
         span.getSpanContext().getSpanId());
     childSpans.putIfAbsent(traceComponent.contextScopedLocation(), ps);
     return ps;
   }
 
-  public void addChildFlow(TraceComponent traceComponent, SpanBuilder spanBuilder) {
-    addProcessorSpan(null, traceComponent, spanBuilder);
+  public SpanMeta addChildFlow(TraceComponent traceComponent, SpanBuilder spanBuilder) {
+    SpanMeta spanMeta = addProcessorSpan(null, traceComponent, spanBuilder);
     childFlowCounter.incrementAndGet();
+    return spanMeta;
   }
 
   public ProcessorSpan endChildFlow(TraceComponent traceComponent, Consumer<Span> endSpan) {
@@ -179,11 +183,13 @@ public class FlowSpan implements Serializable {
               + getSpan().getSpanContext().toString());
       LOGGER.trace("Removing span for {} - {}", traceComponent.contextScopedLocation(), removed.getSpanId());
       endRouteSpans(traceComponent, endTime);
-
       removed.setEndTime(endTime);
       if (spanUpdater != null)
         spanUpdater.accept(removed.getSpan());
       removed.getSpan().end(endTime);
+      if (removed.getParentSpan() != null && removed.getParentSpan().getSiblings() > 0) {
+        removed.getParentSpan().decrementActiveSiblingCount();
+      }
       return removed;
     }
     return null;
@@ -223,8 +229,9 @@ public class FlowSpan implements Serializable {
    *            {@link Instant}
    */
   private void endRouteSpans(TraceComponent traceComponent, Instant endTime) {
-    if (!TypedComponentIdentifier.ComponentType.ROUTER
-        .equals(traceComponent.getComponentLocation().getComponentIdentifier().getType()))
+    if (traceComponent.getComponentLocation() == null ||
+        !TypedComponentIdentifier.ComponentType.ROUTER
+            .equals(traceComponent.getComponentLocation().getComponentIdentifier().getType()))
       return;
     // Location string may contain characters not allowed in REGEX, so let's quote
     // it with \Q\E

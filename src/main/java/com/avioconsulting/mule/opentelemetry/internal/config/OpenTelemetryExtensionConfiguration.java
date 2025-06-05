@@ -11,11 +11,10 @@ import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsC
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigSupplier;
 import com.avioconsulting.mule.opentelemetry.internal.OpenTelemetryOperations;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
-import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.AsyncMessageNotificationListener;
-import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MetricEventNotificationListener;
-import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MuleMessageProcessorNotificationListener;
-import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.MulePipelineMessageNotificationListener;
+import com.avioconsulting.mule.opentelemetry.internal.notifications.listeners.*;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
+import com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil;
+import com.avioconsulting.mule.opentelemetry.internal.util.ServiceProviderUtil;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.lifecycle.Startable;
 import org.mule.runtime.api.lifecycle.Stoppable;
@@ -38,6 +37,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
 
 @Operations(OpenTelemetryOperations.class)
 @Configuration
@@ -198,6 +199,8 @@ public class OpenTelemetryExtensionConfiguration
     appIdentifier = AppIdentifier.fromEnvironment(expressionManager);
     openTelemetryConnection = OpenTelemetryConnection
         .getInstance(new OpenTelemetryConfigWrapper(this));
+    openTelemetryConnection
+        .setConfigurationComponentLocator(muleNotificationProcessor.getConfigurationComponentLocator());
     getTraceLevelConfiguration().initMuleComponentsMap();
     muleNotificationProcessor.init(openTelemetryConnection,
         getTraceLevelConfiguration());
@@ -211,6 +214,7 @@ public class OpenTelemetryExtensionConfiguration
           new MulePipelineMessageNotificationListener(muleNotificationProcessor));
       notificationListenerRegistry
           .registerListener(new AsyncMessageNotificationListener(muleNotificationProcessor));
+      prepareBatchListener();
     }
 
     if (isTurnOffMetrics()) {
@@ -220,6 +224,30 @@ public class OpenTelemetryExtensionConfiguration
           new MetricEventNotificationListener(muleNotificationProcessor),
           extensionNotification -> METRIC_NOTIFICATION_DATA_TYPE
               .isCompatibleWith(extensionNotification.getData().getDataType()));
+    }
+  }
+
+  private void prepareBatchListener() {
+    List<com.avioconsulting.mule.opentelemetry.ee.batch.api.notifications.OtelBatchNotificationListener> listeners = new ArrayList<>();
+    ServiceProviderUtil.load(
+        com.avioconsulting.mule.opentelemetry.ee.batch.api.notifications.OtelBatchNotificationListener.class
+            .getClassLoader(),
+        com.avioconsulting.mule.opentelemetry.ee.batch.api.notifications.OtelBatchNotificationListener.class,
+        listeners);
+    if (listeners.isEmpty()) {
+      logger.trace("No listeners registered for Batch Notifications");
+    } else {
+      if (listeners.size() > 1) {
+        logger.warn(
+            "Multiple listeners registered for Batch Notifications. This indicate misconfiguration and may impact performance.");
+      }
+      OtelBatchNotificationListener otelBatchNotificationListener = new OtelBatchNotificationListener(
+          muleNotificationProcessor);
+      listeners.forEach(listener -> {
+        logger.info("Batch Notification listener registered: {}", listener.getClass().getSimpleName());
+        listener.register(otelBatchNotificationListener::onOtelBatchNotification, notificationListenerRegistry);
+        BatchHelperUtil.init(listener.getBatchUtil());
+      });
     }
   }
 
