@@ -69,7 +69,7 @@ public class DBProcessorComponent extends AbstractProcessorComponent {
             value.forEach((k, v) -> {
               startTraceComponent.getTags().put(
                   DbIncubatingAttributes.DB_OPERATION_PARAMETER.getAttributeKey(k).getKey(),
-                  v.toString());
+                  v == null ? "null" : v.toString());
             });
           }
         }

@@ -30,6 +30,21 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 		<set-payload value="#[output applicaton/json --- payload]" doc:name="Set Payload" doc:id="f5b6ab5f-a2f5-4f75-a17b-59da8e8a2dcd" />
 	</flow>
 
+	<flow name="DB-select-by-id-Flow" doc:id="3f254a47-6af7-4b6b-866d-8b96a2348568" >
+		<http:listener doc:name="Listener" doc:id="1c8300a4-56da-490e-a704-033cbdea75a2" config-ref="HTTP_Listener_config" path="/test/db/select-by-id">
+			<http:error-response >
+				<http:body ><![CDATA[#[output text/plain --- 'Failed']]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<db:select doc:name="Select" doc:id="ca3b24fc-4f6e-4a98-bc0b-8862449c5c94" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from testdb.users where userId=:userId]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+   userId: attributes.queryParams.userId
+}]]]></db:input-parameters>
+		</db:select>
+		<set-payload value="#[output applicaton/json --- payload]" doc:name="Set Payload" doc:id="f5b6ab5f-a2f5-4f75-a17b-59da8e8a2dcd" />
+	</flow>
+
 	<flow name="DB-insert-Flow" doc:id="3f254a47-6af7-4b6b-866d-8b96a2348568" >
 		<http:listener doc:name="Listener" doc:id="1c8300a4-56da-490e-a704-033cbdea75a2" config-ref="HTTP_Listener_config" path="/test/db/insert">
 			<http:error-response >
