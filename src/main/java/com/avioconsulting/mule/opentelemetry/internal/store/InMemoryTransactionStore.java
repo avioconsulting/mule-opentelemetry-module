@@ -68,7 +68,7 @@ public class InMemoryTransactionStore implements TransactionStore {
   private void startFlowTransaction(TraceComponent traceComponent, String rootName, SpanBuilder spanBuilder,
       String transactionId) {
     Span span = spanBuilder.startSpan();
-    LOGGER.info(
+    LOGGER.trace(
         "Start Flow transaction {} for flow '{}': OT SpanId {}, TraceId {}",
         transactionId,
         rootName,

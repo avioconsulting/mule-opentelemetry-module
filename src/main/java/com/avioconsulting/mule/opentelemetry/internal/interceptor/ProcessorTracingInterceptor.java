@@ -126,7 +126,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
         }
       }
     } catch (Exception ex) {
-      LOGGER.info(
+      LOGGER.trace(
           "Failed to intercept processor {} at {}, span may not be captured for this processor. Error - {}",
           location.getComponentIdentifier().getIdentifier().toString(), location.getLocation(),
           ex.getLocalizedMessage(), ex);

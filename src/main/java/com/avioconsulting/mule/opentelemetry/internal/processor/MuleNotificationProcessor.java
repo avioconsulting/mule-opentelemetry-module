@@ -299,7 +299,7 @@ public class MuleNotificationProcessor {
 
   public void handleFlowStartEvent(PipelineMessageNotification notification) {
     try {
-      logger.info("Handling '{}' flow start event context id {} correlation id {} ",
+      logger.trace("Handling '{}' flow start event context id {} correlation id {} ",
           notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
           notification.getEvent().getCorrelationId());
       TraceComponent traceComponent = flowProcessorComponent
@@ -322,7 +322,7 @@ public class MuleNotificationProcessor {
     }
     if (flowContextExpressions.containsKey(notification.getResourceIdentifier())) {
       String expression = flowContextExpressions.get(notification.getResourceIdentifier());
-      logger.info("Getting context for {} with {}", notification.getResourceIdentifier(), expression);
+      logger.trace("Getting context for {} with {}", notification.getResourceIdentifier(), expression);
       Context context = getContext(expression, notification);
       traceComponent = traceComponent.withContext(context);
     } else {

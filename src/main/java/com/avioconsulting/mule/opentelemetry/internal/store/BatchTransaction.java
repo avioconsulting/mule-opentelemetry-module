@@ -130,7 +130,6 @@ public class BatchTransaction extends AbstractTransaction {
         // reference, this will be skipped.
         stepProcessorSpans.putIfAbsent(stepTraceComponent.getSpanName(), stepProcessorSpan);
         containerSpan = newContainerSpan;
-        LOGGER.info("Create new Span for {} at {}", stepTraceComponent.getSpanName(), location);
       }
     }
     return containerSpan;
