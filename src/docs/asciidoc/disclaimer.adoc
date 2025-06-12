@@ -1,6 +1,0 @@
-[IMPORTANT]
-====
-This work effort is a field extension; hence, it is delivered on an "*as-is*" basis.
-Please refrain from contacting MuleSoft Support for technical support. Instead. use *GitHub 
-Issues* to provide feedback, suggest enhancements or report a bug.
-====
