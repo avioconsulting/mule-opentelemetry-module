@@ -17,6 +17,7 @@ import java.util.Optional;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
+import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.getEventTransactionId;
 
 public class BatchHelperUtil {
 
@@ -27,24 +28,27 @@ public class BatchHelperUtil {
    * OTEL Batch API Provider
    */
   private static com.avioconsulting.mule.opentelemetry.ee.batch.api.BatchUtil batchUtilDelegate;
+  private static boolean batchSupportDisabled = true;
+
+  public static void _resetForTesting() {
+    batchSupportDisabled = true;
+    batchUtilDelegate = null;
+  }
 
   public static void init(BatchUtil batchUtil) {
     batchUtilDelegate = batchUtil;
   }
 
   private static BatchUtil getBatchUtil() {
-    if (batchUtilDelegate == null) {
-      throw new IllegalArgumentException("BatchUtil is not initialized.");
-    }
     return batchUtilDelegate;
   }
 
   public static BatchStep toBatchStep(Component component) {
-    return getBatchUtil().toBatchStep(component);
+    return isBatchSupportDisabled() ? null : getBatchUtil().toBatchStep(component);
   }
 
   public static BatchJob toBatchJob(Component component) {
-    return getBatchUtil().toBatchJob(component);
+    return isBatchSupportDisabled() ? null : getBatchUtil().toBatchJob(component);
   }
 
   public static boolean isBatchStep(String location, ConfigurationComponentLocator componentLocator) {
@@ -77,6 +81,8 @@ public class BatchHelperUtil {
 
   public static boolean isBatchStepFirstProcessor(ComponentLocation location, Event event,
       ConfigurationComponentLocator componentLocator) {
+    if (isBatchSupportDisabled())
+      return false;
     return (getBatchJobInstanceId(event) != null
         && isBatchStep(getLocationParent(location.getLocation()), componentLocator)
         && isFirstProcessorInScope(location));
@@ -88,7 +94,7 @@ public class BatchHelperUtil {
 
   public static void addBatchTags(TraceComponent traceComponent, Event event) {
     String batchJobId = getBatchJobInstanceId(event);
-    if (batchJobId != null) {
+    if (!isBatchSupportDisabled() && batchJobId != null) {
       traceComponent.getTags().put(MULE_BATCH_JOB_INSTANCE_ID.getKey(), batchJobId);
       if (event.getVariables().containsKey("_mule_batch_INTERNAL_record")
           && event.getVariables().get("_mule_batch_INTERNAL_record") != null
@@ -119,4 +125,27 @@ public class BatchHelperUtil {
         e -> target.getTags().put(e.getKey(), e.getValue()));
   }
 
+  public static void enableBatchSupport() {
+    batchSupportDisabled = false;
+  }
+
+  public static boolean isBatchSupportDisabled() {
+    return batchSupportDisabled;
+  }
+
+  /**
+   * Event processing should be skipped if batch support is disabled and the
+   * resolved transaction id is same as batch job instance id, which is the case
+   * of batch processing.
+   * 
+   * @param event
+   *            {@link Event}
+   * @return true if event should not be processed
+   */
+  public static boolean shouldSkipThisBatchProcessing(Event event) {
+    return event != null
+        && BatchHelperUtil.isBatchSupportDisabled()
+        && getEventTransactionId(event)
+            .equalsIgnoreCase(getBatchJobInstanceId(event));
+  }
 }

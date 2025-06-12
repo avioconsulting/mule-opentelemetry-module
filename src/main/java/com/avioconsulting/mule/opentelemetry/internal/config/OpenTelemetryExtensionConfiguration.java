@@ -235,7 +235,8 @@ public class OpenTelemetryExtensionConfiguration
         com.avioconsulting.mule.opentelemetry.ee.batch.api.notifications.OtelBatchNotificationListener.class,
         listeners);
     if (listeners.isEmpty()) {
-      logger.trace("No listeners registered for Batch Notifications");
+      logger.warn(
+          "No modules were registered for batch instrumentation. Batch jobs (if present) will not be instrumented.");
     } else {
       if (listeners.size() > 1) {
         logger.warn(
@@ -245,8 +246,9 @@ public class OpenTelemetryExtensionConfiguration
           muleNotificationProcessor);
       listeners.forEach(listener -> {
         logger.info("Batch Notification listener registered: {}", listener.getClass().getSimpleName());
-        listener.register(otelBatchNotificationListener::onOtelBatchNotification, notificationListenerRegistry);
+        listener.register(otelBatchNotificationListener::onNotification, notificationListenerRegistry);
         BatchHelperUtil.init(listener.getBatchUtil());
+        BatchHelperUtil.enableBatchSupport();
       });
     }
   }

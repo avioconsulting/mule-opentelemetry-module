@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.ee.batch.api.BatchJob;
 import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
@@ -47,8 +48,8 @@ public class BatchProcessorComponent extends AbstractProcessorComponent {
   public TraceComponent getStartTraceComponent(Component component, Event event) {
     TraceComponent startTraceComponent = super.getStartTraceComponent(component, event);
     String jobName = addJobTags(startTraceComponent, component);
-    return TraceComponent.of(jobName, startTraceComponent.getComponentLocation())
-        .withSpanName(jobName)
+    return TraceComponent.of(BATCH_JOB_TAG, startTraceComponent.getComponentLocation())
+        .withSpanName(BATCH_JOB_TAG)
         .withTags(startTraceComponent.getTags())
         .withTransactionId(startTraceComponent.getTransactionId())
         .withEventContextId(startTraceComponent.getEventContextId())
@@ -58,13 +59,16 @@ public class BatchProcessorComponent extends AbstractProcessorComponent {
 
   private String addJobTags(TraceComponent traceComponent, Component component) {
     try {
-      String steps = toBatchJob(component).getSteps()
-          .stream().map(step -> {
-            String stepName = step.getName();
-            String location = step.getComponent().getLocation().getLocation();
-            return stepName + "|" + location;
-          }).collect(Collectors.joining(","));
-      traceComponent.getTags().put(MULE_BATCH_JOB_STEPS.getKey(), steps);
+      BatchJob batchJob = toBatchJob(component);
+      if (batchJob != null) {
+        String steps = batchJob.getSteps()
+            .stream().map(step -> {
+              String stepName = step.getName();
+              String location = step.getComponent().getLocation().getLocation();
+              return stepName + "|" + location;
+            }).collect(Collectors.joining(","));
+        traceComponent.getTags().put(MULE_BATCH_JOB_STEPS.getKey(), steps);
+      }
     } catch (Exception ignore) {
     }
     ComponentWrapper wrapper = new ComponentWrapper(component, configurationComponentLocator);

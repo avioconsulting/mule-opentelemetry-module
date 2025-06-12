@@ -426,7 +426,7 @@ public class MuleNotificationProcessor {
 
   public void handleBatchEndEvent(OtelBatchNotification batchNotification) {
     BatchJobInstance jobInstance = batchNotification.getJobInstance();
-    TraceComponent traceComponent = TraceComponent.of(BATCH_JOB_TAG)
+    TraceComponent traceComponent = TraceComponent.of(batchNotification.getJobInstance().getOwnerJobName())
         .withTransactionId(jobInstance.getId())
         .withEndTime(Instant.ofEpochMilli(batchNotification.getTimestamp()))
         .withTags(new HashMap<>());

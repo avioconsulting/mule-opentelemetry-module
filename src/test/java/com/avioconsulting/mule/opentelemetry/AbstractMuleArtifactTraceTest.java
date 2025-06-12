@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporterProvider;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
+import com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil;
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -16,6 +17,7 @@ import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.mule.functional.junit4.MuleArtifactFunctionalTestCase;
 import org.mule.runtime.core.api.event.CoreEvent;
@@ -42,7 +44,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ArtifactClassLoaderRunnerConfig(exportPluginClasses = { OpenTelemetryConnection.class,
-    DelegatedLoggingSpanTestExporterProvider.class }, applicationSharedRuntimeLibs = {
+    DelegatedLoggingSpanTestExporterProvider.class, BatchHelperUtil.class }, applicationSharedRuntimeLibs = {
         "org.apache.derby:derby" })
 public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {
 
@@ -57,6 +59,11 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
         .stream()
         .filter(s -> s.getSpanKind().equals(spanKind) && s.getSpanName().equals(spanName))
         .findFirst().get();
+  }
+
+  @BeforeClass
+  public static void beforeClass() throws Exception {
+    BatchHelperUtil._resetForTesting();
   }
 
   @Before

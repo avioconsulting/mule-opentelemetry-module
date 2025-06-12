@@ -9,6 +9,7 @@ import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.LocationPart;
+import org.mule.runtime.api.event.Event;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,6 +27,7 @@ public class InterceptorProcessorConfigDefaultTest extends AbstractInternalTest 
 
   @Parameterized.Parameter(value = 1)
   public String name;
+  private Event event = getEvent();
 
   @Parameterized.Parameters(name = "{index}: Intercept {0}:{1}")
   public static Collection<Object[]> data() {
@@ -80,7 +82,7 @@ public class InterceptorProcessorConfigDefaultTest extends AbstractInternalTest 
     when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
     when(location.getParts()).thenReturn(Arrays.asList(part1));
     assertThat(
-        new InterceptorProcessorConfig().interceptEnabled(location))
+        new InterceptorProcessorConfig().interceptEnabled(location, event))
             .isTrue();
   }
 }

@@ -405,16 +405,25 @@ public class OpenTelemetryConnection implements TraceContextHandler,
     Map<String, String> tags = new HashMap<>(10);
     tags.putAll(spanMeta.getTags());
     tags.putAll(traceComponent.getTags());
-    TraceComponent batchComponent = TraceComponent.of(BATCH_JOB_TAG, traceComponent.getComponentLocation())
+    TraceComponent batchComponent = TraceComponent
+        .of(traceComponent.getTags().get(MULE_BATCH_JOB_NAME.getKey()), traceComponent.getComponentLocation())
         .withLocation(traceComponent.getLocation())
         .withTags(tags)
         .withTransactionId(batchJobInstanceId)
-        .withSpanName(BATCH_JOB_TAG)
+        .withSpanName(traceComponent.getTags().get(MULE_BATCH_JOB_NAME.getKey()))
         .withSpanKind(SpanKind.SERVER)
         .withContext(spanMeta.getContext())
         .withEventContextId(traceComponent.getEventContextId())
         .withStartTime(traceComponent.getStartTime());
     startTransaction(batchComponent);
+    if (BatchHelperUtil.isBatchSupportDisabled()) {
+      // The Batch Job transaction is just for representation since batch support is
+      // disabled
+      // End the transaction.
+      batchComponent.getTags().put(MULE_BATCH_TRACE_DISABLED.getKey(), "true");
+      batchComponent.withEndTime(traceComponent.getEndTime());
+      endTransaction(batchComponent, null);
+    }
   }
 
   @Override

@@ -148,7 +148,7 @@ public class InMemoryTransactionStore implements TransactionStore {
       if (spanUpdater != null)
         spanUpdater.accept(span);
       span.end(traceComponent.getEndTime());
-      LOGGER.info(
+      LOGGER.trace(
           "Ended transaction {} for flow '{}': OT SpanId {}, TraceId {}",
           traceComponent,
           traceComponent.getName(),
@@ -159,7 +159,7 @@ public class InMemoryTransactionStore implements TransactionStore {
     TransactionMeta transactionMeta = transaction;
     if (transaction != null) {
       if (transaction.getRootFlowName().equals(traceComponent.getName())) {
-        LOGGER.info("Marking the end time of transaction {} from map for {} - Context Id {}",
+        LOGGER.trace("Marking the end time of transaction {} from map for {} - Context Id {}",
             traceComponent.getTransactionId(),
             traceComponent.getName(), traceComponent.getEventContextId());
         transaction.endRootSpan(traceComponent, endSpan);
@@ -168,7 +168,7 @@ public class InMemoryTransactionStore implements TransactionStore {
         transactionMeta = transaction.endChildTransaction(traceComponent, endSpan);
       }
       if (transaction.hasEnded()) {
-        LOGGER.info("Removed transaction {} from map for {} - Context Id {}",
+        LOGGER.trace("Removed transaction {} from map for {} - Context Id {}",
             traceComponent.getTransactionId(),
             traceComponent.getName(), traceComponent.getEventContextId());
         transactionMap.remove(transaction.getTransactionId());

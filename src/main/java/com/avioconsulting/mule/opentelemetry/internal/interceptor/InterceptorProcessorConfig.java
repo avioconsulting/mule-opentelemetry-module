@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.isBatchStepFirstProcessor;
+import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.*;
 
 /**
  * Configuration class for managing the interception of components based on
@@ -144,10 +144,6 @@ public class InterceptorProcessorConfig {
     }
   }
 
-  public boolean interceptEnabled(ComponentLocation location) {
-    return interceptEnabled(location, null);
-  }
-
   public boolean interceptEnabled(ComponentLocation location, Event event) {
     if (!INTERCEPTOR_ENABLED_BY_SYS_PROPERTY) {
       LOGGER.trace("Interceptors are disabled by system property");
@@ -157,6 +153,8 @@ public class InterceptorProcessorConfig {
       LOGGER.trace("Tracing has been turned off by global configuration");
       return false;
     }
+    if (event != null && shouldSkipThisBatchProcessing(event))
+      return false;
     return ComponentsUtil.isFirstProcessor(location)
         || (event != null && isBatchStepFirstProcessor(location, event, componentLocator))
         || (NOT_FIRST_PROCESSOR_ONLY_MODE

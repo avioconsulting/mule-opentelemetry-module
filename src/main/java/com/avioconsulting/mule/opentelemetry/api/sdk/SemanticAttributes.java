@@ -147,6 +147,7 @@ public final class SemanticAttributes {
   public static final AttributeKey<String> WSC_CONFIG_PORT = stringKey("mule.wsc.config.port");
   public static final AttributeKey<String> WSC_CONFIG_ADDRESS = stringKey("mule.wsc.config.address");
 
+  public static final AttributeKey<String> MULE_BATCH_TRACE_DISABLED = stringKey("mule.batch.trace.disabled");
   public static final AttributeKey<String> MULE_BATCH_JOB_INSTANCE_ID = stringKey("mule.batch.job.instance.id");
   public static final AttributeKey<String> MULE_BATCH_JOB_NAME = stringKey("mule.batch.job.name");
   public static final AttributeKey<String> MULE_BATCH_JOB_STEPS = stringKey("mule.batch.job.steps");

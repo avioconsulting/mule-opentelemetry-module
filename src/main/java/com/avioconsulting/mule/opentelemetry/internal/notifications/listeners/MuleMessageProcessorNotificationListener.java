@@ -1,12 +1,14 @@
 package com.avioconsulting.mule.opentelemetry.internal.notifications.listeners;
 
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
+import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.notification.MessageProcessorNotificationListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MuleMessageProcessorNotificationListener extends AbstractMuleNotificationListener
+public class MuleMessageProcessorNotificationListener
+    extends AbstractMuleNotificationListener<MessageProcessorNotification>
     implements MessageProcessorNotificationListener<MessageProcessorNotification> {
   private final Logger LOGGER = LoggerFactory.getLogger(MuleMessageProcessorNotificationListener.class);
 
@@ -15,9 +17,12 @@ public class MuleMessageProcessorNotificationListener extends AbstractMuleNotifi
   }
 
   @Override
-  public void onNotification(MessageProcessorNotification notification) {
-    replaceMDCEntry(notification.getEvent());
-    LOGGER.trace("===> Received {}:{}", notification.getClass().getName(), notification.getActionName());
+  protected Event getEvent(MessageProcessorNotification notification) {
+    return notification.getEvent();
+  }
+
+  @Override
+  protected void processNotification(MessageProcessorNotification notification) {
     switch (Integer.parseInt(notification.getAction().getIdentifier())) {
       case MessageProcessorNotification.MESSAGE_PROCESSOR_PRE_INVOKE:
         muleNotificationProcessor.handleProcessorStartEvent(notification);
