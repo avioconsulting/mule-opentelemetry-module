@@ -293,8 +293,6 @@ public class BatchTransaction extends AbstractTransaction {
                 .withEventContextId(traceComponent.getEventContextId())
                 .withEndTime(traceComponent.getEndTime());
             aggrTraceComponent.getTags().putAll(traceComponent.getTags());
-            System.out.println(
-                "##### Ending Aggregator Span - " + aggrTraceComponent.contextScopedLocation());
             flowSpan.endProcessorSpan(aggrTraceComponent, spanUpdater, endTime);
           }
         }
