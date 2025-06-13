@@ -10,8 +10,11 @@
         <Logger name="io.opentelemetry" level="INFO"/>
         <Logger name="com.avioconsulting.mule.opentelemetry" level="INFO"/>
         <Logger name="org.mule.service.http.impl.service.HttpMessageLogger" level="INFO"/>
-        <Logger name="com.avioconsulting.mule.opentelemetry" level="INFO"/>
+        <AsyncLogger
+                name="org.mule.runtime.core.internal.processor.LoggerMessageProcessor"
+                level="INFO" />
         <Logger name="org.mule.runtime.core" level="WARN"/>
+        <Logger name="com.mulesoft.mule.runtime.module.batch" level="INFO"/>
         <Root level="INFO">
             <AppenderRef ref="Console"/>
         </Root>

@@ -61,7 +61,8 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
    *
    * When `mule.otel.interceptor.first.processor.only` is NOT set to 'true', every
    * processor will be intercepted.
-   * See {@link InterceptorProcessorConfig#interceptEnabled(ComponentLocation)}
+   * See
+   * {@link InterceptorProcessorConfig#interceptEnabled(ComponentLocation, org.mule.runtime.api.event.Event)}
    * for how intercepting decisions are made at runtime for each location.
    *
    * This will not intercept ANY processor if

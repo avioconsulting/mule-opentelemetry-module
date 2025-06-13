@@ -64,5 +64,4 @@ public class TraceComponentTest {
     assertThat(traceComponent.contextCopedPath("test-location-path", level))
         .isEqualTo(expectedPath);
   }
-
 }

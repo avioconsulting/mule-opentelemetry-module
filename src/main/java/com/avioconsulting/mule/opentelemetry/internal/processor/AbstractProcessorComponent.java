@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import org.mule.runtime.api.component.Component;
@@ -21,6 +22,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
+import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.addBatchTags;
 import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.getEventTransactionId;
 
 public abstract class AbstractProcessorComponent implements ProcessorComponent {
@@ -82,18 +84,14 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   }
 
   protected TraceComponent getTraceComponentBuilderFor(EnrichedServerNotification notification) {
-    return TraceComponent.of(notification.getResourceIdentifier(), notification.getComponent().getLocation())
+    TraceComponent traceComponent = TraceComponent.of(notification.getResourceIdentifier(),
+        notification.getComponent().getLocation())
         .withTransactionId(getTransactionId(notification))
         .withTags(new HashMap<>())
         .withErrorMessage(
             notification.getEvent().getError().map(Error::getDescription).orElse(null));
-  }
-
-  protected TraceComponent getBaseTraceComponent(
-      EnrichedServerNotification notification) {
-    return TraceComponent.of(notification.getComponent())
-        .withSpanName(notification.getComponent().getIdentifier().getName())
-        .withTransactionId(getTransactionId(notification));
+    addBatchTags(traceComponent, notification.getEvent());
+    return traceComponent;
   }
 
   protected String getDefaultSpanName(Map<String, String> tags) {
@@ -160,12 +158,14 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
     tags.put(MULE_CORRELATION_ID.getKey(), event.getCorrelationId());
     tags.putAll(getAttributes(component,
         event.getMessage().getAttributes()));
-    return TraceComponent.of(component)
+    TraceComponent traceComponent = TraceComponent.of(component)
         .withSpanName(getDefaultSpanName(tags))
         .withTags(tags)
         .withSpanKind(getSpanKind())
         .withTransactionId(getEventTransactionId(event))
         .withEventContextId(event.getContext().getId());
+    addBatchTags(traceComponent, event);
+    return traceComponent;
   }
 
   protected void addTagIfPresent(Map<String, String> sourceMap, String sourceKey, Map<String, String> targetMap,

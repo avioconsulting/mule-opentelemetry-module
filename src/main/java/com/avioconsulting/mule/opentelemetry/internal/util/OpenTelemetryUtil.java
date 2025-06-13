@@ -1,8 +1,11 @@
 package com.avioconsulting.mule.opentelemetry.internal.util;
 
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.ee.batch.api.Record;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.AttributesBuilder;
+import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.metadata.DataType;
 import org.mule.runtime.core.api.util.IOUtils;
 import org.mule.runtime.api.event.Event;
@@ -18,6 +21,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
+import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.OTEL_BATCH_PARENT_CONTEXT_ID;
+import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.*;
+import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
 
 public class OpenTelemetryUtil {
 
@@ -61,7 +69,12 @@ public class OpenTelemetryUtil {
    * @return String id for the current event
    */
   public static String getEventTransactionId(Event event) {
-    return getEventTransactionId(event.getContext().getId());
+    String transactionId = null;
+    if (event.getVariables().containsKey(OTEL_BATCH_PARENT_CONTEXT_ID)
+        || (transactionId = getBatchJobInstanceId(event)) == null) {
+      transactionId = getEventTransactionId(event.getContext().getId());
+    }
+    return transactionId;
   }
 
   /**
