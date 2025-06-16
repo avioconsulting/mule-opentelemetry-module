@@ -1,0 +1,56 @@
+=== APM - Elastic Observability
+
+Elastic Observability is an observability solution built on ELK Stack to converge metrics, logs and traces.
+
+Elastic APM Server natively supports the OpenTelemetry protocol. This means the trace data can be sent directly to Elastic APM Server using the OpenTelemetry protocol.
+
+==== Configuration
+To send traces to Elastic, at the minimum you need following information -
+
+* *OTLP Endpoint URL*: APM Server URL. The host and port that APM Server listens for events on.
+* *Authorization Token:* Either a bearer token OR an API Key to access APM Server URL.
+
+The below is an example of a working module configuration for Elastic Observability. We will look at some elastic specific configuration values.
+
+[source, xml]
+.Example Config for Elastic Observability
+----
+	<opentelemetry:config name="OpenTelemetry_Config"
+		serviceName="${domain}"
+        spanAllProcessors="true">
+		<opentelemetry:resource-attributes>
+			<opentelemetry:attribute key="mule.env"
+				value="${mule.env}" />
+			<opentelemetry:attribute
+				key="deployment.environment" value="${mule.env}" />     // <1>
+		</opentelemetry:resource-attributes>
+		<opentelemetry:exporter>  //<2>
+			<opentelemetry:otlp-exporter
+				collectorEndpoint="${otel.collector.endpoint}">     //<3>
+				<opentelemetry:headers>
+					<opentelemetry:header key="Authorization" value="${otel.collector.authToken}" /> // <4>
+				</opentelemetry:headers>
+			</opentelemetry:otlp-exporter>
+		</opentelemetry:exporter>
+	</opentelemetry:config>
+----
+
+<1> Elastic requires `deployment.environment` resource attribute to enable Service Dependency Maps.
+<2> We will use OTLP Exporter configuration to export traces to Elastic
+<3> Configure OTLP Endpoint URL to receive traces
+<4> Set the `Authorization` header for APM server. Value should be "Bearer an_apm_secret_token" or "ApiKey an_api_key" depending on authentication token type.
+
+==== Trace Examples
+
+Here is how a generated trace would look like in Elastic -
+
+image::elastic-trace-example-1.png[900,900, title="Elastic Trace Example", align="Center"]
+
+Trace attributes are available under *Metadata* tab for each trace transaction.
+
+image::elastic-trace-transaction-metadata.png[900,900, title="Elastic Trace Metadata", align="Center"]
+
+
+==== References
+
+* https://www.elastic.co/guide/en/apm/guide/current/open-telemetry.html#open-telemetry[OpenTelemetry Integration with Elastic]
