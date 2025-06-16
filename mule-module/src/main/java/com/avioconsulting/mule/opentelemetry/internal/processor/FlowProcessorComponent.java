@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
+import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.addBatchTags;
 
 public class FlowProcessorComponent extends AbstractProcessorComponent {
   @Override
@@ -64,7 +65,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
         .withTransactionId(getTransactionId(notification))
         .withSpanName(notification.getResourceIdentifier())
         .withLocation(notification.getResourceIdentifier());
-
+    addBatchTags(traceComponent, notification.getEvent());
     return traceComponent;
   }
 

@@ -17,7 +17,7 @@ public class AttributesKeyCache {
 
   private static final Map<String, AttributeKey<String>> attributeKeyMap = new HashMap<>();
 
-  public AttributesKeyCache() {
+  private AttributesKeyCache() {
   }
 
   static {
@@ -45,15 +45,8 @@ public class AttributesKeyCache {
 
   private final Object lock = new Object();
 
-  public AttributeKey<String> getAttributeKey(String keyString) {
-    AttributeKey<String> key = attributeKeyMap.get(keyString);
-    if (key == null) {
-      key = AttributeKey.stringKey(keyString);
-      synchronized (lock) {
-        attributeKeyMap.put(keyString, key);
-      }
-    }
-    return key;
+  public static AttributeKey<String> getAttributeKey(String keyString) {
+    return attributeKeyMap.computeIfAbsent(keyString, AttributeKey::stringKey);
   }
 
 }

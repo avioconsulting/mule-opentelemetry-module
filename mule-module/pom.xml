@@ -323,6 +323,47 @@
 
   <profiles>
     <profile>
+      <id>testMode</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+        <!--        The following profile will be activated when-->
+        <!--        the system property "skipTests" is not defined,-->
+        <!--        or is defined with a value which is not "true".-->
+        <property>
+          <name>skipTests</name>
+          <value>!true</value>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>com.avioconsulting.mule</groupId>
+          <artifactId>mule-opentelemetry-batch-legacy-adapter</artifactId>
+          <version>${project.version}</version>
+        </dependency>
+        <dependency>
+          <groupId>com.mulesoft.mule.runtime.modules</groupId>
+          <artifactId>mule-module-batch-ee</artifactId>
+          <version>${mule.version}</version>
+          <scope>provided</scope>
+        </dependency>
+      </dependencies>
+      <repositories>
+        <repository>
+          <!--      Requires for testing ee batch module-->
+          <releases>
+            <enabled>true</enabled>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
+          <id>mulesoft-ee-releases</id>
+          <name>mulesoft-ee-releases</name>
+          <url>https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/</url>
+          <layout>default</layout>
+        </repository>
+      </repositories>
+    </profile>
+    <profile>
       <id>maven-publish</id>
       <activation>
         <property>

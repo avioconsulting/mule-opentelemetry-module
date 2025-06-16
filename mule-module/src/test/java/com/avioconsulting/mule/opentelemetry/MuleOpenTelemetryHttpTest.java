@@ -115,7 +115,8 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
     assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
         .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
-        .containsEntry("http.response.status_code", "500");
+        .containsEntry("http.response.status_code", "500")
+        .containsEntry("error.type", "org.mule.runtime.core.internal.exception.MessagingException");
   }
 
   @Test

@@ -3,6 +3,8 @@ package com.avioconsulting.mule.opentelemetry;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporterProvider;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
+import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
+import com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil;
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -16,6 +18,7 @@ import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.mule.functional.junit4.MuleArtifactFunctionalTestCase;
 import org.mule.runtime.core.api.event.CoreEvent;
@@ -27,10 +30,7 @@ import org.mule.test.runner.ArtifactClassLoaderRunnerConfig;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
@@ -42,7 +42,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ArtifactClassLoaderRunnerConfig(exportPluginClasses = { OpenTelemetryConnection.class,
-    DelegatedLoggingSpanTestExporterProvider.class }, applicationSharedRuntimeLibs = {
+    DelegatedLoggingSpanTestExporterProvider.class, BatchHelperUtil.class }, applicationSharedRuntimeLibs = {
         "org.apache.derby:derby" })
 public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {
 
@@ -78,7 +78,8 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
 
   @Override
   protected void doSetUpBeforeMuleContextCreation() throws Exception {
-    OpenTelemetryConnection.resetForTest();
+    OpenTelemetryConnection._resetForTest();
+    BatchHelperUtil._resetForTesting();
     super.doSetUpBeforeMuleContextCreation();
     System.setProperty(TEST_TIMEOUT_SYSTEM_PROPERTY, "120_000_000");
     System.setProperty("http.host", "localhost");
@@ -108,6 +109,76 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
         .collect(Collectors.groupingBy(
             span -> idNameMap.getOrDefault(span.getParentSpanContext().getSpanId(), root.getSpanName()),
             Collectors.mapping(DelegatedLoggingSpanTestExporter.Span::getSpanName, Collectors.toSet())));
+  }
+
+  /**
+   * superParent(superParentName)
+   * -> Parent(parentName)
+   * -> Child Span
+   *
+   * group key will be superParentName>parentName
+   *
+   * When super parent doesn't exist, key will be just parentName
+   *
+   * @return
+   */
+  @NotNull
+  protected Map<Object, Set<String>> groupSpanByNestedParentPrefix() {
+    // Find the root span
+    DelegatedLoggingSpanTestExporter.Span root = spanQueue.stream()
+        .filter(span -> span.getParentSpanContext().getSpanId().equals("0000000000000000")).findFirst().get();
+
+    Map<String, String> childParentSpanIdMap = spanQueue.stream().collect(Collectors
+        .toMap(DelegatedLoggingSpanTestExporter.Span::getSpanId, s -> s.getParentSpanContext().getSpanId()));
+    // Create a lookup of span id and name
+    Map<String, String> idNameMap = spanQueue.stream().collect(Collectors.toMap(
+        DelegatedLoggingSpanTestExporter.Span::getSpanId, DelegatedLoggingSpanTestExporter.Span::getSpanName));
+
+    return spanQueue.stream()
+        .collect(Collectors.groupingBy(
+            span -> {
+              String parentSpanId = span.getParentSpanContext().getSpanId();
+              String superParentSpanId = childParentSpanIdMap.get(parentSpanId);
+              String superParentSpanName = null;
+              if (superParentSpanId != null
+                  && (superParentSpanName = idNameMap.get(superParentSpanId)) != null) {
+                superParentSpanName = superParentSpanName + ">";
+              }
+              String parentSpanName = idNameMap.getOrDefault(parentSpanId, root.getSpanName());
+              if (superParentSpanName != null) {
+                return superParentSpanName + parentSpanName;
+              } else {
+                return parentSpanName;
+              }
+            },
+            Collectors.mapping(DelegatedLoggingSpanTestExporter.Span::getSpanName, Collectors.toSet())));
+  }
+
+  @NotNull
+  protected Map<Object, Set<String>> groupSpanByParent(DelegatedLoggingSpanTestExporter.Span root,
+      List<DelegatedLoggingSpanTestExporter.Span> spans) {
+
+    // Create a lookup of span id and name
+    Map<String, String> idNameMap = spans.stream().collect(Collectors.toMap(
+        DelegatedLoggingSpanTestExporter.Span::getSpanId, DelegatedLoggingSpanTestExporter.Span::getSpanName));
+
+    return spans.stream()
+        .collect(Collectors.groupingBy(
+            span -> idNameMap.getOrDefault(span.getParentSpanContext().getSpanId(), root.getSpanName()),
+            Collectors.mapping(DelegatedLoggingSpanTestExporter.Span::getSpanName, Collectors.toSet())));
+  }
+
+  @NotNull
+  protected List<DelegatedLoggingSpanTestExporter.Span> getChildrenTreeList(
+      DelegatedLoggingSpanTestExporter.Span parentSpan) {
+    List<DelegatedLoggingSpanTestExporter.Span> childSpans = new ArrayList<>();
+    for (DelegatedLoggingSpanTestExporter.Span span : spanQueue) {
+      if (span.getParentSpanContext().getSpanId().equals(parentSpan.getSpanId())) {
+        childSpans.add(span);
+        childSpans.addAll(getChildrenTreeList(span));
+      }
+    }
+    return childSpans;
   }
 
   /**

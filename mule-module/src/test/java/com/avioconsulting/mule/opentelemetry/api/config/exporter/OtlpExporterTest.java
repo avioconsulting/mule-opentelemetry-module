@@ -17,11 +17,11 @@ public class OtlpExporterTest {
     java.util.List<Header> headers = new java.util.ArrayList<>();
     headers.add(new Header("test", "value"));
     headers.add(new Header("test2", "value2"));
-    OtlpExporter otlpExporter = new OtlpExporter("http://localhost/v1", OtlpExporter.Protocol.HTTP_PROTOBUF,
-        OtlpExporter.OtlpRequestCompression.GZIP, headers);
+    OtlpExporter otlpExporter = new OtlpExporter("http://localhost/v1", Protocol.HTTP_PROTOBUF,
+        OtlpRequestCompression.GZIP, headers);
     assertThat(otlpExporter.getExporterProperties())
         .containsEntry(OTEL_TRACES_EXPORTER_KEY, OTLP)
-        .containsEntry(OTEL_EXPORTER_OTLP_COMPRESSION, OtlpExporter.OtlpRequestCompression.GZIP.getValue())
+        .containsEntry(OTEL_EXPORTER_OTLP_COMPRESSION, OtlpRequestCompression.GZIP.getValue())
         .containsEntry(OTEL_EXPORTER_OTLP_PROTOCOL, Protocol.HTTP_PROTOBUF.getValue())
         .containsEntry(OTEL_EXPORTER_OTLP_HEADERS, "test=value,test2=value2")
         .containsEntry(OTEL_EXPORTER_OTLP_ENDPOINT, "http://localhost/v1")
@@ -32,16 +32,16 @@ public class OtlpExporterTest {
 
   @Test
   public void verifyNoCompressionSet() {
-    OtlpExporter otlpExporter = new OtlpExporter("http://localhost", OtlpExporter.Protocol.HTTP_PROTOBUF,
-        OtlpExporter.OtlpRequestCompression.NONE, Collections.emptyList());
+    OtlpExporter otlpExporter = new OtlpExporter("http://localhost", Protocol.HTTP_PROTOBUF,
+        OtlpRequestCompression.NONE, Collections.emptyList());
     assertThat(otlpExporter.getExporterProperties())
         .doesNotContainKey(OTEL_EXPORTER_OTLP_COMPRESSION);
   }
 
   @Test
   public void verifyTransformedCertificatePaths() {
-    OtlpExporter otlpExporter = new OtlpExporter("http://localhost", OtlpExporter.Protocol.HTTP_PROTOBUF,
-        OtlpExporter.OtlpRequestCompression.NONE, Collections.emptyList(), "./certs/server-all-certs.pem",
+    OtlpExporter otlpExporter = new OtlpExporter("http://localhost", Protocol.HTTP_PROTOBUF,
+        OtlpRequestCompression.NONE, Collections.emptyList(), "./certs/server-all-certs.pem",
         "./certs/client-key-pkcs8.pem", "./certs/client-cert.pem");
     assertThat(otlpExporter.getExporterProperties())
         .containsEntry(OTEL_EXPORTER_OTLP_CERTIFICATE,
@@ -62,8 +62,8 @@ public class OtlpExporterTest {
     String serverAllCert = Paths.get("src/test/resources/certs/server-all-certs.pem").toAbsolutePath().toString();
     String clientKey = Paths.get("src/test/resources/certs/client-key-pkcs8.pem").toAbsolutePath().toString();
     String clientCert = Paths.get("src/test/resources/certs/client-cert.pem").toAbsolutePath().toString();
-    OtlpExporter otlpExporter = new OtlpExporter("http://localhost", OtlpExporter.Protocol.HTTP_PROTOBUF,
-        OtlpExporter.OtlpRequestCompression.NONE, Collections.emptyList(), serverAllCert, clientKey,
+    OtlpExporter otlpExporter = new OtlpExporter("http://localhost", Protocol.HTTP_PROTOBUF,
+        OtlpRequestCompression.NONE, Collections.emptyList(), serverAllCert, clientKey,
         clientCert);
     assertThat(otlpExporter.getExporterProperties())
         .containsEntry(OTEL_EXPORTER_OTLP_CERTIFICATE,

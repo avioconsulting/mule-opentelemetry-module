@@ -2,25 +2,60 @@ package com.avioconsulting.mule.opentelemetry.internal.notifications.listeners;
 
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
+import com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.metadata.TypedValue;
+import org.mule.runtime.api.notification.Notification;
+import org.mule.runtime.api.notification.NotificationListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 import java.util.Collections;
 import java.util.Map;
 
-public abstract class AbstractMuleNotificationListener {
+public abstract class AbstractMuleNotificationListener<T extends Notification> implements NotificationListener<T> {
 
   protected final MuleNotificationProcessor muleNotificationProcessor;
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMuleNotificationListener.class);
 
   public AbstractMuleNotificationListener(MuleNotificationProcessor muleNotificationProcessor) {
     this.muleNotificationProcessor = muleNotificationProcessor;
   }
 
-  protected void replaceMDCEntry(Event event) {
-    TypedValue<Map<String, String>> contextMap = (TypedValue<Map<String, String>>) event.getVariables()
+  @Override
+  public void onNotification(T notification) {
+    LOGGER.trace("===> Received {}:{}", notification.getClass().getName(), notification.getAction());
+    if (BatchHelperUtil.shouldSkipThisBatchProcessing(getEvent(notification))) {
+      LOGGER.trace("Batch support is disabled. Batch spans will not be processed for location - {}",
+          notification);
+      return;
+    }
+    replaceMDCEntry(getEvent(notification));
+    processNotification(notification);
+  }
+
+  protected abstract Event getEvent(T notification);
+
+  /**
+   * Process received notification for specific implementation.
+   * 
+   * @param notification
+   */
+  protected abstract void processNotification(T notification);
+
+  private void replaceMDCEntry(Event event) {
+    if (event == null)
+      return;
+    replaceMDCEntry(event.getVariables());
+  }
+
+  protected void replaceMDCEntry(Map<String, TypedValue<?>> variables) {
+    TypedValue<Map<String, String>> contextMap = (TypedValue<Map<String, String>>) variables
         .getOrDefault(TransactionStore.TRACE_CONTEXT_MAP_KEY, TypedValue.of(Collections.emptyMap()));
     Map<String, String> context = contextMap.getValue();
+    if (context == null || context.isEmpty())
+      return;
     replaceMDCEntry(context, "traceId");
     replaceMDCEntry(context, "traceIdLongLowPart");
     replaceMDCEntry(context, "spanId");
