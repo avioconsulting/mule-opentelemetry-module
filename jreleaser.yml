@@ -85,6 +85,6 @@ signing:
   mode: MEMORY
 
 distributions:
-  mule-health-check-api:
+  mule-opentelemetry-module:
     artifacts:
-      - path: target/mule-opentelemetry-module-{{projectVersion}}-mule-plugin.jar
+      - path: mule-module/target/mule-opentelemetry-module-{{projectVersion}}-mule-plugin.jar

@@ -18,6 +18,49 @@ WARNING: Dependency group id for 1.x is `com.avioconsulting`, while for 2.x is `
 
 NOTE: This module supports OpenTelemetry *Traces*. Logs are _not_ supported, yet.
 
+
+==== Mule Batch Job Tracing
+If application implements https://docs.mulesoft.com/mule-runtime/latest/batch-processing-concept[Mule Batch Jobs] and requires tracing the batch executions, then additonal dependency is required to be added.
+
+WARNING: Depending on the batch steps, processors, and number of records being processed by the batch job, large number of spans may be generated during the batch execution. To disable batch job tracing, you can simply not configure the following dependency.
+
+In mule-maven-plugin, add/update an additional dependencies block to include batch specific module dependency -
+
+[source, xml, subs=+macros]
+----
+<plugin>
+    <groupId>org.mule.tools.maven</groupId>
+    <artifactId>mule-maven-plugin</artifactId>
+    <version>${mule.maven.plugin.version}</version>
+    <extensions>true</extensions>
+    <configuration>
+        <additionalPluginDependencies>
+            <plugin>
+                <groupId>com.avioconsulting.mule</groupId>
+                <artifactId>mule-opentelemetry-module</artifactId>
+                <additionalDependencies>
+                <!--
+                    pass:attributes[Module uses OpenTelemetry SDK v{opentelemetry-version}.
+                     Any opentelemetry dependencies used here must be at-least v{opentelemetry-version}
+                     or a compatible one.]
+                -->
+                    <dependency>
+                        <groupId>com.avioconsulting.mule</groupId>
+<!--                    Mule Runtime 4.5+-->
+                        <artifactId>mule-opentelemetry-batch-runtime-adapter</artifactId>
+<!--                    For Mule Runtime 4.3/4.4, use legacy adapter-->                             // <1>
+<!--                    <artifactId>mule-opentelemetry-batch-runtime-adapter</artifactId>-->
+                        <version>pass:a[{opentelemetry-version}]</version>
+                    </dependency>
+                </additionalDependencies>
+            </plugin>
+        </additionalPluginDependencies>
+    </configuration>
+</plugin>
+----
+
+<1> Only one adapter must be present
+
 === Auto Configuration
 Extension uses OpenTelemetry SDK *v{opentelemetry-version}* in its autoconfigured mode. In this mode, SDK will configure itself based on the environment variables.
 Supported environment variable details can be seen on https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure[open-telemetry/opentelemetry-java].
