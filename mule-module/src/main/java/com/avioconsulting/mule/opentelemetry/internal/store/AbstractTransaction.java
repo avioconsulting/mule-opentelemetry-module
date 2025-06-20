@@ -68,7 +68,8 @@ public abstract class AbstractTransaction implements Transaction {
    * associated with the processing of the root flow have ended.
    * Check {@link #hasEnded()} to validate if the full transaction has ended.
    * Ending any child flows are handled by invoking
-   * {@link FlowSpan#endChildFlow(TraceComponent, Consumer)} for each of the child
+   * {@link FlowSpan#endChildContainer(TraceComponent, Consumer)} (TraceComponent,
+   * Consumer)} for each of the child
    * flow.
    *
    * @param traceComponent

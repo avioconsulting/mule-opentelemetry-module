@@ -9,18 +9,10 @@
 
   <artifactId>mule-opentelemetry-module-api</artifactId>
 
-  <properties>
-    <maven.compiler.source>8</maven.compiler.source>
-    <maven.compiler.target>8</maven.compiler.target>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>org.mule.runtime</groupId>
       <artifactId>mule-api</artifactId>
-      <version>1.3.0</version>
-      <scope>provided</scope>
     </dependency>
   </dependencies>
 </project>

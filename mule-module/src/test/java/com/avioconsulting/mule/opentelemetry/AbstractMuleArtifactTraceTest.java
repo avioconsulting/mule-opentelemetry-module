@@ -43,7 +43,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ArtifactClassLoaderRunnerConfig(exportPluginClasses = { OpenTelemetryConnection.class,
     DelegatedLoggingSpanTestExporterProvider.class, BatchHelperUtil.class }, applicationSharedRuntimeLibs = {
-        "org.apache.derby:derby" })
+        "org.apache.derby:derby", "com.avioconsulting.mule:mule-opentelemetry-batch-legacy-adapter",
+        "com.avioconsulting.mule:mule-opentelemetry-module-api" })
 public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {
 
   public static final String CORRELATION_ID = UUID.randomUUID().toString();
