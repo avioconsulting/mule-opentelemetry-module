@@ -29,6 +29,9 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    env:
+      MULE_EE_USERNAME: ${{ secrets.MULE_EE_USERNAME }}
+      MULE_EE_PASSWORD: ${{ secrets.MULE_EE_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,6 +41,9 @@ jobs:
           distribution: adopt-hotspot
           java-version: 8
           cache: maven
+          server-id: mulesoft-ee-releases
+          server-username: MULE_EE_USERNAME
+          server-password: MULE_EE_PASSWORD
       - name: Verify
         # build to generate docs folder
         run: ./mvnw --batch-mode verify
