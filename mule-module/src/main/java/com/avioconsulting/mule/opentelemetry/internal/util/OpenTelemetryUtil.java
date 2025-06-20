@@ -19,6 +19,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.OTEL_BATCH_PARENT_CONTEXT_ID;
+import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.*;
+
 public class OpenTelemetryUtil {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OpenTelemetryUtil.class);
@@ -61,7 +64,12 @@ public class OpenTelemetryUtil {
    * @return String id for the current event
    */
   public static String getEventTransactionId(Event event) {
-    return getEventTransactionId(event.getContext().getId());
+    String transactionId = null;
+    if (event.getVariables().containsKey(OTEL_BATCH_PARENT_CONTEXT_ID)
+        || (transactionId = getBatchJobInstanceId(event)) == null) {
+      transactionId = getEventTransactionId(event.getContext().getId());
+    }
+    return transactionId;
   }
 
   /**

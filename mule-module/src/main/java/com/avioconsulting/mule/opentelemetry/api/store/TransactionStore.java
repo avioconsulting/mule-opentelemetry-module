@@ -22,6 +22,8 @@ public interface TransactionStore {
   String SPAN_ID = "spanId";
   String OTEL_FLOW_CONTEXT_ID = "_OTEL_FLOW_CONTEXT_ID";
   String OTEL_FLOW_PREV_CONTEXT_ID = "_OTEL_FLOW_PREV_CONTEXT_ID";
+  String OTEL_BATCH_PARENT_CONTEXT_ID = "_OTEL_BATCH_PARENT_CONTEXT_ID";
+  String OTEL_BATCH_STEP_RECORD_CONTEXT_ID = "OTEL_BATCH_STEP_RECORD_CONTEXT_ID";
 
   /**
    * A default implementation to get a mule correlation id as a local transaction

@@ -24,6 +24,11 @@ public class TraceComponent implements ComponentEventContext {
   private String eventContextId;
   private ComponentLocation componentLocation;
 
+  /**
+   * Number of processors in the same container
+   */
+  private long siblings = -1;
+
   private TraceComponent(String name) {
     this.name = name;
   }
@@ -156,6 +161,15 @@ public class TraceComponent implements ComponentEventContext {
 
   public StatusCode getStatusCode() {
     return statusCode;
+  }
+
+  public TraceComponent withSiblings(long siblings) {
+    this.siblings = siblings;
+    return this;
+  }
+
+  public long getSiblings() {
+    return siblings;
   }
 
   @Override

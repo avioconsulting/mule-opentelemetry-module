@@ -55,8 +55,78 @@
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- The minimum mule runtime api targeted -->
+    <mule-api.version>1.3.0</mule-api.version>
+    <!-- Batch EE version must be the one compatible with mule-api.version above -->
+    <mule-module-batch-ee.version>4.3.0</mule-module-batch-ee.version>
+    <!-- Test dependencies versions -->
+    <junit-jupiter.version>5.9.2</junit-jupiter.version>
+    <junit.version>4.13.2</junit.version>
+    <assertj.version>3.24.2</assertj.version>
+    <mockito.version>4.8.1</mockito.version>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.mule.runtime</groupId>
+        <artifactId>mule-api</artifactId>
+        <version>${mule-api.version}</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.avioconsulting.mule</groupId>
+        <artifactId>mule-opentelemetry-module-api</artifactId>
+        <version>${project.version}</version>
+        <!--This dependency is already on the base module
+        and provided from there-->
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.mulesoft.mule.runtime.modules</groupId>
+        <artifactId>mule-module-batch-ee</artifactId>
+        <version>${mule-module-batch-ee.version}</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <!-- Test dependencies -->
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
   <repositories>
     <repository>
       <id>anypoint-exchange</id>
@@ -74,9 +144,6 @@
       <releases>
         <enabled>true</enabled>
       </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
       <id>mulesoft-ee-releases</id>
       <name>mulesoft-ee-releases</name>
       <url>https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/</url>

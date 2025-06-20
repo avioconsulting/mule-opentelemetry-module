@@ -7,25 +7,28 @@ import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.component.location.LocationPart;
 import org.mule.runtime.api.el.BindingContext;
 import org.mule.runtime.core.api.el.ExpressionManager;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_PROCESSOR_NAME;
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
+import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.copyBatchTags;
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.FLOW;
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.ROUTE;
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.SCOPE;
 
 public class ComponentsUtil {
 
+  public static final String BATCH_AGGREGATOR = "batch:aggregator";
   private static final List<TypedComponentIdentifier.ComponentType> ROUTE_IDENTIFIERS = Arrays.asList(ROUTE, SCOPE);
+  public static final String BATCH_STEP_TAG = "batch:step";
+  public static final String BATCH_STEP_RECORD_TAG = "batch:step-record";
+  public static final String BATCH_JOB_TAG = "batch:job";
+  public static final String BATCH_ON_COMPLETE_TAG = "batch:on-complete";
 
   public static Optional<ComponentLocation> findLocation(String location,
       ConfigurationComponentLocator configurationComponentLocator) {
@@ -134,6 +137,15 @@ public class ComponentsUtil {
         && interceptPath.equalsIgnoreCase(location.getLocation());
   }
 
+  public static boolean isFirstProcessorInScope(ComponentLocation location) {
+    if (location.getParts().size() <= 2)
+      return false;
+    LocationPart parentPart = location.getParts().get(location.getParts().size() - 3);
+    String firstProcessorPath = String.format("%s/processors/0", getLocationParent(location.getLocation()));
+    return parentPart.getPartIdentifier().isPresent() && isRoute(parentPart.getPartIdentifier().get())
+        && firstProcessorPath.equalsIgnoreCase(location.getLocation());
+  }
+
   public static boolean isFlowTypeContainer(ComponentLocation componentLocation) {
     return !componentLocation.getParts().isEmpty() && componentLocation.getParts().get(0).getPartIdentifier()
         .filter(c -> FLOW.equals(c.getType())
@@ -154,22 +166,26 @@ public class ComponentsUtil {
    *            of the flow-ref invoking the sub-flow
    * @return {@link TraceComponent} for the sub-flow
    */
-  public static TraceComponent getTraceComponent(ComponentLocation subFlowComp, TraceComponent traceComponent) {
-    return TraceComponent.of(subFlowComp)
+  public static TraceComponent getSubFlowTraceComponent(ComponentLocation subFlowComp,
+      TraceComponent traceComponent) {
+    TraceComponent subFlowTrace = TraceComponent.of(subFlowComp)
         .withTransactionId(traceComponent.getTransactionId())
         .withSpanName(subFlowComp.getLocation())
         .withSpanKind(SpanKind.INTERNAL)
-        .withTags(Collections.singletonMap(MULE_APP_SCOPE_SUBFLOW_NAME.getKey(),
-            subFlowComp.getLocation()))
+        .withTags(new HashMap<>())
         .withStatsCode(traceComponent.getStatusCode())
         .withStartTime(traceComponent.getStartTime())
         .withContext(traceComponent.getContext())
         .withEventContextId(traceComponent.getEventContextId());
+    subFlowTrace.getTags().put(MULE_APP_SCOPE_SUBFLOW_NAME.getKey(),
+        subFlowComp.getLocation());
+    copyBatchTags(traceComponent, subFlowTrace);
+    return subFlowTrace;
   }
 
   /**
    * Resolves the target flow name using given #expressionManager and updates it
-   * in {@link TraceComponent#tags}.
+   * in {@link TraceComponent#getTags()}.
    * Then it looks up the component location for the resolved flow using given
    * #configurationComponentLocator.
    * 
@@ -198,5 +214,16 @@ public class ComponentsUtil {
         configurationComponentLocator)
             .filter(ComponentsUtil::isSubFlow);
     return subFlowLocation;
+  }
+
+  public static boolean componentExists(ComponentIdentifier componentIdentifier, String location,
+      ConfigurationComponentLocator componentLocator) {
+    return findComponent(componentIdentifier, location, componentLocator).isPresent();
+  }
+
+  public static boolean isBatchOnComplete(String location, ConfigurationComponentLocator componentLocator) {
+    Optional<Component> component = componentLocator
+        .find(Location.builderFromStringRepresentation(location).build());
+    return component.filter(c -> c.getIdentifier().toString().equalsIgnoreCase(BATCH_ON_COMPLETE_TAG)).isPresent();
   }
 }
