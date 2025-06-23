@@ -32,6 +32,7 @@ public class InterceptorProcessorConfigDefaultTest extends AbstractInternalTest 
   @Parameterized.Parameters(name = "{index}: Intercept {0}:{1}")
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][] {
+        { "batch", "job" },
         { "anypoint-mq", "publish" },
         { "sqs", "send-message" },
         { "sqs", "send-message-batch" },

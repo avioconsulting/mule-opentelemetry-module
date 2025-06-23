@@ -17,7 +17,7 @@ azure-service-bus-messaging:send-message-batch
 pubsub:publish-message
 ibm-mq:publish
 ibm-mq:publish-consume
-job:job
+batch:job
 jms:publish
 jms:publish-consume
 msmq:send
