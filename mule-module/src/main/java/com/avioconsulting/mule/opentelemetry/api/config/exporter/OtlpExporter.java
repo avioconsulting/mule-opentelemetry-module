@@ -35,9 +35,10 @@ public class OtlpExporter extends AbstractExporter {
   @Optional
   @Summary(value = "The OTLP traces, metrics, and logs endpoint to connect to. Must be a URL with a scheme of either http or https based on the use of TLS."
       +
-      "GRPC Protocol may have URL like http://localhost:4317 and HTTP_PROTOBUF be like http://localhost:4317/v1.")
+      "GRPC Protocol may have URL like http://localhost:4317 and HTTP_PROTOBUF be like http://localhost:4318.")
   @Example(value = "http://localhost:4317")
   private String collectorEndpoint;
+  private String computedCollectorEndpoint;
 
   @Parameter
   @Optional(defaultValue = "GRPC")
@@ -87,7 +88,15 @@ public class OtlpExporter extends AbstractExporter {
   }
 
   public String getCollectorEndpoint() {
-    return collectorEndpoint;
+    if (computedCollectorEndpoint != null) {
+      return computedCollectorEndpoint;
+    }
+    if (Protocol.HTTP_PROTOBUF.equals(protocol) && !collectorEndpoint.toLowerCase().endsWith("/v1")) {
+      computedCollectorEndpoint = collectorEndpoint + "/v1";
+    } else {
+      computedCollectorEndpoint = collectorEndpoint;
+    }
+    return computedCollectorEndpoint;
   }
 
   public String getEndpointCertPath() {
