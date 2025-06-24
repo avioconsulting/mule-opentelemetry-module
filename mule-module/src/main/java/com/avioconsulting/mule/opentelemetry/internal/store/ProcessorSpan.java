@@ -7,6 +7,7 @@ import io.opentelemetry.context.Context;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ProcessorSpan implements SpanMeta {
 
@@ -18,13 +19,21 @@ public class ProcessorSpan implements SpanMeta {
   private final String flowName;
   private Context context;
   private Map<String, String> tags = new HashMap<>();
+  private ProcessorSpan parentSpan;
+  private final AtomicLong siblingCount = new AtomicLong();
 
   public ProcessorSpan(Span span, String location, String transactionId, Instant startTime, String flowName) {
+    this(span, location, transactionId, startTime, flowName, -1);
+  }
+
+  public ProcessorSpan(Span span, String location, String transactionId, Instant startTime, String flowName,
+      long siblings) {
     this.span = span;
     this.location = location;
     this.transactionId = transactionId;
     this.startTime = startTime;
     this.flowName = flowName;
+    siblingCount.set(siblings);
   }
 
   @Override
@@ -35,6 +44,19 @@ public class ProcessorSpan implements SpanMeta {
   @Override
   public String getRootFlowName() {
     return flowName;
+  }
+
+  @Override
+  public String getRootSpanName() {
+    return flowName;
+  }
+
+  public long getSiblings() {
+    return siblingCount.longValue();
+  }
+
+  public void decrementActiveSiblingCount() {
+    siblingCount.decrementAndGet();
   }
 
   @Override
@@ -84,6 +106,15 @@ public class ProcessorSpan implements SpanMeta {
 
   public ProcessorSpan setTags(Map<String, String> tags) {
     this.tags = tags;
+    return this;
+  }
+
+  public ProcessorSpan getParentSpan() {
+    return parentSpan;
+  }
+
+  public ProcessorSpan setParentSpan(ProcessorSpan parentSpan) {
+    this.parentSpan = parentSpan;
     return this;
   }
 

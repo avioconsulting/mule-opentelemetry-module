@@ -272,7 +272,7 @@ public class MuleCoreFlowsTest extends AbstractMuleArtifactTraceTest {
         .extracting("spanName")
         .contains("mule-core-flow-1", "mule-core-flow-2", "mule-core-flow-3");
     assertThat(getSpan("INTERNAL", "mule-core-flow-3").getAttributes())
-        .containsEntry("error.type", "org.mule.runtime.core.internal.exception.MessagingException");
+        .containsEntry("error.type", "APP:RANDOM_FAILURE");
   }
 
   @Test

@@ -14,6 +14,8 @@ public interface TransactionMeta extends Serializable {
 
   String getRootFlowName();
 
+  String getRootSpanName();
+
   String getTraceId();
 
   Instant getStartTime();

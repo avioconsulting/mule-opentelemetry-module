@@ -3,7 +3,6 @@ package com.avioconsulting.mule.opentelemetry.internal.connection;
 import com.avioconsulting.mule.opentelemetry.api.AppIdentifier;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigProvider;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsProvider;
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.AttributesKeyCache;
 import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
@@ -12,6 +11,7 @@ import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.api.traces.TransactionContext;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
 import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
+import com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.ServiceProviderUtil;
@@ -23,7 +23,10 @@ import io.opentelemetry.context.propagation.TextMapGetter;
 import io.opentelemetry.context.propagation.TextMapSetter;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
+import io.opentelemetry.semconv.ErrorAttributes;
 import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.core.api.el.ExpressionManager;
 import org.slf4j.Logger;
@@ -34,17 +37,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.ERROR_TYPE;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
 import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.*;
+import static com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.AttributesKeyCache.getAttributeKey;
+import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.hasBatchJobInstanceId;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
+import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.copyBatchTags;
 
-public class OpenTelemetryConnection implements TraceContextHandler {
+public class OpenTelemetryConnection implements TraceContextHandler,
+    com.avioconsulting.mule.opentelemetry.internal.store.TransactionProcessor {
 
   public static final String TRACE_ID_LONG_LOW_PART = "traceIdLongLowPart";
   public static final String SPAN_ID_LONG = "spanIdLong";
@@ -55,7 +59,6 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   private OpenTelemetryMetricsConfigProvider metricsProvider;
   private AppIdentifier appIdentifier;
   private ExpressionManager expressionManager;
-  private final AttributesKeyCache attributesKeyCache = new AttributesKeyCache();
   /**
    * Instrumentation version must be picked from the module's artifact version.
    * This is a fallback for any dev testing.
@@ -75,6 +78,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
   private final Tracer tracer;
   private boolean turnOffTracing = false;
   private boolean turnOffMetrics = false;
+  private ConfigurationComponentLocator configurationComponentLocator;
 
   private OpenTelemetryConnection(OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
     Properties properties = getModuleProperties();
@@ -125,9 +129,19 @@ public class OpenTelemetryConnection implements TraceContextHandler {
       metricsProviders.clear();
     }
     tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
-    transactionStore = InMemoryTransactionStore.getInstance();
+    transactionStore = InMemoryTransactionStore.getInstance(this);
     PropertiesUtil.init();
     openTelemetryConnection = this;
+  }
+
+  public OpenTelemetryConnection setConfigurationComponentLocator(
+      ConfigurationComponentLocator configurationComponentLocator) {
+    this.configurationComponentLocator = configurationComponentLocator;
+    return this;
+  }
+
+  public ConfigurationComponentLocator getConfigurationComponentLocator() {
+    return configurationComponentLocator;
   }
 
   // For testing purpose only
@@ -170,8 +184,8 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    * This is for tests to reset the static instance in-between the tests.
    * Reset Global OpenTelemetry instances.
    */
-  public static void resetForTest() {
-
+  public static void _resetForTest() {
+    InMemoryTransactionStore._resetForTesting();
   }
 
   public static synchronized OpenTelemetryConnection getInstance(
@@ -301,6 +315,7 @@ public class OpenTelemetryConnection implements TraceContextHandler {
    *            {@link String} name of the container such as flow that holds this
    *            component
    */
+  @Override
   public void addProcessorSpan(TraceComponent traceComponent, String containerName) {
     SpanBuilder spanBuilder = this
         .spanBuilder(traceComponent.getSpanName())
@@ -310,25 +325,30 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF.getKey()),
         traceComponent.getTags(), OTEL_SYSTEM_PROPERTIES_MAP);
     traceComponent.getTags()
-        .forEach((k, v) -> spanBuilder.setAttribute(attributesKeyCache.getAttributeKey(k), v));
-
-    String parentLocation = getRouteContainerLocation(traceComponent);
-    if (parentLocation != null) {
-      // Create parent span for the first processor in the chain /0
-      TraceComponent parentTrace = TraceComponent.of(parentLocation)
-          .withLocation(parentLocation)
-          .withTags(Collections.emptyMap())
-          .withTransactionId(traceComponent.getTransactionId())
-          .withSpanName(parentLocation)
-          .withSpanKind(SpanKind.INTERNAL)
-          .withEventContextId(traceComponent.getEventContextId())
-          .withStartTime(traceComponent.getStartTime());
-      // if (!getTransactionStore().processorSpanExists(traceComponent)) {
-      SpanMeta parentSpan = addRouteSpan(parentTrace, traceComponent, parentLocation,
-          getLocationParent(parentLocation));
-      spanBuilder.setParent(parentSpan.getContext());
-      // }
+        .forEach((k, v) -> spanBuilder.setAttribute(getAttributeKey(k), v));
+    String parentLocation = null;
+    if (!hasBatchJobInstanceId(traceComponent) ||
+        !BatchHelperUtil.notBatchChildContainer(containerName, configurationComponentLocator)) {
+      // When processing batch child containers are
+      // handled by BatchTransaction, skip this
+      parentLocation = getRouteContainerLocation(traceComponent);
+      if (parentLocation != null) {
+        // Create parent span for the first processor in the chain /0
+        TraceComponent parentTrace = TraceComponent.of(parentLocation)
+            .withLocation(parentLocation)
+            .withTags(new HashMap<>())
+            .withTransactionId(traceComponent.getTransactionId())
+            .withSpanName(parentLocation)
+            .withSpanKind(SpanKind.INTERNAL)
+            .withEventContextId(traceComponent.getEventContextId())
+            .withStartTime(traceComponent.getStartTime());
+        copyBatchTags(traceComponent, parentTrace);
+        SpanMeta parentSpan = addRouteSpan(parentTrace, traceComponent, parentLocation,
+            getLocationParent(parentLocation));
+        spanBuilder.setParent(parentSpan.getContext());
+      }
     }
+
     if (parentLocation == null) {
       parentLocation = containerName;
     }
@@ -348,22 +368,64 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         parentTrace, spanBuilder);
   }
 
+  @Override
   public SpanMeta endProcessorSpan(final TraceComponent traceComponent, Error error) {
-    return getTransactionStore().endProcessorSpan(
+    SpanMeta spanMeta = getTransactionStore().endProcessorSpan(
         traceComponent.getTransactionId(),
         traceComponent,
         span -> {
           if (error != null) {
             span.recordException(error.getCause());
+            traceComponent.getTags().put(ERROR_TYPE.getKey(),
+                error.getCause().getClass().getCanonicalName());
+            traceComponent.getTags().put(ERROR_MESSAGE.getKey(),
+                error.getDescription());
+            if (error.getErrorType() != null
+                && !"MULE:ANY".equals(error.getErrorType().toString())) {
+              traceComponent.getTags().put(ErrorAttributes.ERROR_TYPE.getKey(),
+                  error.getErrorType().toString());
+            }
           }
           setSpanStatus(traceComponent, span);
           if (traceComponent.getTags() != null)
             traceComponent.getTags()
-                .forEach((k, v) -> span.setAttribute(attributesKeyCache.getAttributeKey(k), v));
+                .forEach((k, v) -> span.setAttribute(getAttributeKey(k), v));
         },
         traceComponent.getEndTime());
+    processBatchJob(spanMeta, traceComponent);
+    return spanMeta;
   }
 
+  private void processBatchJob(SpanMeta spanMeta, TraceComponent traceComponent) {
+    if (!traceComponent.getName().equalsIgnoreCase(BATCH_JOB_TAG)) {
+      return;
+    }
+    String batchJobInstanceId = traceComponent.getTags().get(MULE_BATCH_JOB_INSTANCE_ID.getKey());
+    Map<String, String> tags = new HashMap<>(10);
+    tags.putAll(spanMeta.getTags());
+    tags.putAll(traceComponent.getTags());
+    TraceComponent batchComponent = TraceComponent
+        .of(traceComponent.getTags().get(MULE_BATCH_JOB_NAME.getKey()), traceComponent.getComponentLocation())
+        .withLocation(traceComponent.getLocation())
+        .withTags(tags)
+        .withTransactionId(batchJobInstanceId)
+        .withSpanName(traceComponent.getTags().get(MULE_BATCH_JOB_NAME.getKey()))
+        .withSpanKind(SpanKind.SERVER)
+        .withContext(spanMeta.getContext())
+        .withEventContextId(traceComponent.getEventContextId())
+        .withStartTime(traceComponent.getStartTime());
+    startTransaction(batchComponent);
+    if (BatchHelperUtil.isBatchSupportDisabled()) {
+      // The Batch Job transaction is just for representation since batch support is
+      // disabled
+      // End the transaction.
+      batchComponent.getTags().put(MULE_BATCH_TRACE_DISABLED.getKey(), "true");
+      batchComponent.withEndTime(traceComponent.getEndTime());
+      endTransaction(batchComponent, null);
+    }
+  }
+
+  @Override
   public void startTransaction(TraceComponent traceComponent) {
     SpanBuilder spanBuilder = openTelemetryConnection
         .spanBuilder(traceComponent.getSpanName())
@@ -376,11 +438,12 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         traceComponent.getTags(), openTelemetryConnection.OTEL_SYSTEM_PROPERTIES_MAP);
 
     traceComponent.getTags()
-        .forEach((k, v) -> spanBuilder.setAttribute(attributesKeyCache.getAttributeKey(k), v));
+        .forEach((k, v) -> spanBuilder.setAttribute(getAttributeKey(k), v));
     getTransactionStore().startTransaction(
         traceComponent, traceComponent.getName(), spanBuilder);
   }
 
+  @Override
   public TransactionMeta endTransaction(final TraceComponent traceComponent, Exception exception) {
     if (traceComponent == null) {
       return null;
@@ -389,16 +452,24 @@ public class OpenTelemetryConnection implements TraceContextHandler {
         traceComponent,
         rootSpan -> {
           traceComponent.getTags()
-              .forEach((k, v) -> rootSpan.setAttribute(attributesKeyCache.getAttributeKey(k), v));
+              .forEach((k, v) -> rootSpan.setAttribute(getAttributeKey(k), v));
           openTelemetryConnection.setSpanStatus(traceComponent, rootSpan);
           if (exception != null) {
             rootSpan.recordException(exception);
-            rootSpan.setAttribute(ERROR_TYPE.getKey(), exception.getClass().getTypeName());
+            rootSpan.setAttribute(ERROR_TYPE.getKey(), exception.getClass().getCanonicalName());
+            rootSpan.setAttribute(ERROR_MESSAGE.getKey(), exception.getMessage());
+            if (exception instanceof MuleException) {
+              MuleException muleException = (MuleException) exception;
+              if (muleException.getExceptionInfo() != null
+                  && muleException.getExceptionInfo().getErrorType() != null
+                  && !"MULE:ANY".equals(muleException.getExceptionInfo().getErrorType().toString())) {
+                rootSpan.setAttribute(ERROR_TYPE.getKey(),
+                    muleException.getExceptionInfo().getErrorType().toString());
+              }
+            }
           }
         });
   }
-
-  private final Object lock = new Object();
 
   public void setSpanStatus(TraceComponent traceComponent, Span span) {
     if (traceComponent.getStatusCode() != null

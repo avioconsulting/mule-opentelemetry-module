@@ -69,7 +69,19 @@ public class RuntimeBatchNotificationListener extends AbstractOtelBatchNotificat
   @Override
   public void register(Consumer<OtelBatchNotification> callback, NotificationListenerRegistry registry) {
     Objects.requireNonNull(callback, "Callback cannot be null");
+    validateBatchRuntime();
     this.callback = callback;
     registry.registerListener(this);
+  }
+
+  private void validateBatchRuntime() {
+    Class<?> aClass = null;
+    try {
+      aClass = Class.forName("com.mulesoft.mule.runtime.module.batch.api.extension.structure.BatchJobInstance");
+    } catch (ClassNotFoundException e) {
+      Objects.requireNonNull(aClass,
+          "Cannot find BatchJobInstance from Extension API. This adapter must be used with Mule EE Runtime 4.5 and onwards.");
+      throw new RuntimeException(e);
+    }
   }
 }
