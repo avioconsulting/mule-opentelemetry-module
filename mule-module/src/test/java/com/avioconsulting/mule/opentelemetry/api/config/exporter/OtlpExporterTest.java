@@ -31,6 +31,24 @@ public class OtlpExporterTest {
   }
 
   @Test
+  public void verifyHTTPProtobufEndpointIsAmended() {
+    java.util.List<Header> headers = new java.util.ArrayList<>();
+    headers.add(new Header("test", "value"));
+    headers.add(new Header("test2", "value2"));
+    OtlpExporter otlpExporter = new OtlpExporter("http://localhost", OtlpExporter.Protocol.HTTP_PROTOBUF,
+        OtlpExporter.OtlpRequestCompression.GZIP, headers);
+    assertThat(otlpExporter.getExporterProperties())
+        .containsEntry(OTEL_TRACES_EXPORTER_KEY, OTLP)
+        .containsEntry(OTEL_EXPORTER_OTLP_COMPRESSION, OtlpExporter.OtlpRequestCompression.GZIP.getValue())
+        .containsEntry(OTEL_EXPORTER_OTLP_PROTOCOL, Protocol.HTTP_PROTOBUF.getValue())
+        .containsEntry(OTEL_EXPORTER_OTLP_HEADERS, "test=value,test2=value2")
+        .containsEntry(OTEL_EXPORTER_OTLP_ENDPOINT, "http://localhost/v1")
+        .containsEntry(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, "http://localhost/v1/traces")
+        .containsEntry(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, "http://localhost/v1/logs")
+        .containsEntry(OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, "http://localhost/v1/metrics");
+  }
+
+  @Test
   public void verifyNoCompressionSet() {
     OtlpExporter otlpExporter = new OtlpExporter("http://localhost", Protocol.HTTP_PROTOBUF,
         OtlpRequestCompression.NONE, Collections.emptyList());
