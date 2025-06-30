@@ -268,6 +268,20 @@
       <classifier>mule-plugin</classifier>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.avioconsulting.mule</groupId>
+      <artifactId>mule-opentelemetry-batch-legacy-adapter</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.mulesoft.mule.runtime.modules</groupId>
+      <artifactId>mule-module-batch-ee</artifactId>
+      <version>${mule.version}</version>
+      <!-- This is needed for testing only but test scope
+       doesn't work and test app loading fails with unexpected batch component error-->
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 
   <repositories>
@@ -281,6 +295,19 @@
       <id>mulesoft-releases</id>
       <name>MuleSoft Releases Repository</name>
       <url>https://repository.mulesoft.org/releases/</url>
+      <layout>default</layout>
+    </repository>
+    <repository>
+      <!-- Requires for testing ee batch module-->
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <id>mulesoft-ee-releases</id>
+      <name>mulesoft-ee-releases</name>
+      <url>https://repository.mulesoft.org/nexus-ee/content/repositories/releases-ee/</url>
       <layout>default</layout>
     </repository>
   </repositories>

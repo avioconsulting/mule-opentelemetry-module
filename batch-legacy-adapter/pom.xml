@@ -10,9 +10,6 @@
   <artifactId>mule-opentelemetry-batch-legacy-adapter</artifactId>
 
   <properties>
-    <maven.compiler.source>8</maven.compiler.source>
-    <maven.compiler.target>8</maven.compiler.target>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <mule-module-batch-ee.version>4.3.0</mule-module-batch-ee.version>
   </properties>
 
@@ -20,13 +17,10 @@
     <dependency>
       <groupId>com.avioconsulting.mule</groupId>
       <artifactId>mule-opentelemetry-module-api</artifactId>
-      <version>2.10.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.mulesoft.mule.runtime.modules</groupId>
       <artifactId>mule-module-batch-ee</artifactId>
-      <version>${mule-module-batch-ee.version}</version>
-      <scope>provided</scope>
     </dependency>
   </dependencies>
 

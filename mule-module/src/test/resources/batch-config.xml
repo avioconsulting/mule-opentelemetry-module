@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <import file="global-common.xml"/>
+
+    <flow name="batch-flow-1" doc:id="71b0686a-ce38-43f8-b5b5-a93a058a5d1a" >
+        <set-payload value="#[payload]" doc:name="Set Payload" />
+        <batch:job jobName="batch-variables-exBatch_Job">
+            <batch:process-records>
+                <!-- First Batch Step -->
+                <batch:step name="Batch_Step_1">
+                    <logger message="#['Batch Step 1 - Logger 1 with payload - $(payload)']" level="INFO" doc:name="Batch Step 1 - Logger 1"/>
+                    <flow-ref doc:name="flow-ref-batch-step-target-flow" name="batch-step-target-flow" />
+                    <choice doc:name="Choice" doc:id="28d86aa7-d359-44ef-b59c-1c68ee3a0eec" >
+                        <when expression="#[payload == (vars.failureNumber default -1)]">
+                            <raise-error doc:name="Batch Step 1 - Raise error" type="ANY"/>
+                        </when>
+                    </choice>
+                    <batch:aggregator doc:name="Batch Aggregator" size="2">
+                        <logger level="INFO" doc:name="Batch Step 1 - Logger Aggregator 1" message="#['Messages in Aggregator']"/>
+                    </batch:aggregator>
+                </batch:step>
+                <!-- Second Batch Step -->
+                <batch:step name="Batch_Step_2">
+                    <logger message="#['Batch Step 2 - Logger 1 with payload - $(payload)']" level="INFO" doc:name="Batch Step 2 - Logger"/>
+                    <choice doc:name="Choice" doc:id="8ec6a4d0-034a-4339-bd59-51492eead182" >
+                        <when expression="#[payload == (vars.failreNumber2 default -1) ]" >
+                            <raise-error doc:name="Batch Step 2 - Raise error"  type="ANY" />
+                        </when>
+                    </choice>
+                </batch:step>
+            </batch:process-records>
+            <batch:on-complete>
+                <logger message="#['Batch On Complete - Logger with payload - ' ++ write(payload, 'application/json')]" level="INFO" doc:name="Batch On Complete - Logger"/>
+            </batch:on-complete>
+        </batch:job>
+        <logger message="#['Batch flow - after batch invocation']" level="INFO"/>
+    </flow>
+    <flow name="batch-step-target-flow" doc:id="cb43be38-af5c-4bd7-b554-1e19968b422b" >
+        <flow-ref name="batch-step-target-sub-flow" doc:name="flow-ref-batch-step-target-sub-flow"/>
+    </flow>
+    <sub-flow name="batch-step-target-sub-flow" doc:id="9e23e4c4-bc06-47af-bf49-750722e2afbd" >
+        <logger message="#['Batch Step Target flow logger - $(payload)']" level="INFO"/>
+    </sub-flow>
+</mule>

@@ -5,17 +5,20 @@ import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import org.assertj.core.api.Assertions;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.event.Event;
+import org.mule.runtime.api.event.EventContext;
 import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.Mockito.*;
 
@@ -26,15 +29,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
   @Test
   public void handleProcessorStartEvent_withDisabledProcessorSpans() {
 
-    Event event = mock(Event.class);
-    when(event.getCorrelationId()).thenReturn("testCorrelationId");
-    Message message = getMessage(null);
-    when(event.getMessage()).thenReturn(message);
-    ComponentLocation componentLocation = getComponentLocation("mule", "logger");
-    Component component = getComponent(componentLocation, Collections.emptyMap(), "mule", "logger");
-    Exception exception = mock(Exception.class);
-    MessageProcessorNotification notification = MessageProcessorNotification.createFrom(event, componentLocation,
-        component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
+    MessageProcessorNotification notification = getMessageProcessorNotification();
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
     MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
     notificationProcessor.init(connection, new TraceLevelConfiguration(false, Collections.emptyList()));
@@ -47,15 +42,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
   @Test
   public void handleProcessorStartEvent_withSkippedNamedProcessorSpans() {
 
-    Event event = mock(Event.class);
-    when(event.getCorrelationId()).thenReturn("testCorrelationId");
-    Message message = getMessage(null);
-    when(event.getMessage()).thenReturn(message);
-    ComponentLocation componentLocation = getComponentLocation("mule", "logger");
-    Component component = getComponent(componentLocation, Collections.emptyMap(), "mule", "logger");
-    Exception exception = mock(Exception.class);
-    MessageProcessorNotification notification = MessageProcessorNotification.createFrom(event, componentLocation,
-        component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
+    MessageProcessorNotification notification = getMessageProcessorNotification();
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
     MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
 
@@ -71,15 +58,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
 
   @Test
   public void handleProcessorStartEvent_withSkipProcessorSpansByNamespace() {
-    Event event = mock(Event.class);
-    when(event.getCorrelationId()).thenReturn("testCorrelationId");
-    Message message = getMessage(null);
-    when(event.getMessage()).thenReturn(message);
-    ComponentLocation componentLocation = getComponentLocation("mule", "logger");
-    Component component = getComponent(componentLocation, Collections.emptyMap(), "mule", "logger");
-    Exception exception = mock(Exception.class);
-    MessageProcessorNotification notification = MessageProcessorNotification.createFrom(event, componentLocation,
-        component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
+    MessageProcessorNotification notification = getMessageProcessorNotification();
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
     MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
 
@@ -146,15 +125,7 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
   @Test
   public void handleProcessorStartEvent_doesNotPropagateException() {
 
-    Event event = mock(Event.class);
-    when(event.getCorrelationId()).thenReturn("testCorrelationId");
-    Message message = getMessage(null);
-    when(event.getMessage()).thenReturn(message);
-    ComponentLocation componentLocation = getComponentLocation("mule", "logger");
-    Component component = getComponent(componentLocation, Collections.emptyMap(), "mule", "logger");
-    Exception exception = mock(Exception.class);
-    MessageProcessorNotification notification = MessageProcessorNotification.createFrom(event, componentLocation,
-        component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
+    MessageProcessorNotification notification = getMessageProcessorNotification();
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
     when(connection.getExpressionManager()).thenReturn(null); // cause NPE
 
@@ -166,6 +137,23 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
 
     Assertions.assertThat(any).as("An exception was not thrown").isNull();
 
+  }
+
+  @NotNull
+  private MessageProcessorNotification getMessageProcessorNotification() {
+    Event event = mock(Event.class);
+    when(event.getCorrelationId()).thenReturn("testCorrelationId");
+    Message message = getMessage(null);
+    when(event.getMessage()).thenReturn(message);
+    EventContext context = mock(EventContext.class);
+    when(context.getId()).thenReturn(UUID.randomUUID().toString());
+    when(event.getContext()).thenReturn(context);
+    ComponentLocation componentLocation = getComponentLocation("mule", "logger");
+    Component component = getComponent(componentLocation, Collections.emptyMap(), "mule", "logger");
+    Exception exception = mock(Exception.class);
+    MessageProcessorNotification notification = MessageProcessorNotification.createFrom(event, componentLocation,
+        component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
+    return notification;
   }
 
 }

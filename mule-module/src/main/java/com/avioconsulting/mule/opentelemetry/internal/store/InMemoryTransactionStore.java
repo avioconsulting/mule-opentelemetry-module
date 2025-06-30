@@ -17,6 +17,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
+import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.getBatchJobInstanceId;
+import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.hasBatchJobInstanceId;
+
 /**
  * In-memory {@link TransactionStore}. This implementation uses
  * in-memory {@link Map} to
@@ -27,41 +31,75 @@ public class InMemoryTransactionStore implements TransactionStore {
   private static TransactionStore service;
   private final ConcurrentHashMap<String, Transaction> transactionMap = new ConcurrentHashMap<>();
   private static final Logger LOGGER = LoggerFactory.getLogger(InMemoryTransactionStore.class);
+  private final TransactionProcessor transactionProcessor;
 
-  public static synchronized TransactionStore getInstance() {
+  private InMemoryTransactionStore(TransactionProcessor transactionProcessor) {
+    this.transactionProcessor = transactionProcessor;
+  }
+
+  public static synchronized TransactionStore getInstance(TransactionProcessor transactionProcessor) {
     if (service == null) {
-      service = new InMemoryTransactionStore();
+      service = new InMemoryTransactionStore(transactionProcessor);
     }
     return service;
   }
 
+  public static void _resetForTesting() {
+    service = null;
+  }
+
   @Override
   public void startTransaction(
-      final TraceComponent traceComponent, final String rootFlowName, SpanBuilder rootFlowSpanBuilder) {
+      final TraceComponent traceComponent, final String rootName, SpanBuilder spanBuilder) {
     final String transactionId = traceComponent.getTransactionId();
     Transaction transaction = getTransaction(traceComponent.getTransactionId());
     if (transaction != null) {
       LOGGER.trace(
           "Start transaction {} for flow '{}' - Adding to existing transaction",
           transactionId,
-          rootFlowName);
-      transaction.getRootFlowSpan().addChildFlow(traceComponent, rootFlowSpanBuilder);
+          rootName);
+      transaction.addChildTransaction(traceComponent, spanBuilder);
     } else {
-      Span span = rootFlowSpanBuilder.startSpan();
-      LOGGER.trace(
-          "Start transaction {} for flow '{}': OT SpanId {}, TraceId {}",
-          transactionId,
-          rootFlowName,
-          span.getSpanContext().getSpanId(),
-          span.getSpanContext().getTraceId());
-      transactionMap.put(
-          transactionId,
-          new Transaction(traceComponent.getTransactionId(), span.getSpanContext().getTraceId(), rootFlowName,
-              new FlowSpan(rootFlowName, span, transactionId)
-                  .setTags(traceComponent.getTags())
-                  .setRootSpanName(traceComponent.getSpanName()),
-              traceComponent.getStartTime()));
+      boolean isBatchJob = traceComponent.getTags().containsKey(MULE_BATCH_JOB_NAME.getKey());
+      if (isBatchJob) {
+        startBatchTransaction(traceComponent, rootName, spanBuilder, transactionId);
+      } else {
+        startFlowTransaction(traceComponent, rootName, spanBuilder, transactionId);
+      }
     }
+  }
+
+  private void startFlowTransaction(TraceComponent traceComponent, String rootName, SpanBuilder spanBuilder,
+      String transactionId) {
+    Span span = spanBuilder.startSpan();
+    LOGGER.trace(
+        "Start Flow transaction {} for flow '{}': OT SpanId {}, TraceId {}",
+        transactionId,
+        rootName,
+        span.getSpanContext().getSpanId(),
+        span.getSpanContext().getTraceId());
+    transactionMap.put(
+        transactionId,
+        new FlowTransaction(traceComponent.getTransactionId(), span.getSpanContext().getTraceId(),
+            rootName,
+            new FlowSpan(rootName, span, traceComponent),
+            traceComponent.getStartTime()));
+  }
+
+  private void startBatchTransaction(TraceComponent traceComponent, String rootName, SpanBuilder spanBuilder,
+      String transactionId) {
+    Span span = spanBuilder.startSpan();
+    LOGGER.trace(
+        "Start Batch transaction {} for flow '{}': OT SpanId {}, TraceId {}",
+        transactionId,
+        rootName,
+        span.getSpanContext().getSpanId(),
+        span.getSpanContext().getTraceId());
+    transactionMap.put(
+        transactionId,
+        new BatchTransaction(traceComponent.getTransactionId(), span.getSpanContext().getTraceId(),
+            rootName, span, traceComponent, transactionProcessor::spanBuilder,
+            transactionProcessor.getConfigurationComponentLocator()));
   }
 
   @Override
@@ -70,7 +108,7 @@ public class InMemoryTransactionStore implements TransactionStore {
     String format = "%s.%s";
     tags.forEach((k, v) -> builder.put(String.format(format, tagPrefix, k), v));
     Transaction transaction = getTransaction(transactionId);
-    Span span = transaction.getRootFlowSpan().getSpan();
+    Span span = transaction.getTransactionSpan();
     if (span != null) {
       span.setAllAttributes(builder.build());
     }
@@ -82,7 +120,7 @@ public class InMemoryTransactionStore implements TransactionStore {
 
   private TransactionContext getTransactionContext(Transaction transaction) {
     return transaction == null ? TransactionContext.current()
-        : TransactionContext.of(transaction.getRootFlowSpan().getSpan());
+        : TransactionContext.of(transaction.getTransactionSpan());
   }
 
   @Override
@@ -92,7 +130,7 @@ public class InMemoryTransactionStore implements TransactionStore {
       return getTransactionContext(transaction);
     ProcessorSpan processorSpan = null;
     if (transaction != null
-        && ((processorSpan = transaction.getRootFlowSpan()
+        && ((processorSpan = transaction
             .findSpan(componentLocation)) != null)) {
       return TransactionContext.of(processorSpan.getSpan());
     } else {
@@ -126,10 +164,10 @@ public class InMemoryTransactionStore implements TransactionStore {
         LOGGER.trace("Marking the end time of transaction {} from map for {} - Context Id {}",
             traceComponent.getTransactionId(),
             traceComponent.getName(), traceComponent.getEventContextId());
-        transaction.endRootFlow(traceComponent, endSpan);
+        transaction.endRootSpan(traceComponent, endSpan);
       } else {
         // This is a flow invoked by a flow-ref and not the main flow
-        transactionMeta = transaction.getRootFlowSpan().endChildFlow(traceComponent, endSpan);
+        transactionMeta = transaction.endChildTransaction(traceComponent, endSpan);
       }
       if (transaction.hasEnded()) {
         LOGGER.trace("Removed transaction {} from map for {} - Context Id {}",
@@ -151,7 +189,14 @@ public class InMemoryTransactionStore implements TransactionStore {
   @Override
   public SpanMeta addProcessorSpan(String containerName, TraceComponent traceComponent, SpanBuilder spanBuilder) {
     Transaction transaction = getTransaction(traceComponent.getTransactionId());
+    if (transaction == null && hasBatchJobInstanceId(traceComponent)) {
+      String batchJobInstanceId = getBatchJobInstanceId(traceComponent);
+      LOGGER.trace("Looking for transaction for batch job instance id {} ", batchJobInstanceId);
+      transaction = getTransaction(batchJobInstanceId);
+    }
     if (transaction == null) {
+      LOGGER.warn("No transaction found for transaction {}. Map contains transactions for {}",
+          traceComponent.getTransactionId(), transactionMap.keySet());
       return null;
     }
     LOGGER.trace(
@@ -159,7 +204,6 @@ public class InMemoryTransactionStore implements TransactionStore {
         traceComponent.getTransactionId(),
         traceComponent.getLocation());
     SpanMeta span = transaction
-        .getRootFlowSpan()
         .addProcessorSpan(containerName, traceComponent, spanBuilder);
     LOGGER.trace(
         "Adding Processor span to transaction {} for locator span '{}': OT SpanId {}, TraceId {}",
@@ -183,7 +227,6 @@ public class InMemoryTransactionStore implements TransactionStore {
       return null;
     }
     return transaction
-        .getRootFlowSpan()
         .endProcessorSpan(traceComponent, spanUpdater, endTime);
   }
 }

@@ -7,6 +7,8 @@ import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
+import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.event.Event;
 import org.mule.runtime.core.api.util.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +20,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.*;
 
 /**
  * Configuration class for managing the interception of components based on
@@ -63,6 +67,8 @@ public class InterceptorProcessorConfig {
    */
   private final List<String> interceptInclusions = new ArrayList<>();
 
+  private ConfigurationComponentLocator componentLocator;
+
   /**
    * List of components not to intercept. Configured using
    * {@link TraceLevelConfiguration#interceptionDisabledComponents} on
@@ -91,6 +97,11 @@ public class InterceptorProcessorConfig {
         .map(MuleComponent::toString).collect(Collectors.toList());
     interceptEnabledByConfigComponents = traceLevelConfiguration.getInterceptionEnabledComponents().stream()
         .map(MuleComponent::toString).collect(Collectors.toList());
+  }
+
+  public InterceptorProcessorConfig setComponentLocator(ConfigurationComponentLocator componentLocator) {
+    this.componentLocator = componentLocator;
+    return this;
   }
 
   /**
@@ -133,7 +144,7 @@ public class InterceptorProcessorConfig {
     }
   }
 
-  public boolean interceptEnabled(ComponentLocation location) {
+  public boolean interceptEnabled(ComponentLocation location, Event event) {
     if (!INTERCEPTOR_ENABLED_BY_SYS_PROPERTY) {
       LOGGER.trace("Interceptors are disabled by system property");
       return false;
@@ -142,8 +153,12 @@ public class InterceptorProcessorConfig {
       LOGGER.trace("Tracing has been turned off by global configuration");
       return false;
     }
-    return ComponentsUtil.isFirstProcessor(location) || (NOT_FIRST_PROCESSOR_ONLY_MODE
-        && interceptEnabled(location.getComponentIdentifier().getIdentifier()));
+    if (event != null && shouldSkipThisBatchProcessing(event))
+      return false;
+    return ComponentsUtil.isFirstProcessor(location)
+        || (event != null && isBatchStepFirstProcessor(location, event, componentLocator))
+        || (NOT_FIRST_PROCESSOR_ONLY_MODE
+            && (interceptEnabled(location.getComponentIdentifier().getIdentifier())));
   }
 
   private boolean interceptEnabled(ComponentIdentifier componentIdentifier) {

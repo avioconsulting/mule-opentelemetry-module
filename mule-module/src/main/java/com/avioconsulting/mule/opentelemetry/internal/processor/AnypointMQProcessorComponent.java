@@ -64,7 +64,7 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
       startTraceComponent = startTraceComponent.withSpanKind(SpanKind.CONSUMER)
           .withSpanName(
               formattedSpanName(startTraceComponent.getTags().get(MESSAGING_DESTINATION_NAME.getKey()),
-                  MessagingIncubatingAttributes.MessagingOperationTypeIncubatingValues.RECEIVE));
+                  MessagingOperationTypeIncubatingValues.RECEIVE));
     }
     return startTraceComponent;
   }
@@ -97,9 +97,9 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
     Map<String, String> tags = getAttributes(getSourceComponent(notification).orElse(notification.getComponent()),
         attributesTypedValue);
     tags.put(MESSAGING_OPERATION_NAME.getKey(), PROCESS);
-    return TraceComponent.of(notification.getResourceIdentifier(), notification.getComponent().getLocation())
-        .withTags(tags)
-        .withTransactionId(getTransactionId(notification))
+    TraceComponent traceComponent = getTraceComponentBuilderFor(notification);
+    traceComponent.getTags().putAll(tags);
+    return traceComponent
         .withSpanName(formattedSpanName(attributes.getDestination(), PROCESS))
         .withStatsCode(StatusCode.OK)
         .withSpanKind(SpanKind.CONSUMER)
