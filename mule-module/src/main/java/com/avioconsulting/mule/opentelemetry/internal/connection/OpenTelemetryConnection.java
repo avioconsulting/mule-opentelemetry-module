@@ -3,7 +3,6 @@ package com.avioconsulting.mule.opentelemetry.internal.connection;
 import com.avioconsulting.mule.opentelemetry.api.AppIdentifier;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigProvider;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsProvider;
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.AttributesKeyCache;
 import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
@@ -17,7 +16,6 @@ import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.ServiceProviderUtil;
 import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.*;
 import io.opentelemetry.context.Context;
@@ -61,7 +59,6 @@ public class OpenTelemetryConnection implements TraceContextHandler,
   private OpenTelemetryMetricsConfigProvider metricsProvider;
   private AppIdentifier appIdentifier;
   private ExpressionManager expressionManager;
-  private final AttributesKeyCache attributesKeyCache = new AttributesKeyCache();
   /**
    * Instrumentation version must be picked from the module's artifact version.
    * This is a fallback for any dev testing.
