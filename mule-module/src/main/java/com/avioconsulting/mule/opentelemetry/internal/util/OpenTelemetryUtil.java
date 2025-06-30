@@ -1,8 +1,11 @@
 package com.avioconsulting.mule.opentelemetry.internal.util;
 
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.AttributesKeyCache;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
 import org.mule.runtime.api.metadata.DataType;
 import org.mule.runtime.core.api.util.IOUtils;
 import org.mule.runtime.api.event.Event;
@@ -25,6 +28,7 @@ import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUti
 public class OpenTelemetryUtil {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OpenTelemetryUtil.class);
+  private static final AttributesKeyCache attributesKeyCache = new AttributesKeyCache();
 
   /**
    * <pre>
@@ -171,4 +175,25 @@ public class OpenTelemetryUtil {
     return value;
   }
 
+  public static void tagsToAttributes(TraceComponent traceComponent, SpanBuilder spanBuilder) {
+    if (traceComponent.getTags() == null || traceComponent.getTags().isEmpty()) {
+      return;
+    }
+    traceComponent.getTags()
+        .forEach((k, v) -> {
+          AttributeKey attributeKey = attributesKeyCache.getAttributeKey(k);
+          spanBuilder.setAttribute(attributeKey, attributesKeyCache.convertValue(attributeKey, v));
+        });
+  }
+
+  public static void tagsToAttributes(TraceComponent traceComponent, Span span) {
+    if (traceComponent.getTags() == null || traceComponent.getTags().isEmpty()) {
+      return;
+    }
+    traceComponent.getTags()
+        .forEach((k, v) -> {
+          AttributeKey attributeKey = attributesKeyCache.getAttributeKey(k);
+          span.setAttribute(attributeKey, attributesKeyCache.convertValue(attributeKey, v));
+        });
+  }
 }

@@ -3,7 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.store;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.traces.ComponentEventContext;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
-import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.AttributesKeyCache;
+import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.context.Context;
@@ -21,6 +21,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+
+import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.*;
 
 public class ContainerSpan implements Serializable {
 
@@ -44,8 +46,7 @@ public class ContainerSpan implements Serializable {
     this.rootContext = span.storeInContext(Context.current());
     setTags(traceComponent.getTags());
     setRootSpanName(traceComponent.getSpanName());
-    traceComponent.getTags()
-        .forEach((key, value) -> span.setAttribute(AttributesKeyCache.getAttributeKey(key), value));
+    tagsToAttributes(traceComponent, span);
     rootProcessorSpan = new ProcessorSpan(span, traceComponent.getLocation(),
         transactionId,
         traceComponent.getStartTime(), traceComponent.getSpanName());

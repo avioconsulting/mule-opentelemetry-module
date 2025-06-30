@@ -30,8 +30,8 @@ public class MuleOpenTelemetryOperationsTest extends AbstractMuleArtifactTraceTe
         .containsOnly("GET /tags", "SERVER", "UNSET"));
     assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
-        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
-        .containsEntry("http.response.status_code", "200")
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, Object.class))
+        .containsEntry("http.response.status_code", 200L)
         .containsEntry("custom.orderId", "order123")
         .containsEntry("custom.quantity", "20")
         .containsEntry("custom.payload", "Tag Payload");
@@ -48,8 +48,8 @@ public class MuleOpenTelemetryOperationsTest extends AbstractMuleArtifactTraceTe
         .containsOnly("GET /transaction-tags", "SERVER", "UNSET"));
     assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
-        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
-        .containsEntry("http.response.status_code", "200")
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, Object.class))
+        .containsEntry("http.response.status_code", 200L)
         .containsEntry("custom.orderId", "order123")
         .containsEntry("custom.quantity", "20")
         .containsEntry("custom.payload", "Tag Payload");
