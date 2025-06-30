@@ -9,6 +9,7 @@ import org.mockito.Mockito;
 import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.LocationPart;
+import org.mule.runtime.api.event.Event;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,6 +47,8 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
     return location;
   }
 
+  private Event event = getEvent();
+
   @Test
   public void do_not_intercept_wildcard_excluded_processors() {
 
@@ -58,7 +61,7 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
     interceptorProcessorConfig.updateTraceConfiguration(traceLevelConfiguration);
 
     assertThat(
-        interceptorProcessorConfig.interceptEnabled(location))
+        interceptorProcessorConfig.interceptEnabled(location, event))
             .isFalse();
 
   }
@@ -75,7 +78,7 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
     interceptorProcessorConfig.updateTraceConfiguration(traceLevelConfiguration);
 
     assertThat(
-        interceptorProcessorConfig.interceptEnabled(location))
+        interceptorProcessorConfig.interceptEnabled(location, event))
             .isFalse();
 
   }
@@ -93,7 +96,7 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
     interceptorProcessorConfig.updateTraceConfiguration(traceLevelConfiguration);
 
     assertThat(
-        interceptorProcessorConfig.interceptEnabled(location))
+        interceptorProcessorConfig.interceptEnabled(location, event))
             .isTrue();
 
   }
@@ -110,7 +113,7 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
     interceptorProcessorConfig.updateTraceConfiguration(traceLevelConfiguration);
 
     assertThat(
-        interceptorProcessorConfig.interceptEnabled(location))
+        interceptorProcessorConfig.interceptEnabled(location, event))
             .isTrue();
 
   }
@@ -128,10 +131,10 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
     interceptorProcessorConfig.updateTraceConfiguration(traceLevelConfiguration);
 
     assertThat(
-        interceptorProcessorConfig.interceptEnabled(location))
+        interceptorProcessorConfig.interceptEnabled(location, event))
             .isTrue();
     assertThat(
-        interceptorProcessorConfig.interceptEnabled(notIncludedLocation))
+        interceptorProcessorConfig.interceptEnabled(notIncludedLocation, event))
             .isFalse();
 
   }
@@ -150,13 +153,13 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
     when(location.getComponentIdentifier()).thenReturn(componentIdentifier);
 
     assertThat(
-        new InterceptorProcessorConfig().interceptEnabled(location))
+        new InterceptorProcessorConfig().interceptEnabled(location, event))
             .as("Interception before system property")
             .isTrue();
     System.setProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME, "false");
 
     assertThat(
-        new InterceptorProcessorConfig().interceptEnabled(location))
+        new InterceptorProcessorConfig().interceptEnabled(location, event))
             .as("Interception after system property")
             .isFalse();
     System.clearProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME);
@@ -166,7 +169,7 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
   public void do_not_intercept_anything_that_is_not_configured_and_processor_0() {
     ComponentLocation location = getLocation("mule", "logger");
     assertThat(
-        new InterceptorProcessorConfig().interceptEnabled(location))
+        new InterceptorProcessorConfig().interceptEnabled(location, event))
             .isFalse();
   }
 
@@ -174,7 +177,7 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
   public void intercept_processor_0() {
     ComponentLocation location = getLocationAtZero("mule", "logger");
     assertThat(
-        new InterceptorProcessorConfig().interceptEnabled(location))
+        new InterceptorProcessorConfig().interceptEnabled(location, event))
             .isTrue();
   }
 
@@ -189,7 +192,7 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
     interceptorProcessorConfig.updateTraceConfiguration(traceLevelConfiguration);
 
     assertThat(
-        interceptorProcessorConfig.interceptEnabled(location))
+        interceptorProcessorConfig.interceptEnabled(location, event))
             .as("Processor is enabled to intercept and processor zero is disabled")
             .isTrue();
 
@@ -199,7 +202,7 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
     interceptorProcessorConfigWithout0.updateTraceConfiguration(traceLevelConfiguration);
 
     assertThat(
-        interceptorProcessorConfigWithout0.interceptEnabled(location))
+        interceptorProcessorConfigWithout0.interceptEnabled(location, event))
             .as("Processor is enabled to intercept and processor zero is enabled")
             .isFalse();
     System.clearProperty(MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY);
@@ -216,7 +219,7 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
         .updateTraceConfiguration(traceLevelConfiguration);
 
     assertThat(
-        interceptorProcessorConfig.interceptEnabled(location))
+        interceptorProcessorConfig.interceptEnabled(location, event))
             .isTrue();
 
     // Turn off tracing
@@ -224,7 +227,7 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
         .setTurnOffTracing(true);
 
     assertThat(
-        interceptorProcessorConfig.interceptEnabled(location))
+        interceptorProcessorConfig.interceptEnabled(location, event))
             .isFalse();
   }
 

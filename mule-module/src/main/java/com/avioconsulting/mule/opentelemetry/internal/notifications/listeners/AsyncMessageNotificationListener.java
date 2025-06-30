@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.notifications.listeners;
 
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
+import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.notification.AsyncMessageNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +14,7 @@ import org.slf4j.LoggerFactory;
  *
  * @since 2.1.2
  */
-public class AsyncMessageNotificationListener extends AbstractMuleNotificationListener
+public class AsyncMessageNotificationListener extends AbstractMuleNotificationListener<AsyncMessageNotification>
     implements org.mule.runtime.api.notification.AsyncMessageNotificationListener<AsyncMessageNotification> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AsyncMessageNotificationListener.class);
@@ -23,9 +24,12 @@ public class AsyncMessageNotificationListener extends AbstractMuleNotificationLi
   }
 
   @Override
-  public void onNotification(AsyncMessageNotification notification) {
-    replaceMDCEntry(notification.getEvent());
-    LOGGER.trace("===> Received {}:{}", notification.getClass().getName(), notification.getActionName());
+  protected Event getEvent(AsyncMessageNotification notification) {
+    return notification.getEvent();
+  }
+
+  @Override
+  protected void processNotification(AsyncMessageNotification notification) {
     switch (Integer.parseInt(notification.getAction().getIdentifier())) {
       case AsyncMessageNotification.PROCESS_ASYNC_SCHEDULED:
         LOGGER.trace("Scheduled {}:{} - {}", notification.getEventName(),

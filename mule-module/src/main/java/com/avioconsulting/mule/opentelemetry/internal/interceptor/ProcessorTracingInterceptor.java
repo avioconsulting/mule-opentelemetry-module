@@ -18,9 +18,9 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.concurrent.ThreadSafe;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.*;
+import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.getEventTransactionId;
 import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.resolveExpressions;
@@ -60,7 +60,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
       Map<String, ProcessorParameterValue> parameters,
       InterceptionEvent event) {
     try {
-      if (!muleNotificationProcessor.getInterceptorProcessorConfig().interceptEnabled(location)) {
+      if (!muleNotificationProcessor.getInterceptorProcessorConfig().interceptEnabled(location, event)) {
         return;
       }
       // Using an instance of MuleNotificationProcessor here.
@@ -105,6 +105,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
             switchTraceContext(event, TRACE_PREV_CONTEXT_MAP_KEY, TRACE_CONTEXT_MAP_KEY);
             return;
           }
+          addBatchTags(traceComponent, event);
           LOGGER.trace("Creating Span in the interceptor for {} at {}",
               location.getComponentIdentifier().getIdentifier(), location.getLocation());
           resolveExpressions(traceComponent,
@@ -113,23 +114,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
               getLocationParent(location.getLocation()));
           final String transactionId = getEventTransactionId(event);
           if (isFlowRef(location)) {
-            Optional<ComponentLocation> subFlowLocation = resolveFlowName(
-                muleNotificationProcessor.getOpenTelemetryConnection().getExpressionManager(),
-                traceComponent, event.asBindingContext(), configurationComponentLocator);
-            if (subFlowLocation.isPresent()) {
-              TraceComponent subflowTrace = getTraceComponent(subFlowLocation.get(), traceComponent);
-              muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(subflowTrace,
-                  location.getLocation());
-              event.addVariable(TRACE_CONTEXT_MAP_KEY,
-                  muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(
-                      transactionId,
-                      subflowTrace.contextScopedLocation()));
-            } else {
-              event.addVariable(TRACE_CONTEXT_MAP_KEY,
-                  muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(
-                      transactionId,
-                      traceComponent.contextScopedLocation()));
-            }
+            processFlowRef(location, event, traceComponent, transactionId);
           } else {
             event.addVariable(TRACE_CONTEXT_MAP_KEY,
                 muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId,
@@ -148,11 +133,42 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
     }
   }
 
+  private void processFlowRef(ComponentLocation location, InterceptionEvent event, TraceComponent traceComponent,
+      String transactionId) {
+    Optional<ComponentLocation> subFlowLocation = resolveFlowName(
+        muleNotificationProcessor.getOpenTelemetryConnection().getExpressionManager(),
+        traceComponent, event.asBindingContext(), configurationComponentLocator);
+    if (subFlowLocation.isPresent()) {
+      TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation.get(), traceComponent);
+      copyBatchTags(traceComponent, subflowTrace);
+      muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(subflowTrace,
+          location.getLocation());
+      event.addVariable(TRACE_CONTEXT_MAP_KEY,
+          muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(
+              transactionId,
+              subflowTrace.contextScopedLocation()));
+    } else {
+      event.addVariable(TRACE_CONTEXT_MAP_KEY,
+          muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(
+              transactionId,
+              traceComponent.contextScopedLocation()));
+    }
+  }
+
   @Override
   public void after(ComponentLocation location, InterceptionEvent event, Optional<Throwable> thrown) {
     switchTraceContext(event, TRACE_PREV_CONTEXT_MAP_KEY, TRACE_CONTEXT_MAP_KEY);
-    if (isFlowRef(location))
+    if (isFlowRef(location)) {
       switchTraceContext(event, OTEL_FLOW_PREV_CONTEXT_ID, OTEL_FLOW_CONTEXT_ID);
+    }
+    if (location.getComponentIdentifier().getIdentifier().toString().equals(BATCH_JOB_TAG)) {
+      event.addVariable(OTEL_BATCH_PARENT_CONTEXT_ID, getEventTransactionId(event.getContext().getId()));
+    }
+    if (isBatchStepFirstProcessor(location, event, configurationComponentLocator)) {
+      // This context id will be used for ending a record span
+      event.addVariable(OTEL_BATCH_STEP_RECORD_CONTEXT_ID, event.getContext().getId());
+      event.removeVariable(OTEL_BATCH_PARENT_CONTEXT_ID);
+    }
   }
 
   private void switchTraceContext(InterceptionEvent event, String removalContextKey, String newContextKey) {

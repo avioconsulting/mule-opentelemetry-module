@@ -137,6 +137,7 @@ public final class SemanticAttributes {
    * Key to capture Error types
    */
   public static final AttributeKey<String> ERROR_TYPE = stringKey("error.type");
+  public static final AttributeKey<String> ERROR_MESSAGE = stringKey("error.message");
 
   public static final AttributeKey<String> MULE_APP_SCOPE_SUBFLOW_NAME = stringKey("mule.app.scope.subflow.name");
 
@@ -145,4 +146,11 @@ public final class SemanticAttributes {
   public static final AttributeKey<String> WSC_CONFIG_PORT = stringKey("mule.wsc.config.port");
   public static final AttributeKey<String> WSC_CONFIG_ADDRESS = stringKey("mule.wsc.config.address");
 
+  public static final AttributeKey<String> MULE_BATCH_TRACE_DISABLED = stringKey("mule.batch.trace.disabled");
+  public static final AttributeKey<String> MULE_BATCH_JOB_INSTANCE_ID = stringKey("mule.batch.job.instance.id");
+  public static final AttributeKey<String> MULE_BATCH_JOB_NAME = stringKey("mule.batch.job.name");
+  public static final AttributeKey<String> MULE_BATCH_JOB_STEPS = stringKey("mule.batch.job.steps");
+  public static final AttributeKey<String> MULE_BATCH_JOB_STEP_NAME = stringKey("mule.batch.job.step.name");
+  public static final AttributeKey<String> MULE_BATCH_JOB_STEP_AGGREGATOR_RECORD_COUNT = stringKey(
+      "mule.batch.job.step.aggregator.recordCount");
 }
