@@ -25,8 +25,8 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .containsOnly("GET /test-wildcard/*", "SERVER", "UNSET"));
     assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
-        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
-        .containsEntry("http.response.status_code", "200");
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, Object.class))
+        .containsEntry("http.response.status_code", 200L);
   }
 
   @Test
@@ -39,8 +39,8 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .containsOnly("GET /test-json-number-status", "SERVER", "UNSET"));
     assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
-        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
-        .containsEntry("http.response.status_code", "200");
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, Object.class))
+        .containsEntry("http.response.status_code", 200L);
   }
 
   @Test
@@ -53,8 +53,8 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .containsOnly("GET /test-json-string-status", "SERVER", "UNSET"));
     assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
-        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
-        .containsEntry("http.response.status_code", "200");
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, Object.class))
+        .containsEntry("http.response.status_code", 200L);
   }
 
   @Test
@@ -67,7 +67,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .containsOnly("GET /test-bad-status", "SERVER", "UNSET"));
     assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
-        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, Object.class))
         .doesNotContainKey("http.response.status_code");
   }
 
@@ -81,8 +81,8 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .containsOnly("GET /test", "SERVER", "UNSET"));
     assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
-        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
-        .containsEntry("http.response.status_code", "200");
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, Object.class))
+        .containsEntry("http.response.status_code", 200L);
   }
 
   @Test
@@ -114,8 +114,8 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .containsOnly("GET /test/error-status", "SERVER", "ERROR"));
     assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
-        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
-        .containsEntry("http.response.status_code", "500");
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, Object.class))
+        .containsEntry("http.response.status_code", 500L);
   }
 
   @Test
@@ -128,7 +128,7 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .containsOnly("GET /test/no-status", "SERVER", "UNSET"));
     assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .element(0)
-        .extracting("attributes", InstanceOfAssertFactories.map(String.class, String.class))
+        .extracting("attributes", InstanceOfAssertFactories.map(String.class, Object.class))
         .doesNotContainKey("http.response.status_code");
   }
 
@@ -237,12 +237,9 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .containsEntry("mule.app.processor.name", "request")
         .containsEntry("mule.app.processor.namespace", "http")
         .containsEntry("mule.app.processor.docName", "Request")
-        // .containsEntry("server.address", "0.0.0.0:".concat(serverPort.getValue()))
-        // .containsEntry("url.scheme", "http")
-        .containsEntry("http.response.status_code", "200")
+        .containsEntry("http.response.status_code", 200L)
+        .containsEntry("server.port", Long.valueOf(serverPort.getValue()))
         .containsEntry("http.response.header.content-length", "18")
-        // .containsEntry("net.peer.name", "0.0.0.0")
-        // .containsEntry("net.peer.port", serverPort.getValue())
         .containsEntry("mule.app.processor.configRef", "SELF_HTTP_Request_configuration")
         .containsEntry("http.request.method", "GET")
         .containsEntry("http.route", "/test/remote/target");
