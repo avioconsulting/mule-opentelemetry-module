@@ -8,7 +8,7 @@
   </parent>
 
   <artifactId>mule-opentelemetry-batch-legacy-adapter</artifactId>
-
+  <name>Mule OpenTelemetry Batch - Legacy Adapter</name>
   <properties>
     <mule-module-batch-ee.version>4.3.0</mule-module-batch-ee.version>
   </properties>

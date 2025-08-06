@@ -8,6 +8,7 @@
   </parent>
 
   <artifactId>mule-opentelemetry-module-api</artifactId>
+  <name>Mule OpenTelemetry Module API</name>
 
   <dependencies>
     <dependency>
