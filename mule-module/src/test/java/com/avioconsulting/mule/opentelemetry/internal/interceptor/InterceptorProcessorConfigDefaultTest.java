@@ -65,7 +65,7 @@ public class InterceptorProcessorConfigDefaultTest extends AbstractInternalTest 
   }
 
   @Test
-  public void interceptEnabled() {
+  public void shouldIntercept() {
     ComponentLocation location = Mockito.mock(ComponentLocation.class);
     when(location.getRootContainerName()).thenReturn("MyFlow");
     when(location.getLocation()).thenReturn("MyFlow/processors/anything-but-0");
@@ -83,7 +83,7 @@ public class InterceptorProcessorConfigDefaultTest extends AbstractInternalTest 
     when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
     when(location.getParts()).thenReturn(Arrays.asList(part1));
     assertThat(
-        new InterceptorProcessorConfig().interceptEnabled(location, event))
+        new InterceptorProcessorConfig().shouldIntercept(location, event))
             .isTrue();
   }
 }

@@ -27,9 +27,9 @@ import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil
  * See registry-bootstrap.properties.
  */
 @Component
-public class MessageProcessorTracingInterceptorFactory implements ProcessorInterceptorFactory {
+public class ProcessorTracingInterceptorFactory implements ProcessorInterceptorFactory {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MessageProcessorTracingInterceptorFactory.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ProcessorTracingInterceptorFactory.class);
   private final boolean interceptorEnabled = PropertiesUtil
       .getBoolean(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME, true);
 
@@ -44,7 +44,7 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
   private final ProcessorTracingInterceptor processorTracingInterceptor;
 
   @Inject
-  public MessageProcessorTracingInterceptorFactory(MuleNotificationProcessor muleNotificationProcessor,
+  public ProcessorTracingInterceptorFactory(MuleNotificationProcessor muleNotificationProcessor,
       ConfigurationComponentLocator configurationComponentLocator) {
     processorTracingInterceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
         configurationComponentLocator);
@@ -62,7 +62,7 @@ public class MessageProcessorTracingInterceptorFactory implements ProcessorInter
    * When `mule.otel.interceptor.first.processor.only` is NOT set to 'true', every
    * processor will be intercepted.
    * See
-   * {@link InterceptorProcessorConfig#interceptEnabled(ComponentLocation, org.mule.runtime.api.event.Event)}
+   * {@link InterceptorProcessorConfig#shouldIntercept(ComponentLocation, org.mule.runtime.api.event.Event)}
    * for how intercepting decisions are made at runtime for each location.
    *
    * This will not intercept ANY processor if

@@ -604,12 +604,45 @@ It is always injected under a key **OTEL_TRACE_CONTEXT**.
 
 .Supported Properties to control interceptor behavior
 |===
-|System Property |Environment Variable |Description |Default Value
+|System Property |Environment Variable |Description |Default Value|Example
 
 |mule.otel.interceptor.processor.enable
 |MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE
 |Enable or Disable the interceptor feature. Disabling the interceptor processing can result in incorrect context propagation.
 |`false`
+|`false`
+
+
+|mule.otel.interceptor.enabled.processors
+|MULE_OTEL_INTERCEPTOR_ENABLED_PROCESSORS
+|List of additional processors for interception processing.
+NOTE: Module already includes the most commonly used processors, use this property only if you are certain that target processors are missed, like a custom operation.
+|
+|`http:request,jms:publish`
+
+
+
+|mule.otel.interceptor.disabled.processors
+|MULE_OTEL_INTERCEPTOR_DISABLED_PROCESSORS
+|Remove processors for interception processing.
+|
+|`http:request,jms:publish`
+
+
+|mule.otel.interceptor.context.enabled.processors
+|MULE_OTEL_INTERCEPTOR_ENABLED_PROCESSORS
+|List of additional processors for required OTEL context propagation.
+NOTE: Module already includes the most commonly used processors, use this property only if you are certain that target processors are missed, like a custom operation.
+|
+|`http:request,jms:publish`
+
+
+
+|mule.otel.interceptor.context.disabled.processors
+|MULE_OTEL_INTERCEPTOR_DISABLED_PROCESSORS
+|Remove processors from context propagation. Use this only if the processor is by default configured for context propagation but resulting in issues and needs disabling the context.
+|
+|`http:request,jms:publish`
 
 
 |mule.otel.interceptor.first.processor.only

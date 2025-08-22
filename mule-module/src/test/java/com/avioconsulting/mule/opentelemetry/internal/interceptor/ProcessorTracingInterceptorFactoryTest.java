@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInternalTest {
+public class ProcessorTracingInterceptorFactoryTest extends AbstractInternalTest {
 
   @Mock
   MuleNotificationProcessor muleNotificationProcessor;
@@ -36,7 +36,7 @@ public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInter
   @Test
   public void get() {
     assertThat(
-        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
             .get())
                 .isInstanceOf(ProcessorTracingInterceptor.class);
   }
@@ -58,14 +58,14 @@ public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInter
     when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
     when(location.getParts()).thenReturn(Arrays.asList(part1));
     assertThat(
-        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
             .intercept(location))
                 .as("Interception before system property")
                 .isTrue();
     System.setProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME, "false");
 
     assertThat(
-        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
             .intercept(location))
                 .as("Interception after system property")
                 .isFalse();
@@ -89,7 +89,7 @@ public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInter
     when(processor0.getParts()).thenReturn(Arrays.asList(part1));
 
     assertThat(
-        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
             .intercept(processor0))
                 .isTrue();
 
@@ -104,7 +104,7 @@ public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInter
     when(flowRefLocation.getParts()).thenReturn(Arrays.asList(flowRefPart));
 
     assertThat(
-        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
             .intercept(flowRefLocation))
                 .isFalse();
 
@@ -128,7 +128,7 @@ public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInter
     when(processor0.getParts()).thenReturn(Arrays.asList(part1));
 
     assertThat(
-        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
             .intercept(processor0))
                 .isTrue();
 
@@ -143,7 +143,7 @@ public class MessageProcessorTracingInterceptorFactoryTest extends AbstractInter
     when(flowRefLocation.getParts()).thenReturn(Arrays.asList(flowRefPart));
 
     assertThat(
-        new MessageProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
             .intercept(flowRefLocation))
                 .isTrue();
 
