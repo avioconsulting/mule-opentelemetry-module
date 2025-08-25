@@ -233,8 +233,7 @@ public class InterceptorProcessorConfig {
       }
 
       if (contextDisabledProcessors != null && !contextDisabledProcessors.trim().isEmpty()) {
-        LOGGER.info("Removing processor configured with sys/env property {} from interception: {}",
-            MULE_OTEL_INTERCEPTOR_CONTEXT_ENABLED_PROCESSORS, contextEnabledProcessors);
+            MULE_OTEL_INTERCEPTOR_CONTEXT_DISABLED_PROCESSORS, contextDisabledProcessors);
         Set<String> processors = splitByComma(contextDisabledProcessors);
         propagationRequiredComponents.removeAll(processors);
       }
