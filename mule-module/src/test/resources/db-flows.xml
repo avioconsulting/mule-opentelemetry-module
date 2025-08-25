@@ -93,4 +93,17 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 		<set-payload value="#[output applicaton/json --- payload]" doc:name="Set Payload" doc:id="f5b6ab5f-a2f5-4f75-a17b-59da8e8a2dcd" />
 	</flow>
 
+	<flow name="DB-invoke-SP">
+		<logger level="INFO" doc:name="Logger1" message="#['Invoking SP']" />
+		<flow-ref name="invoke-sp"/>
+		<logger level="INFO" doc:name="Logger1" message="#['After SP']" />
+	</flow>
+	<sub-flow name="invoke-sp" doc:id="f85dbb99-aa1e-4520-8f44-4a00346a4e94" >
+<!--		<logger level="INFO" doc:name="Logger1" doc:id="e343e7b1-f578-43eb-865e-8ae5b5117df2" message="#['Inserting record to db ' ++ correlationId]" />-->
+		<db:stored-procedure doc:name="Stored procedure" doc:id="d66198fe-e49a-40dc-827b-daff33976748" config-ref="Database_Config">
+			<db:sql ><![CDATA[{call sp_InsertCustomer(:FirstName)}]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{'FirstName': "test"}]]]></db:input-parameters>
+		</db:stored-procedure>
+		<logger level="INFO" doc:name="Logger" doc:id="6694d887-8389-42d4-9d2c-4697c92a3abc" message="#['Record inserted successfully ' ++ correlationId]"/>
+	</sub-flow>
 </mule>

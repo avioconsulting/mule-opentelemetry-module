@@ -4,7 +4,9 @@ import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.Del
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.mule.runtime.core.api.event.CoreEvent;
 import org.mule.test.runner.RunnerDelegateTo;
 
 import java.util.UUID;
@@ -79,6 +81,21 @@ public class MuleOpenTelemetryDBTest extends AbstractMuleArtifactTraceTest {
   @Test
   public void selectByValidId() throws Exception {
     sendRequest(UUID.randomUUID().toString(), "/test/db/select-by-id?userId=100", 200);
+    // TODO: This works but Exporter provider is in main package
+    // and requires plugin class exporting to make it visible in test.
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .isNotEmpty()
+        .anySatisfy(span -> assertDBSpan(span, "Select", "select * from testdb.users where userId=:userId"))
+        .anySatisfy(span -> {
+          assertThat(span.getAttributes())
+              .containsEntry("db.operation.parameter.userId", "100");
+        }));
+  }
+
+  @Test
+  @Ignore
+  public void testStoredProcedure() throws Exception {
+    CoreEvent coreEvent = runFlow("DB-invoke-SP");
     // TODO: This works but Exporter provider is in main package
     // and requires plugin class exporting to make it visible in test.
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)

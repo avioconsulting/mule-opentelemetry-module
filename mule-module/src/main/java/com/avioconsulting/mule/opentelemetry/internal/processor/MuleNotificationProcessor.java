@@ -127,7 +127,7 @@ public class MuleNotificationProcessor {
       // Creating one here will create duplicate spans
       return;
     }
-    if (interceptorProcessorConfig.interceptEnabled(notification.getComponent().getLocation(),
+    if (interceptorProcessorConfig.shouldIntercept(notification.getComponent().getLocation(),
         notification.getEvent())) {
       logger.trace(
           "Component {} will be processed by interceptor, skipping notification processing to create span",
