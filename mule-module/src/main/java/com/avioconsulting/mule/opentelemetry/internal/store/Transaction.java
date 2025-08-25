@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.store;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.api.traces.TransactionContext;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 
@@ -29,4 +30,6 @@ public interface Transaction extends TransactionMeta {
   TransactionMeta endChildTransaction(TraceComponent traceComponent, Consumer<Span> endSpan);
 
   ProcessorSpan findSpan(String location);
+
+  TransactionContext getTransactionContext();
 }

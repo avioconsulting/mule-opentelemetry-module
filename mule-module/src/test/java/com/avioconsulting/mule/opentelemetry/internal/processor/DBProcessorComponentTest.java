@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentWrapperService;
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
 import org.junit.Test;
@@ -49,8 +50,8 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     when(configComponent.getIdentifier()).thenReturn(identifier);
     when(componentLocator.find(any(Location.class))).thenReturn(Optional.of(configComponent));
 
-    DBProcessorComponent dbProcessorComponent = new DBProcessorComponent();
-    dbProcessorComponent.withConfigurationComponentLocator(componentLocator);
+    ComponentWrapperService componentWrapperService = mock(ComponentWrapperService.class);
+
     ComponentLocation componentLocation = getComponentLocation();
     Map<String, String> config = new HashMap<>();
     config.put("sql", "select * from test where id = :id");
@@ -58,6 +59,11 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     config.put("inputParameters", "#[{id: 1}]");
     Component component = getComponent(componentLocation, config, "db", "select");
 
+    DBProcessorComponent dbProcessorComponent = new DBProcessorComponent();
+    ComponentWrapper wrapper = new ComponentWrapper(component, componentLocator);
+    when(componentWrapperService.getComponentWrapper(component)).thenReturn(wrapper);
+    dbProcessorComponent.withConfigurationComponentLocator(componentLocator)
+        .withComponentWrapperService(componentWrapperService);
     Map<String, String> attributes = dbProcessorComponent.getAttributes(component, null);
 
     assertThat(attributes)
@@ -80,14 +86,18 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     // Cannot find a connection config element using locator
     when(componentLocator.find(any(Location.class))).thenReturn(Optional.empty());
 
-    DBProcessorComponent dbProcessorComponent = new DBProcessorComponent();
-    dbProcessorComponent.withConfigurationComponentLocator(componentLocator);
     ComponentLocation componentLocation = getComponentLocation();
     Map<String, String> config = new HashMap<>();
     config.put("sql", "select * from test");
     config.put("config-ref", "Database_Config");
     Component component = getComponent(componentLocation, config, "db", "select");
 
+    DBProcessorComponent dbProcessorComponent = new DBProcessorComponent();
+    ComponentWrapperService componentWrapperService = mock(ComponentWrapperService.class);
+    ComponentWrapper wrapper = new ComponentWrapper(component, componentLocator);
+    when(componentWrapperService.getComponentWrapper(component)).thenReturn(wrapper);
+    dbProcessorComponent.withConfigurationComponentLocator(componentLocator)
+        .withComponentWrapperService(componentWrapperService);
     Map<String, String> attributes = dbProcessorComponent.getAttributes(component, null);
 
     assertThat(attributes)

@@ -10,7 +10,7 @@
     <!-- Avoid maven warning about different parent than module parent -->
   </parent>
   <artifactId>mule-opentelemetry-module</artifactId>
-  <version>2.10.1-SNAPSHOT</version>
+  <version>2.10.1-INT-DEBUG-2-SNAPSHOT</version>
   <packaging>mule-extension</packaging>
 
   <name>${project.groupId}:${project.artifactId}</name>
@@ -370,6 +370,20 @@
   <profiles>
     <profile>
       <id>benchmark</id>
+      <dependencies>
+        <!-- JMH Core -->
+        <dependency>
+          <groupId>org.openjdk.jmh</groupId>
+          <artifactId>jmh-core</artifactId>
+          <version>${jmh.version}</version>
+        </dependency>
+        <!-- JMH Annotation Processor -->
+        <dependency>
+          <groupId>org.openjdk.jmh</groupId>
+          <artifactId>jmh-generator-annprocess</artifactId>
+          <version>${jmh.version}</version>
+        </dependency>
+      </dependencies>
       <build>
         <plugins>
           <plugin>
@@ -417,7 +431,7 @@
                 <configuration>
                   <classpathScope>test</classpathScope>
                   <executable>java</executable>
-                  <workingDirectory>../target</workingDirectory>
+                  <workingDirectory>./target</workingDirectory>
                   <arguments>
                     <argument>-classpath</argument>
                     <classpath></classpath>

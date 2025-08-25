@@ -39,16 +39,8 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
     return SpanKind.PRODUCER;
   }
 
-  @Override
-  protected String getDefaultSpanName(Map<String, String> tags) {
-    if (tags.containsKey(MESSAGING_DESTINATION_NAME.getKey())) {
-      return formattedSpanName(tags.get(MESSAGING_DESTINATION_NAME.getKey()), "publish");
-    }
-    return super.getDefaultSpanName(tags);
-  }
-
   private String formattedSpanName(String queueName, String operation) {
-    return String.format("%s %s", queueName, operation);
+    return queueName + " " + operation;
   }
 
   @Override
@@ -71,7 +63,7 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
 
   @Override
   protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    ComponentWrapper componentWrapper = new ComponentWrapper(component, configurationComponentLocator);
+    ComponentWrapper componentWrapper = componentWrapperService.getComponentWrapper(component);
     Map<String, String> connectionParams = componentWrapper.getConfigConnectionParameters();
 
     Map<String, String> tags = new HashMap<>();

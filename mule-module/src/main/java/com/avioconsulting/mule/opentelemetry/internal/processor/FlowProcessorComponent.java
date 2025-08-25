@@ -92,13 +92,14 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_NAMESPACE.getKey(), sourceIdentifier.getNamespace());
     Component sourceComponent = configurationComponentLocator.find(Location.builderFromStringRepresentation(
         notification.getEvent().getContext().getOriginatingLocation().getLocation()).build()).get();
-    ComponentWrapper sourceWrapper = new ComponentWrapper(sourceComponent, configurationComponentLocator);
+    ComponentWrapper sourceWrapper = componentWrapperService.getComponentWrapper(sourceComponent);
     startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey(), sourceWrapper.getConfigRef());
     // Find if there is a processor component to handle flow source component.
     // If exists, allow it to process notification and build any additional tags to
     // include in a trace.
     ProcessorComponent processorComponentFor = ProcessorComponentService.getInstance()
-        .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator, expressionManager);
+        .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator, expressionManager,
+            componentWrapperService);
     if (processorComponentFor != null) {
       TraceComponent sourceTrace = processorComponentFor.getSourceStartTraceComponent(notification,
           traceContextHandler);
@@ -131,7 +132,8 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     // If exists, allow it to process notification and build any additional tags to
     // include in a trace.
     ProcessorComponent processorComponent = ProcessorComponentService.getInstance()
-        .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator, expressionManager);
+        .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator, expressionManager,
+            componentWrapperService);
     if (processorComponent != null) {
       TraceComponent sourceTrace = processorComponent.getSourceEndTraceComponent(notification,
           traceContextHandler);

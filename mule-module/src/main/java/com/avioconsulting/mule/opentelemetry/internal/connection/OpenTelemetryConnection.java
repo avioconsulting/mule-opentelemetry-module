@@ -50,8 +50,6 @@ import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryU
 public class OpenTelemetryConnection implements TraceContextHandler,
     com.avioconsulting.mule.opentelemetry.internal.store.TransactionProcessor {
 
-  public static final String TRACE_ID_LONG_LOW_PART = "traceIdLongLowPart";
-  public static final String SPAN_ID_LONG = "spanIdLong";
   private final OpenTelemetryMetricsProviderCollection metricsProviders = ServiceProviderUtil
       .load(OpenTelemetryMetricsProvider.class.getClassLoader(), OpenTelemetryMetricsProvider.class,
           new OpenTelemetryMetricsProviderCollection());
@@ -232,7 +230,7 @@ public class OpenTelemetryConnection implements TraceContextHandler,
    *            Local transaction id
    * @return Map<String, String>
    */
-  public Map<String, String> getTraceContext(String transactionId) {
+  public Map<String, Object> getTraceContext(String transactionId) {
     return getTraceContext(transactionId, (String) null);
   }
 
@@ -252,17 +250,12 @@ public class OpenTelemetryConnection implements TraceContextHandler,
    *            {@link ComponentLocation} to get context for
    * @return Map<String, String>
    */
-  public Map<String, String> getTraceContext(String transactionId, String componentLocation) {
+  public Map<String, Object> getTraceContext(String transactionId, String componentLocation) {
     TransactionContext transactionContext = getTransactionStore().getTransactionContext(transactionId,
         componentLocation);
-    Map<String, String> traceContext = new HashMap<>(10);
-    traceContext.put(TRACE_TRANSACTION_ID, transactionId);
-    traceContext.put(TRACE_ID, transactionContext.getTraceId());
-    traceContext.put(TRACE_ID_LONG_LOW_PART, transactionContext.getTraceIdLongLowPart());
-    traceContext.put(SPAN_ID, transactionContext.getSpanId());
-    traceContext.put(SPAN_ID_LONG, transactionContext.getSpanIdLong());
+    Map<String, Object> traceContext = transactionContext.getTraceContextMap();
     injectTraceContext(transactionContext.getContext(), traceContext,
-        HashMapTextMapSetter.INSTANCE);
+        HashMapObjectMapSetter.INSTANCE);
     logger.debug("Created trace context '{}' for TRACE_TRANSACTION_ID={}, Component Location '{}'", traceContext,
         transactionId,
         componentLocation);
@@ -298,6 +291,16 @@ public class OpenTelemetryConnection implements TraceContextHandler,
 
     @Override
     public void set(@Nullable Map<String, String> carrier, String key, String value) {
+      if (carrier != null)
+        carrier.put(key, value);
+    }
+  }
+
+  public static enum HashMapObjectMapSetter implements TextMapSetter<Map<String, Object>> {
+    INSTANCE;
+
+    @Override
+    public void set(@Nullable Map<String, Object> carrier, String key, String value) {
       if (carrier != null)
         carrier.put(key, value);
     }
@@ -432,7 +435,6 @@ public class OpenTelemetryConnection implements TraceContextHandler,
         traceComponent.getTags().get(SemanticAttributes.MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey()),
         traceComponent.getTags(), this.OTEL_SYSTEM_PROPERTIES_MAP);
 
-    tagsToAttributes(traceComponent, spanBuilder);
     getTransactionStore().startTransaction(
         traceComponent, traceComponent.getName(), spanBuilder);
   }

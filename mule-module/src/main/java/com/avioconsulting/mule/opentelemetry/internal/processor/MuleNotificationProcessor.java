@@ -11,12 +11,15 @@ import com.avioconsulting.mule.opentelemetry.api.ee.batch.notifications.OtelBatc
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.interceptor.InterceptorProcessorConfig;
 import com.avioconsulting.mule.opentelemetry.internal.notifications.BatchError;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentWrapperService;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import io.opentelemetry.context.Context;
+import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
+import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.AsyncMessageNotification;
@@ -75,16 +78,21 @@ public class MuleNotificationProcessor {
    * not have a specific processor like {@link HttpProcessorComponent}.
    */
   private final ProcessorComponent genericProcessorComponent;
+  private final ComponentWrapperService componentWrapperService;
 
   @Inject
-  public MuleNotificationProcessor(ConfigurationComponentLocator configurationComponentLocator) {
+  public MuleNotificationProcessor(ConfigurationComponentLocator configurationComponentLocator,
+      ComponentWrapperService componentWrapperService) {
     this.configurationComponentLocator = configurationComponentLocator;
     flowProcessorComponent = new FlowProcessorComponent()
-        .withConfigurationComponentLocator(configurationComponentLocator);
+        .withConfigurationComponentLocator(configurationComponentLocator)
+        .withComponentWrapperService(componentWrapperService);
     genericProcessorComponent = new GenericProcessorComponent()
-        .withConfigurationComponentLocator(configurationComponentLocator);
+        .withConfigurationComponentLocator(configurationComponentLocator)
+        .withComponentWrapperService(componentWrapperService);
     interceptorProcessorConfig = new InterceptorProcessorConfig()
         .setComponentLocator(configurationComponentLocator);
+    this.componentWrapperService = componentWrapperService;
   }
 
   public InterceptorProcessorConfig getInterceptorProcessorConfig() {
@@ -117,7 +125,9 @@ public class MuleNotificationProcessor {
         .setTurnOffTracing(openTelemetryConnection.isTurnOffTracing())
         .updateTraceConfiguration(traceLevelConfiguration);
 
+    componentWrapperService.initializeComponentWrapperRegistry();
     processorComponentService = ProcessorComponentService.getInstance();
+
   }
 
   public void handleProcessorStartEvent(MessageProcessorNotification notification) {
@@ -229,7 +239,7 @@ public class MuleNotificationProcessor {
 
     ProcessorComponent processorComponent = processorComponentService
         .getProcessorComponentFor(identifier, configurationComponentLocator,
-            openTelemetryConnection.getExpressionManager());
+            openTelemetryConnection.getExpressionManager(), componentWrapperService);
 
     if (processorComponent == null && (spanAllProcessors
         || multiMapContains(identifier.getNamespace(), identifier.getName(), "*",

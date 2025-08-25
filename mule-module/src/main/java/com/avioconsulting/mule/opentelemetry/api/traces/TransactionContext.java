@@ -1,16 +1,21 @@
 package com.avioconsulting.mule.opentelemetry.api.traces;
 
 import com.avioconsulting.mule.opentelemetry.api.util.EncodingUtil;
+import com.avioconsulting.mule.opentelemetry.internal.store.Transaction;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanId;
 import io.opentelemetry.api.trace.TraceId;
 import io.opentelemetry.context.Context;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+
+import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.*;
 
 public class TransactionContext {
   private Context context = Context.current();
-
+  private final Map<String, Object> traceContextMap = new java.util.HashMap<>();
   /**
    * Get the 16-hex-character lowercase string span id
    */
@@ -30,7 +35,7 @@ public class TransactionContext {
    * Example: Span Id - "53f9aa133a283c1a"
    * Long Low Id - "6051054573905787930"
    */
-  private String spanIdLong = "0";
+  private long spanIdLong = 0L;
 
   /**
    * This method returns the String formatted Long value of the Low part of the
@@ -40,19 +45,24 @@ public class TransactionContext {
    * Low-part - "6a4bc6817cd983ce"
    * Long Low Id - "7659433850721371086"
    */
-  private String traceIdLongLowPart = "0";
+  private long traceIdLongLowPart = 0L;
 
-  public static TransactionContext of(Span span) {
-    TransactionContext transactionContext = new TransactionContext()
-        .setContext(span.storeInContext(Context.current()))
-        .setSpanId(span.getSpanContext().getSpanId())
-        .setTraceId(span.getSpanContext().getTraceId());
+  public static TransactionContext of(Span span, Transaction transaction) {
+    TransactionContext transactionContext = new TransactionContext();
+    transactionContext.context = span.storeInContext(Context.current());
+    transactionContext.spanId = span.getSpanContext().getSpanId();
+    transactionContext.traceId = span.getSpanContext().getTraceId();
     if (SpanId.isValid(transactionContext.getSpanId())) {
-      transactionContext.setSpanIdLong(EncodingUtil.longFromBase16Hex(transactionContext.getSpanId()));
+      transactionContext.spanIdLong = EncodingUtil.spanIdHexToLong(transactionContext.getSpanId());
     }
     if (TraceId.isValid(transactionContext.getTraceId())) {
-      transactionContext.setTraceIdLongLowPart(EncodingUtil.traceIdLong(transactionContext.getTraceId())[1]);
+      transactionContext.traceIdLongLowPart = EncodingUtil.traceIdHexToLowLong(transactionContext.getTraceId());
     }
+    transactionContext.traceContextMap.put(TRACE_TRANSACTION_ID, transaction.getTransactionId());
+    transactionContext.traceContextMap.put(TRACE_ID, transactionContext.getTraceId());
+    transactionContext.traceContextMap.put(TRACE_ID_LONG_LOW_PART, transactionContext.getTraceIdLongLowPart());
+    transactionContext.traceContextMap.put(SPAN_ID, transactionContext.getSpanId());
+    transactionContext.traceContextMap.put(SPAN_ID_LONG, transactionContext.getSpanIdLong());
     return transactionContext;
   }
 
@@ -64,45 +74,24 @@ public class TransactionContext {
     return context;
   }
 
-  public TransactionContext setContext(Context context) {
-    this.context = context;
-    return this;
+  public Map<String, Object> getTraceContextMap() {
+    return new HashMap<>(traceContextMap);
   }
 
   public String getSpanId() {
     return spanId;
   }
 
-  public TransactionContext setSpanId(String spanId) {
-    this.spanId = spanId;
-    return this;
-  }
-
   public String getTraceId() {
     return traceId;
   }
 
-  public TransactionContext setTraceId(String traceId) {
-    this.traceId = traceId;
-    return this;
-  }
-
-  public String getSpanIdLong() {
+  public long getSpanIdLong() {
     return spanIdLong;
   }
 
-  public TransactionContext setSpanIdLong(String spanIdLong) {
-    this.spanIdLong = spanIdLong;
-    return this;
-  }
-
-  public String getTraceIdLongLowPart() {
+  public long getTraceIdLongLowPart() {
     return traceIdLongLowPart;
-  }
-
-  public TransactionContext setTraceIdLongLowPart(String traceIdLongLowPart) {
-    this.traceIdLongLowPart = traceIdLongLowPart;
-    return this;
   }
 
   @Override

@@ -29,6 +29,7 @@ public class ComponentsUtil {
   public static final String BATCH_STEP_RECORD_TAG = "batch:step-record";
   public static final String BATCH_JOB_TAG = "batch:job";
   public static final String BATCH_ON_COMPLETE_TAG = "batch:on-complete";
+  public static final String PROCESSOR_0_PATH_SUFFIX = "/processors/0";
 
   public static Optional<ComponentLocation> findLocation(String location,
       ConfigurationComponentLocator configurationComponentLocator) {
@@ -132,7 +133,7 @@ public class ComponentsUtil {
   }
 
   public static boolean isFirstProcessor(ComponentLocation location) {
-    String interceptPath = String.format("%s/processors/0", location.getRootContainerName());
+    String interceptPath = location.getRootContainerName() + PROCESSOR_0_PATH_SUFFIX;
     return isFlowTypeContainer(location)
         && interceptPath.equalsIgnoreCase(location.getLocation());
   }
@@ -141,7 +142,7 @@ public class ComponentsUtil {
     if (location.getParts().size() <= 2)
       return false;
     LocationPart parentPart = location.getParts().get(location.getParts().size() - 3);
-    String firstProcessorPath = String.format("%s/processors/0", getLocationParent(location.getLocation()));
+    String firstProcessorPath = getLocationParent(location.getLocation()) + PROCESSOR_0_PATH_SUFFIX;
     return parentPart.getPartIdentifier().isPresent() && isRoute(parentPart.getPartIdentifier().get())
         && firstProcessorPath.equalsIgnoreCase(location.getLocation());
   }

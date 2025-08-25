@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentWrapperService;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import org.mule.runtime.api.component.Component;
@@ -34,11 +35,17 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   protected ConfigurationComponentLocator configurationComponentLocator;
   protected ExpressionManager expressionManager;
+  protected ComponentWrapperService componentWrapperService;
 
   @Override
   public ProcessorComponent withConfigurationComponentLocator(
       ConfigurationComponentLocator configurationComponentLocator) {
     this.configurationComponentLocator = configurationComponentLocator;
+    return this;
+  }
+
+  public ProcessorComponent withComponentWrapperService(ComponentWrapperService componentWrapperService) {
+    this.componentWrapperService = componentWrapperService;
     return this;
   }
 
@@ -93,19 +100,12 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
     return traceComponent;
   }
 
-  protected String getDefaultSpanName(Map<String, String> tags) {
-    String name = tags.get(MULE_APP_PROCESSOR_NAME.getKey());
-    return name.concat(":")
-        .concat(tags.getOrDefault(MULE_APP_PROCESSOR_DOC_NAME.getKey(), name));
-  }
-
   protected String getTransactionId(EnrichedServerNotification notification) {
     return getEventTransactionId(notification.getEvent());
   }
 
   protected Map<String, String> getProcessorCommonTags(Component component) {
-    ComponentWrapper componentWrapper = new ComponentWrapper(component,
-        configurationComponentLocator);
+    ComponentWrapper componentWrapper = componentWrapperService.getComponentWrapper(component);
     Map<String, String> tags = new HashMap<>();
     tags.put(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
         component.getIdentifier().getNamespace());
@@ -153,12 +153,13 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
    * @return TraceComponent
    */
   public TraceComponent getStartTraceComponent(Component component, Event event) {
+    ComponentWrapper componentWrapper = componentWrapperService.getComponentWrapper(component);
     Map<String, String> tags = new HashMap<>(getProcessorCommonTags(component));
     tags.put(MULE_CORRELATION_ID.getKey(), event.getCorrelationId());
     tags.putAll(getAttributes(component,
         event.getMessage().getAttributes()));
     TraceComponent traceComponent = TraceComponent.of(component)
-        .withSpanName(getDefaultSpanName(tags))
+        .withSpanName(componentWrapper.getDefaultSpanName())
         .withTags(tags)
         .withSpanKind(getSpanKind())
         .withTransactionId(getEventTransactionId(event))

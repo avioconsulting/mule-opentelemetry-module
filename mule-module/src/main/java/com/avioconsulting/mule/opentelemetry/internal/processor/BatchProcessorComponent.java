@@ -71,7 +71,7 @@ public class BatchProcessorComponent extends AbstractProcessorComponent {
       }
     } catch (Exception ignore) {
     }
-    ComponentWrapper wrapper = new ComponentWrapper(component, configurationComponentLocator);
+    ComponentWrapper wrapper = componentWrapperService.getComponentWrapper(component);
     String jobName = wrapper.getParameter("jobName");
     traceComponent.getTags().put(MULE_BATCH_JOB_NAME.getKey(), jobName);
     return jobName;

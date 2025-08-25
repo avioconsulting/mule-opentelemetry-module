@@ -13,7 +13,6 @@ public class ProcessorComponentService {
   private static ProcessorComponentService service;
   private final List<ProcessorComponent> processorComponents;
   private static final LazyValue<ProcessorComponentService> VALUE = new LazyValue<>(new ProcessorComponentService());
-  private final List<ProcessorComponent> cached = new ArrayList<>();
   private final Map<ComponentIdentifier, ProcessorComponent> cachedMap = new ConcurrentHashMap<>();
 
   private ProcessorComponentService() {
@@ -29,14 +28,18 @@ public class ProcessorComponentService {
   }
 
   public ProcessorComponent getProcessorComponentFor(ComponentIdentifier identifier,
-      ConfigurationComponentLocator configurationComponentLocator, ExpressionManager expressionManager) {
-    for (ProcessorComponent pc : processorComponents) {
-      if (pc.canHandle(identifier)) {
-        pc.withConfigurationComponentLocator(configurationComponentLocator)
-            .withExpressionManager(expressionManager);
-        return pc;
+      ConfigurationComponentLocator configurationComponentLocator, ExpressionManager expressionManager,
+      ComponentWrapperService componentWrapperService) {
+    return cachedMap.computeIfAbsent(identifier, id -> {
+      for (ProcessorComponent pc : processorComponents) {
+        if (pc.canHandle(identifier)) {
+          pc.withConfigurationComponentLocator(configurationComponentLocator)
+              .withExpressionManager(expressionManager)
+              .withComponentWrapperService(componentWrapperService);
+          return pc;
+        }
       }
-    }
-    return null;
+      return null;
+    });
   }
 }

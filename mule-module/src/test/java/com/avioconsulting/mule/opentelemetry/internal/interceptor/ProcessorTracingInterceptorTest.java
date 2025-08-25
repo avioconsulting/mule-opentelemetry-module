@@ -40,7 +40,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     TransactionStore transactionStore = mock(TransactionStore.class);
     when(connection.getTransactionStore()).thenReturn(transactionStore);
     when(transactionStore.transactionIdFor(any())).thenReturn("random-id");
-    Map<String, String> traceparentMap = Collections.singletonMap("traceparent", "some-value");
+    Map<String, Object> traceparentMap = Collections.singletonMap("traceparent", "some-value");
     ComponentLocation location = mock(ComponentLocation.class);
     when(location.getLocation()).thenReturn("test-location");
     when(location.getRootContainerName()).thenReturn("test-flow-name");
@@ -89,7 +89,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     TransactionStore transactionStore = mock(TransactionStore.class);
     when(connection.getTransactionStore()).thenReturn(transactionStore);
     when(transactionStore.transactionIdFor(any())).thenReturn("random-id");
-    Map<String, String> traceparentMap = Collections.singletonMap("traceparent", "some-value");
+    Map<String, Object> traceparentMap = Collections.singletonMap("traceparent", "some-value");
     ComponentLocation location = mock(ComponentLocation.class);
     when(location.getLocation()).thenReturn("test-location");
     when(location.getRootContainerName()).thenReturn("test-flow-name");
@@ -135,7 +135,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     TransactionStore transactionStore = mock(TransactionStore.class);
     when(connection.getTransactionStore()).thenReturn(transactionStore);
     when(transactionStore.transactionIdFor(any())).thenReturn("random-id");
-    Map<String, String> traceparentMap = Collections.singletonMap("traceparent", "some-value");
+    Map<String, Object> traceparentMap = Collections.singletonMap("traceparent", "some-value");
     ComponentLocation location = mock(ComponentLocation.class);
     when(location.getLocation()).thenReturn("test-location");
     when(location.getRootContainerName()).thenReturn("test-flow-name");
@@ -191,7 +191,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     TransactionStore transactionStore = mock(TransactionStore.class);
     when(connection.getTransactionStore()).thenReturn(transactionStore);
     when(transactionStore.transactionIdFor(any())).thenReturn("random-id");
-    Map<String, String> traceparentMap = Collections.singletonMap("traceparent", "some-value");
+    Map<String, Object> traceparentMap = Collections.singletonMap("traceparent", "some-value");
     ComponentLocation location = mock(ComponentLocation.class);
     when(location.getLocation()).thenReturn("test-location");
     when(location.getRootContainerName()).thenReturn("test-flow-name");
@@ -252,7 +252,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(transactionStore.transactionIdFor(any())).thenReturn("random-id");
     when(connection.getExpressionManager()).thenReturn(expressionManager);
 
-    Map<String, String> traceparentMap = Collections.singletonMap("traceparent", "some-value");
+    Map<String, Object> traceparentMap = Collections.singletonMap("traceparent", "some-value");
     ComponentLocation location = mock(ComponentLocation.class);
     when(location.getLocation()).thenReturn("test-location");
     when(location.getRootContainerName()).thenReturn("test-flow-name");

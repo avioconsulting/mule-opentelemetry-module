@@ -26,6 +26,7 @@ import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.BATCH_AGGREGATOR;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.copyBatchTags;
+import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.tagsToAttributes;
 
 public class BatchTransaction extends AbstractTransaction {
 
@@ -57,7 +58,9 @@ public class BatchTransaction extends AbstractTransaction {
     this.rootContext = rootSpan.storeInContext(Context.current());
     this.spanBuilderFunction = spanBuilderFunction;
     this.componentLocator = componentLocator;
+    tagsToAttributes(batchTraceComponent, rootSpan);
     extractStepLocations(batchTraceComponent);
+    setTransactionContext();
   }
 
   /**

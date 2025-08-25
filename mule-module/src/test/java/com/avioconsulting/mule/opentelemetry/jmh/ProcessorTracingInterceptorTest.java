@@ -12,6 +12,7 @@ import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryCo
 import com.avioconsulting.mule.opentelemetry.internal.interceptor.ProcessorTracingInterceptor;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentWrapperService;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
@@ -66,8 +67,9 @@ public class ProcessorTracingInterceptorTest extends AbstractJMHTest {
     connection.getTransactionStore().addProcessorSpan(TEST_1_FLOW, traceComponent,
         tracer.spanBuilder(TEST_1_FLOW_FLOW_REF).setSpanKind(SpanKind.INTERNAL));
     ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
+    ComponentWrapperService componentWrapperService = mock(ComponentWrapperService.class);
     MuleNotificationProcessor muleNotificationProcessor = new MuleNotificationProcessor(
-        configurationComponentLocator);
+        configurationComponentLocator, componentWrapperService);
     muleNotificationProcessor.init(connection, new TraceLevelConfiguration(true, Collections.emptyList()));
     interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor, configurationComponentLocator);
     event = new TestInterceptionEvent(TEST_1_TRANSACTION_ID);

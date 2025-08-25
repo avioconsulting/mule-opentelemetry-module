@@ -52,9 +52,9 @@ public abstract class AbstractMuleNotificationListener<T extends Notification> i
   }
 
   protected void replaceMDCEntry(Map<String, TypedValue<?>> variables) {
-    TypedValue<Map<String, String>> contextMap = (TypedValue<Map<String, String>>) variables
+    TypedValue<Map<String, Object>> contextMap = (TypedValue<Map<String, Object>>) variables
         .getOrDefault(TransactionStore.TRACE_CONTEXT_MAP_KEY, TypedValue.of(Collections.emptyMap()));
-    Map<String, String> context = contextMap.getValue();
+    Map<String, Object> context = contextMap.getValue();
     if (context == null || context.isEmpty())
       return;
     replaceMDCEntry(context, "traceId");
@@ -63,10 +63,10 @@ public abstract class AbstractMuleNotificationListener<T extends Notification> i
     replaceMDCEntry(context, "spanIdLong");
   }
 
-  private void replaceMDCEntry(Map<String, String> contextMap, String key) {
+  private void replaceMDCEntry(Map<String, Object> contextMap, String key) {
     if (contextMap.containsKey(key)) {
       MDC.remove(key);
-      MDC.put(key, contextMap.get(key));
+      MDC.put(key, contextMap.get(key).toString());
     }
   }
 }

@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentWrapperService;
 import io.opentelemetry.api.trace.Span;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,7 +42,7 @@ import static org.mockito.Mockito.when;
 public class MuleNotificationProcessorContextExtractorTest extends AbstractProcessorComponentTest {
 
   private ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
-
+  private ComponentWrapperService componentWrapperService = mock(ComponentWrapperService.class);
   @Parameterized.Parameter(value = 0)
   public static String expressionText;
 
@@ -85,8 +86,10 @@ public class MuleNotificationProcessorContextExtractorTest extends AbstractProce
 
     ArgumentCaptor<TraceComponent> captor = ArgumentCaptor.forClass(TraceComponent.class);
     doNothing().when(connection).startTransaction(captor.capture());
-
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+    ComponentWrapper wrapper = new ComponentWrapper(component, configurationComponentLocator);
+    when(componentWrapperService.getComponentWrapper(component)).thenReturn(wrapper);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator,
+        componentWrapperService);
     notificationProcessor.init(connection, new TraceLevelConfiguration(false, Collections.emptyList()));
     notificationProcessor.handleFlowStartEvent(pipelineMessageNotification);
 
@@ -134,8 +137,10 @@ public class MuleNotificationProcessorContextExtractorTest extends AbstractProce
 
     ArgumentCaptor<TraceComponent> captor = ArgumentCaptor.forClass(TraceComponent.class);
     doNothing().when(connection).startTransaction(captor.capture());
-
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+    ComponentWrapper wrapper = new ComponentWrapper(component, configurationComponentLocator);
+    when(componentWrapperService.getComponentWrapper(component)).thenReturn(wrapper);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator,
+        componentWrapperService);
     notificationProcessor.init(connection, new TraceLevelConfiguration(false, Collections.emptyList()));
     notificationProcessor.handleFlowStartEvent(pipelineMessageNotification);
 

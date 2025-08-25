@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.api.processor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentWrapperService;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
@@ -86,4 +87,6 @@ public interface ProcessorComponent {
    * @return the updated ProcessorComponent
    */
   ProcessorComponent withExpressionManager(ExpressionManager expressionManager);
+
+  ProcessorComponent withComponentWrapperService(ComponentWrapperService componentWrapperService);
 }

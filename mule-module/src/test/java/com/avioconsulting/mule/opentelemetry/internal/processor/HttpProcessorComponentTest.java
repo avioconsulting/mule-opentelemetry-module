@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentWrapperService;
 import com.avioconsulting.mule.opentelemetry.test.util.TestInterceptionEvent;
 import io.opentelemetry.api.trace.SpanKind;
 import org.junit.Test;
@@ -130,8 +131,12 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
 
     ConfigurationComponentLocator componentLocator = mock(ConfigurationComponentLocator.class);
     when(componentLocator.find(any(Location.class))).thenReturn(Optional.empty());
+    ComponentWrapperService componentWrapperService = mock(ComponentWrapperService.class);
+    ComponentWrapper wrapper = new ComponentWrapper(component, componentLocator);
+    when(componentWrapperService.getComponentWrapper(component)).thenReturn(wrapper);
     ProcessorComponent httpProcessorComponent = new HttpProcessorComponent()
-        .withConfigurationComponentLocator(componentLocator);
+        .withConfigurationComponentLocator(componentLocator)
+        .withComponentWrapperService(componentWrapperService);
     TraceComponent endTraceComponent = httpProcessorComponent.getStartTraceComponent(notification);
 
     assertThat(endTraceComponent).isNotNull()

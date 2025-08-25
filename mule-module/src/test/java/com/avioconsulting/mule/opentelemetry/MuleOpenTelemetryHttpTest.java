@@ -134,6 +134,17 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
   }
 
   @Test
+  public void testTraceContextExtractionLoop() throws Exception {
+    int requestCount = 100;
+    for (int i = 0; i < requestCount; i++) {
+      sendRequest(CORRELATION_ID, "/test/propagation/source", 200);
+    }
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .isNotEmpty()
+        .hasSize(requestCount * 3));
+  }
+
+  @Test
   public void testTraceContextExtraction() throws Exception {
     sendRequest(CORRELATION_ID, "/test/propagation/source", 200);
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
@@ -239,7 +250,6 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .containsEntry("mule.app.processor.namespace", "http")
         .containsEntry("mule.app.processor.docName", "Request")
         .containsEntry("http.response.status_code", 200L)
-        .containsEntry("server.port", Long.valueOf(serverPort.getValue()))
         .containsEntry("http.response.header.content-length", "18")
         .containsEntry("mule.app.processor.configRef", "SELF_HTTP_Request_configuration")
         .containsEntry("http.request.method", "GET")

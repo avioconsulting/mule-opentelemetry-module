@@ -35,13 +35,8 @@ public class WSCProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  protected String getDefaultSpanName(Map<String, String> tags) {
-    return tags.get("mule.wsc.config.service") + ":" + tags.get("mule.wsc.consumer.operation");
-  }
-
-  @Override
   protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    ComponentWrapper componentWrapper = new ComponentWrapper(component, configurationComponentLocator);
+    ComponentWrapper componentWrapper = componentWrapperService.getComponentWrapper(component);
     Map<String, String> tags = new HashMap<>();
     tags.put(WSC_CONSUMER_OPERATION.getKey(), componentWrapper.getParameter("operation"));
     Map<String, String> configConnectionParameters = componentWrapper.getConfigConnectionParameters();

@@ -147,7 +147,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
 
   @Override
   protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    ComponentWrapper componentWrapper = new ComponentWrapper(component, configurationComponentLocator);
+    ComponentWrapper componentWrapper = componentWrapperService.getComponentWrapper(component);
     Map<String, String> tags = new HashMap<>();
     if (isRequester(component.getIdentifier())) {
       tags.putAll(getRequesterTags(componentWrapper));
@@ -171,7 +171,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     if (!configParameters.isEmpty()) {
       if (configParameters.containsKey("basePath")
           && !configParameters.get("basePath").equalsIgnoreCase("/")) {
-        path = configParameters.get("basePath").concat(path);
+        path = configParameters.get("basePath").concat(path).intern();
       }
     }
     tags.put(HTTP_ROUTE.getKey(), path);

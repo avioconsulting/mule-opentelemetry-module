@@ -18,6 +18,7 @@ public class FlowTransaction extends AbstractTransaction {
       Instant startTime) {
     super(transactionId, traceId, rootFlowName, startTime);
     this.rootFlowSpan = rootFlowSpan;
+    setTransactionContext();
   }
 
   private FlowSpan getRootFlowSpan() {

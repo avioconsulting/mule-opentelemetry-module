@@ -61,19 +61,19 @@ public class MuleOpenTelemetryOperationsTest extends AbstractMuleArtifactTraceTe
     assertThat(coreEvent.getVariables())
         .as("Variables that should contain OTEL injected context")
         .containsKeys("OTEL_TRACE_CONTEXT", "OTEL_CONTEXT");
-    TypedValue<Map<String, String>> otel_trace_context_from_interceptor = (TypedValue<Map<String, String>>) coreEvent
+    TypedValue<Map<String, Object>> otel_trace_context_from_interceptor = (TypedValue<Map<String, Object>>) coreEvent
         .getVariables().get("OTEL_TRACE_CONTEXT");
-    TypedValue<Map<String, String>> otel_context_from_operation = (TypedValue<Map<String, String>>) coreEvent
+    TypedValue<Map<String, Object>> otel_context_from_operation = (TypedValue<Map<String, Object>>) coreEvent
         .getVariables().get("OTEL_CONTEXT");
     assertThat(otel_trace_context_from_interceptor.getValue())
         .containsExactlyEntriesOf(otel_context_from_operation.getValue());
     assertThat(otel_trace_context_from_interceptor.getValue())
         .containsKeys("traceId", "spanId", "spanIdLong", "traceIdLongLowPart", "TRACE_TRANSACTION_ID");
     assertThat(otel_trace_context_from_interceptor.getValue())
-        .hasEntrySatisfying("spanIdLong", (value) -> assertThat(Long.parseUnsignedLong(value)).isNotEqualTo(0));
+        .hasEntrySatisfying("spanIdLong", (value) -> assertThat(value).isNotEqualTo(0));
     assertThat(otel_trace_context_from_interceptor.getValue())
         .hasEntrySatisfying("traceIdLongLowPart",
-            (value) -> assertThat(Long.parseUnsignedLong(value)).isNotEqualTo(0));
+            (value) -> assertThat(value).isNotEqualTo(0));
   }
 
   @Test
@@ -83,19 +83,19 @@ public class MuleOpenTelemetryOperationsTest extends AbstractMuleArtifactTraceTe
     assertThat(coreEvent.getVariables())
         .as("Variables that should contain OTEL injected context")
         .containsKeys("OTEL_TRACE_CONTEXT", "OTEL_CONTEXT");
-    TypedValue<Map<String, String>> otel_trace_context_from_interceptor = (TypedValue<Map<String, String>>) coreEvent
+    TypedValue<Map<String, Object>> otel_trace_context_from_interceptor = (TypedValue<Map<String, Object>>) coreEvent
         .getVariables().get("OTEL_TRACE_CONTEXT");
-    TypedValue<Map<String, String>> otel_context_from_operation = (TypedValue<Map<String, String>>) coreEvent
+    TypedValue<Map<String, Object>> otel_context_from_operation = (TypedValue<Map<String, Object>>) coreEvent
         .getVariables().get("OTEL_CONTEXT");
     assertThat(otel_trace_context_from_interceptor.getValue())
         .containsExactlyEntriesOf(otel_context_from_operation.getValue());
     assertThat(otel_trace_context_from_interceptor.getValue())
         .containsKeys("traceId", "spanId", "spanIdLong", "traceIdLongLowPart", "TRACE_TRANSACTION_ID");
     assertThat(otel_trace_context_from_interceptor.getValue())
-        .hasEntrySatisfying("spanIdLong", (value) -> assertThat(Long.parseUnsignedLong(value)).isNotEqualTo(0));
+        .hasEntrySatisfying("spanIdLong", (value) -> assertThat(value).isNotEqualTo(0));
     assertThat(otel_trace_context_from_interceptor.getValue())
         .hasEntrySatisfying("traceIdLongLowPart",
-            (value) -> assertThat(Long.parseUnsignedLong(value)).isNotEqualTo(0));
+            (value) -> assertThat(value).isNotEqualTo(0));
   }
 
 }

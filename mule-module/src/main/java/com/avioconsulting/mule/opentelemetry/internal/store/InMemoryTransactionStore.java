@@ -5,6 +5,7 @@ import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.api.traces.TransactionContext;
+import com.avioconsulting.mule.opentelemetry.internal.util.FunctionMemoizer;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
@@ -118,23 +119,18 @@ public class InMemoryTransactionStore implements TransactionStore {
     return transactionMap.get(transactionId);
   }
 
-  private TransactionContext getTransactionContext(Transaction transaction) {
-    return transaction == null ? TransactionContext.current()
-        : TransactionContext.of(transaction.getTransactionSpan());
-  }
-
   @Override
   public TransactionContext getTransactionContext(String transactionId, String componentLocation) {
     Transaction transaction = getTransaction(transactionId);
     if (componentLocation == null)
-      return getTransactionContext(transaction);
+      return transaction.getTransactionContext();
     ProcessorSpan processorSpan = null;
     if (transaction != null
         && ((processorSpan = transaction
             .findSpan(componentLocation)) != null)) {
-      return TransactionContext.of(processorSpan.getSpan());
+      return TransactionContext.of(processorSpan.getSpan(), transaction);
     } else {
-      return getTransactionContext(transaction);
+      return transaction.getTransactionContext();
     }
   }
 
