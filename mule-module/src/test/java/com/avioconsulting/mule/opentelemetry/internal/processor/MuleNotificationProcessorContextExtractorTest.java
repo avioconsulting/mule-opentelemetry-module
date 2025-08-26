@@ -43,6 +43,16 @@ public class MuleNotificationProcessorContextExtractorTest extends AbstractProce
 
   private ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
 
+  @Before
+  public void setup() {
+    System.setProperty(PropertiesUtil.MULE_OTEL_ENABLE_DYNAMIC_CONTEXT_DETECTION, "true");
+  }
+
+  @After
+  public void tearDown() {
+    System.clearProperty(PropertiesUtil.MULE_OTEL_ENABLE_DYNAMIC_CONTEXT_DETECTION);
+  }
+
   @Parameterized.Parameter(value = 0)
   public static String expressionText;
 

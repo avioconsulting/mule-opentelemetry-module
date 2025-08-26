@@ -312,9 +312,22 @@ public class MuleNotificationProcessor {
     }
   }
 
+  /**
+   * Attempts to add a trace context to the provided TraceComponent if it is
+   * missing and dynamic context detection is enabled.
+   * The context is determined based on predefined or cached expressions
+   * associated with the provided notification.
+   *
+   * @param notification
+   *            the PipelineMessageNotification instance used to determine if a
+   *            trace context should be added
+   * @param traceComponent
+   *            the existing TraceComponent which may or may not have a context
+   * @return the updated TraceComponent with a context added if applicable
+   */
   private TraceComponent attemptAddingTraceContextIfMissing(PipelineMessageNotification notification,
       TraceComponent traceComponent) {
-    if (traceComponent.getContext() != null) {
+    if (traceComponent.getContext() != null || !PropertiesUtil.isDynamicContextDetectionEnabled()) {
       return traceComponent;
     }
     if (flowContextExpressions.containsKey(notification.getResourceIdentifier())) {

@@ -4,7 +4,8 @@ import java.util.Locale;
 
 public class PropertiesUtil {
   public static final String MULE_OTEL_USE_APIKIT_SPAN_NAMES = "mule.otel.use.apikit.span.names";
-
+  public static final String MULE_OTEL_ENABLE_DYNAMIC_CONTEXT_DETECTION = "mule.otel.enable.dynamic.context.detection";
+  private static boolean enableDynamicContextDetection;
   /**
    * Should APIKit Flow names be used to name http root spans? Default true.
    */
@@ -22,6 +23,17 @@ public class PropertiesUtil {
     if (useAPIKitSpanNames != null) {
       PropertiesUtil.useAPIKitSpanNames = Boolean.parseBoolean(useAPIKitSpanNames);
     }
+    enableDynamicContextDetection = Boolean
+        .parseBoolean(getProperty(MULE_OTEL_ENABLE_DYNAMIC_CONTEXT_DETECTION, "false"));
+  }
+
+  /**
+   * Determines whether dynamic context detection is enabled.
+   *
+   * @return true if dynamic context detection is enabled, false otherwise.
+   */
+  public static boolean isDynamicContextDetectionEnabled() {
+    return enableDynamicContextDetection;
   }
 
   public static String getProperty(String name) {

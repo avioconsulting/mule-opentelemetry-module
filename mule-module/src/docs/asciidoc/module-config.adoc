@@ -569,7 +569,7 @@ Source Components supporting context extraction:
 - *HTTP Listener*: Context information, if exists, is extracted from request headers
 - *Anypoint MQ Subscription*: Context information, if exists, is extracted from Anypoint MQ Message properties
 
-For any other source components, the module looks for the Context information in following locations of the event and in the order mentioned below -
+For any other source components, the module *can look* for the Context information in the following locations of the event and in the order mentioned below-
 
 - `attributes.headers`
  * Example components are Kafka, AMQP, WebSockets, etc.
@@ -580,6 +580,7 @@ For any other source components, the module looks for the Context information in
 - `payload.message.messageAttributes`
  * For example, Amazon SQS Module
 
+WARNING: Dynamic context extraction may cause performance impact due expression evaluations. This feature can be turned on/off by setting  system property `mule.otel.enable.dynamic.context.detection=true/false` OR environment variable `MULE_OTEL_ENABLE_DYNAMIC_CONTEXT_DETECTION=true/false`. By default, *it is turned off*.
 
 NOTE: OpenTelemetry Trace Context is extracted/injected using configured Propagators. The entries in the context may vary depending on the propagators used and validations it applies. All examples here are with *W3C Trace Context*.
 
