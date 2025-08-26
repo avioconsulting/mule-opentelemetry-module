@@ -1,7 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import org.mule.runtime.api.component.Component;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.Location;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,13 +19,13 @@ public class ComponentWrapper {
   private final Map<String, String> parameters;
   private final Map<String, String> configParameters;
   private final Map<String, String> connectionParameters;
-  private final ConfigurationComponentLocator configurationComponentLocator;
+  private final ComponentRegistryService componentRegistryService;
   private String defaultSpanName;
   private static final Logger LOGGER = LoggerFactory.getLogger(ComponentWrapper.class);
 
-  public ComponentWrapper(Component component, ConfigurationComponentLocator configurationComponentLocator) {
+  public ComponentWrapper(Component component, ComponentRegistryService componentRegistryService) {
     this.component = component;
-    this.configurationComponentLocator = configurationComponentLocator;
+    this.componentRegistryService = componentRegistryService;
     Map<? extends String, ? extends String> componentAnnotation = getComponentAnnotation(
         "{config}componentParameters");
     parameters = componentAnnotation != null ? Collections.unmodifiableMap(componentAnnotation)
@@ -98,10 +98,12 @@ public class ComponentWrapper {
     if (componentConfigRef == null)
       return Collections.emptyMap();
     try {
-      return configurationComponentLocator
-          .find(Location.builder().globalName(componentConfigRef).addConnectionPart().build())
-          .map(component1 -> new ComponentWrapper(component1, configurationComponentLocator))
-          .map(this::toExtendedParameters).orElse(Collections.emptyMap());
+      Component component = componentRegistryService.findComponentByLocation(
+          Location.builder().globalName(componentConfigRef).addConnectionPart().build().toString());
+      if (component == null) {
+        return Collections.emptyMap();
+      }
+      return toExtendedParameters(new ComponentWrapper(component, componentRegistryService));
     } catch (Exception ex) {
       LOGGER.trace(
           "Failed to extract connection parameters for {}. Ignoring this failure - {}", componentConfigRef,
@@ -120,10 +122,12 @@ public class ComponentWrapper {
     if (componentConfigRef == null)
       return Collections.emptyMap();
     try {
-      return configurationComponentLocator
-          .find(Location.builder().globalName(componentConfigRef).build())
-          .map(component1 -> new ComponentWrapper(component1, configurationComponentLocator))
-          .map(this::toExtendedParameters).orElse(Collections.emptyMap());
+      Component component = componentRegistryService
+          .findComponentByLocation(Location.builder().globalName(componentConfigRef).build().toString());
+      if (component == null) {
+        return Collections.emptyMap();
+      }
+      return toExtendedParameters(new ComponentWrapper(component, componentRegistryService));
     } catch (Exception ex) {
       LOGGER.trace(
           "Failed to extract connection parameters for {}. Ignoring this failure - {}", componentConfigRef,

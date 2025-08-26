@@ -63,7 +63,7 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
 
   @Override
   protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    ComponentWrapper componentWrapper = componentWrapperService.getComponentWrapper(component);
+    ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
     Map<String, String> connectionParams = componentWrapper.getConfigConnectionParameters();
 
     Map<String, String> tags = new HashMap<>();
@@ -86,7 +86,11 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
     TypedValue<AnypointMQMessageAttributes> attributesTypedValue = notification.getEvent().getMessage()
         .getAttributes();
     AnypointMQMessageAttributes attributes = attributesTypedValue.getValue();
-    Map<String, String> tags = getAttributes(getSourceComponent(notification).orElse(notification.getComponent()),
+    Component sourceComponent = getSourceComponent(notification);
+    if (sourceComponent == null) {
+      sourceComponent = notification.getComponent();
+    }
+    Map<String, String> tags = getAttributes(sourceComponent,
         attributesTypedValue);
     tags.put(MESSAGING_OPERATION_NAME.getKey(), PROCESS);
     TraceComponent traceComponent = getTraceComponentBuilderFor(notification);

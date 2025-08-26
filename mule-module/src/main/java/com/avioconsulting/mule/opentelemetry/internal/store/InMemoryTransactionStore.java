@@ -100,7 +100,7 @@ public class InMemoryTransactionStore implements TransactionStore {
         transactionId,
         new BatchTransaction(traceComponent.getTransactionId(), span.getSpanContext().getTraceId(),
             rootName, span, traceComponent, transactionProcessor::spanBuilder,
-            transactionProcessor.getConfigurationComponentLocator()));
+            transactionProcessor.getComponentRegistryService()));
   }
 
   @Override

@@ -84,7 +84,7 @@ public class DBProcessorComponent extends AbstractProcessorComponent {
 
   @Override
   protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    ComponentWrapper componentWrapper = componentWrapperService.getComponentWrapper(component);
+    ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
     Map<String, String> connectionParams = componentWrapper.getConfigConnectionParameters();
 
     Map<String, String> tags = new HashMap<>();

@@ -57,7 +57,7 @@ public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
   @Override
   protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
     Map<String, String> tags = new HashMap<>();
-    ComponentWrapper componentWrapper = componentWrapperService.getComponentWrapper(component);
+    ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
     if (ComponentsUtil.isFlowRef(component.getLocation())) {
       tags.put(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(),
           componentWrapper.getParameter("name"));
@@ -68,7 +68,7 @@ public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
   @Override
   public TraceComponent getEndTraceComponent(EnrichedServerNotification notification) {
     TraceComponent endTraceComponent = super.getEndTraceComponent(notification);
-    ComponentWrapper componentWrapper = componentWrapperService.getComponentWrapper(notification.getComponent());
+    ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(notification.getComponent());
     if (ComponentsUtil.isFlowRef(notification.getComponent().getLocation())) {
       endTraceComponent.getTags().put(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(),
           componentWrapper.getParameter("name"));

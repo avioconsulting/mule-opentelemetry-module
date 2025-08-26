@@ -3,11 +3,11 @@ package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 import com.avioconsulting.mule.opentelemetry.api.config.MuleComponent;
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleCoreProcessorComponent;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.interception.InterceptionAction;
 import org.mule.runtime.api.interception.InterceptionEvent;
@@ -125,8 +125,7 @@ public class InterceptorProcessorConfig {
   private final Set<String> interceptInclusions = new HashSet<>();
   private final Set<String> propagationRequiredComponents = new HashSet<>();
 
-  private ConfigurationComponentLocator componentLocator;
-
+  private ComponentRegistryService componentRegistryService;
   /**
    * List of components not to intercept. Configured using
    * {@link TraceLevelConfiguration#getInterceptionDisabledComponents()} on
@@ -143,6 +142,11 @@ public class InterceptorProcessorConfig {
 
   public InterceptorProcessorConfig setTurnOffTracing(boolean turnOffTracing) {
     this.turnOffTracing = turnOffTracing;
+    return this;
+  }
+
+  public InterceptorProcessorConfig setComponentRegistryService(ComponentRegistryService componentRegistryService) {
+    this.componentRegistryService = componentRegistryService;
     return this;
   }
 
@@ -163,11 +167,6 @@ public class InterceptorProcessorConfig {
         .map(MuleComponent::toString).collect(Collectors.toSet());
     interceptEnabledByConfigComponents = traceLevelConfiguration.getInterceptionEnabledComponents().stream()
         .map(MuleComponent::toString).collect(Collectors.toSet());
-  }
-
-  public InterceptorProcessorConfig setComponentLocator(ConfigurationComponentLocator componentLocator) {
-    this.componentLocator = componentLocator;
-    return this;
   }
 
   /**
@@ -258,7 +257,7 @@ public class InterceptorProcessorConfig {
     if (event != null && shouldSkipThisBatchProcessing(event))
       return false;
     return ComponentsUtil.isFirstProcessor(location)
-        || (event != null && isBatchStepFirstProcessor(location, event, componentLocator))
+        || (event != null && isBatchStepFirstProcessor(location, event, componentRegistryService))
         || (NOT_FIRST_PROCESSOR_ONLY_MODE
             && (shouldIntercept(location.getComponentIdentifier().getIdentifier())));
   }

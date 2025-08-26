@@ -1,6 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
-import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentWrapperService;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
 import org.junit.Test;
@@ -30,9 +30,6 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
       "data-source-connection, other_sql, dataSourceRef, testDb" })
   public void testDBProcessorTagExtraction(String connectionType, String expectedDbSysName, String dbNameKey,
       String expectedDBNamespace) {
-
-    ConfigurationComponentLocator componentLocator = mock(ConfigurationComponentLocator.class);
-
     // Generic DB System
     ComponentIdentifier identifier = getMockedIdentifier("db", connectionType);
     ComponentLocation configComponentLocation = getComponentLocation();
@@ -48,9 +45,8 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     connectionConfig.put("driverClassName", "testDriverClassName");
     Component configComponent = getComponent(configComponentLocation, connectionConfig, "db", "config");
     when(configComponent.getIdentifier()).thenReturn(identifier);
-    when(componentLocator.find(any(Location.class))).thenReturn(Optional.of(configComponent));
 
-    ComponentWrapperService componentWrapperService = mock(ComponentWrapperService.class);
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
 
     ComponentLocation componentLocation = getComponentLocation();
     Map<String, String> config = new HashMap<>();
@@ -60,10 +56,11 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     Component component = getComponent(componentLocation, config, "db", "select");
 
     DBProcessorComponent dbProcessorComponent = new DBProcessorComponent();
-    ComponentWrapper wrapper = new ComponentWrapper(component, componentLocator);
-    when(componentWrapperService.getComponentWrapper(component)).thenReturn(wrapper);
-    dbProcessorComponent.withConfigurationComponentLocator(componentLocator)
-        .withComponentWrapperService(componentWrapperService);
+    when(componentRegistryService.findComponentByLocation(anyString())).thenReturn(configComponent);
+    ComponentWrapper wrapper = new ComponentWrapper(component, componentRegistryService);
+    when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
+    dbProcessorComponent
+        .withComponentRegistryService(componentRegistryService);
     Map<String, String> attributes = dbProcessorComponent.getAttributes(component, null);
 
     assertThat(attributes)
@@ -81,7 +78,6 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
 
   @Test
   public void testDBProcessorTagExtraction_WhenNoParameters() {
-
     ConfigurationComponentLocator componentLocator = mock(ConfigurationComponentLocator.class);
     // Cannot find a connection config element using locator
     when(componentLocator.find(any(Location.class))).thenReturn(Optional.empty());
@@ -93,11 +89,11 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     Component component = getComponent(componentLocation, config, "db", "select");
 
     DBProcessorComponent dbProcessorComponent = new DBProcessorComponent();
-    ComponentWrapperService componentWrapperService = mock(ComponentWrapperService.class);
-    ComponentWrapper wrapper = new ComponentWrapper(component, componentLocator);
-    when(componentWrapperService.getComponentWrapper(component)).thenReturn(wrapper);
-    dbProcessorComponent.withConfigurationComponentLocator(componentLocator)
-        .withComponentWrapperService(componentWrapperService);
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+    ComponentWrapper wrapper = new ComponentWrapper(component, componentRegistryService);
+    when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
+    dbProcessorComponent
+        .withComponentRegistryService(componentRegistryService);
     Map<String, String> attributes = dbProcessorComponent.getAttributes(component, null);
 
     assertThat(attributes)

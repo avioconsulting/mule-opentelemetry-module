@@ -147,7 +147,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
 
   @Override
   protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    ComponentWrapper componentWrapper = componentWrapperService.getComponentWrapper(component);
+    ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
     Map<String, String> tags = new HashMap<>();
     if (isRequester(component.getIdentifier())) {
       tags.putAll(getRequesterTags(componentWrapper));

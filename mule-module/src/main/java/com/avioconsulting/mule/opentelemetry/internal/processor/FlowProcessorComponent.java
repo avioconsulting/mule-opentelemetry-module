@@ -8,9 +8,7 @@ import com.avioconsulting.mule.opentelemetry.internal.processor.service.Processo
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
-import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
-import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
@@ -90,16 +88,16 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     }
     startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_NAME.getKey(), sourceIdentifier.getName());
     startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_NAMESPACE.getKey(), sourceIdentifier.getNamespace());
-    Component sourceComponent = configurationComponentLocator.find(Location.builderFromStringRepresentation(
-        notification.getEvent().getContext().getOriginatingLocation().getLocation()).build()).get();
-    ComponentWrapper sourceWrapper = componentWrapperService.getComponentWrapper(sourceComponent);
+    ComponentWrapper sourceWrapper = componentRegistryService
+        .getComponentWrapper(componentRegistryService.findComponentByLocation(
+            notification.getEvent().getContext().getOriginatingLocation().getLocation()));
     startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey(), sourceWrapper.getConfigRef());
     // Find if there is a processor component to handle flow source component.
     // If exists, allow it to process notification and build any additional tags to
     // include in a trace.
     ProcessorComponent processorComponentFor = ProcessorComponentService.getInstance()
-        .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator, expressionManager,
-            componentWrapperService);
+        .getProcessorComponentFor(sourceIdentifier, expressionManager,
+            componentRegistryService);
     if (processorComponentFor != null) {
       TraceComponent sourceTrace = processorComponentFor.getSourceStartTraceComponent(notification,
           traceContextHandler);
@@ -132,8 +130,8 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
     // If exists, allow it to process notification and build any additional tags to
     // include in a trace.
     ProcessorComponent processorComponent = ProcessorComponentService.getInstance()
-        .getProcessorComponentFor(sourceIdentifier, configurationComponentLocator, expressionManager,
-            componentWrapperService);
+        .getProcessorComponentFor(sourceIdentifier, expressionManager,
+            componentRegistryService);
     if (processorComponent != null) {
       TraceComponent sourceTrace = processorComponent.getSourceEndTraceComponent(notification,
           traceContextHandler);

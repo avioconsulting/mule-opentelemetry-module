@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 import com.avioconsulting.mule.opentelemetry.internal.AbstractInternalTest;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -10,7 +11,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.LocationPart;
 
 import java.util.Arrays;
@@ -28,7 +28,7 @@ public class ProcessorTracingInterceptorFactoryTest extends AbstractInternalTest
   MuleNotificationProcessor muleNotificationProcessor;
 
   @Mock
-  ConfigurationComponentLocator configurationComponentLocator;
+  ComponentRegistryService componentRegistryService;
 
   @Mock
   OpenTelemetryConnection openTelemetryConnection;
@@ -36,7 +36,7 @@ public class ProcessorTracingInterceptorFactoryTest extends AbstractInternalTest
   @Test
   public void get() {
     assertThat(
-        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor)
             .get())
                 .isInstanceOf(ProcessorTracingInterceptor.class);
   }
@@ -58,14 +58,14 @@ public class ProcessorTracingInterceptorFactoryTest extends AbstractInternalTest
     when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
     when(location.getParts()).thenReturn(Arrays.asList(part1));
     assertThat(
-        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor)
             .intercept(location))
                 .as("Interception before system property")
                 .isTrue();
     System.setProperty(MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME, "false");
 
     assertThat(
-        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor)
             .intercept(location))
                 .as("Interception after system property")
                 .isFalse();
@@ -89,7 +89,7 @@ public class ProcessorTracingInterceptorFactoryTest extends AbstractInternalTest
     when(processor0.getParts()).thenReturn(Arrays.asList(part1));
 
     assertThat(
-        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor)
             .intercept(processor0))
                 .isTrue();
 
@@ -104,7 +104,7 @@ public class ProcessorTracingInterceptorFactoryTest extends AbstractInternalTest
     when(flowRefLocation.getParts()).thenReturn(Arrays.asList(flowRefPart));
 
     assertThat(
-        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor)
             .intercept(flowRefLocation))
                 .isFalse();
 
@@ -128,7 +128,7 @@ public class ProcessorTracingInterceptorFactoryTest extends AbstractInternalTest
     when(processor0.getParts()).thenReturn(Arrays.asList(part1));
 
     assertThat(
-        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor)
             .intercept(processor0))
                 .isTrue();
 
@@ -143,7 +143,7 @@ public class ProcessorTracingInterceptorFactoryTest extends AbstractInternalTest
     when(flowRefLocation.getParts()).thenReturn(Arrays.asList(flowRefPart));
 
     assertThat(
-        new ProcessorTracingInterceptorFactory(muleNotificationProcessor, configurationComponentLocator)
+        new ProcessorTracingInterceptorFactory(muleNotificationProcessor)
             .intercept(flowRefLocation))
                 .isTrue();
 

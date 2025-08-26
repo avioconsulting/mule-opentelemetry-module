@@ -1,13 +1,13 @@
 package com.avioconsulting.mule.opentelemetry.internal.util;
 
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
-import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.component.location.LocationPart;
 import org.mule.runtime.api.el.BindingContext;
 import org.mule.runtime.core.api.el.ExpressionManager;
@@ -188,7 +188,7 @@ public class ComponentsUtil {
    * Resolves the target flow name using given #expressionManager and updates it
    * in {@link TraceComponent#getTags()}.
    * Then it looks up the component location for the resolved flow using given
-   * #configurationComponentLocator.
+   * {@link ComponentRegistryService}.
    * 
    * @param expressionManager
    *            {@link ExpressionManager} to resolve names
@@ -196,13 +196,13 @@ public class ComponentsUtil {
    *            {@link TraceComponent} of the flow-ref
    * @param context
    *            {@link BindingContext} to use with {@link ExpressionManager}
-   * @param configurationComponentLocator
-   *            {@link ConfigurationComponentLocator} to look up components
+   * @param componentRegistryService
+   *            {@link ComponentRegistryService} to look up components
    * @return ComponentLocation of resolved target flow
    */
-  public static Optional<ComponentLocation> resolveFlowName(ExpressionManager expressionManager,
+  public static ComponentLocation resolveFlowName(ExpressionManager expressionManager,
       TraceComponent traceComponent, BindingContext context,
-      ConfigurationComponentLocator configurationComponentLocator) {
+      ComponentRegistryService componentRegistryService) {
     String targetFlowName = traceComponent.getTags().get("mule.app.processor.flowRef.name");
     if (expressionManager
         .isExpression(targetFlowName)) {
@@ -210,21 +210,18 @@ public class ComponentsUtil {
           .evaluate(targetFlowName, context).getValue().toString();
       traceComponent.getTags().put("mule.app.processor.flowRef.name", targetFlowName);
     }
-    Optional<ComponentLocation> subFlowLocation = findLocation(
-        targetFlowName,
-        configurationComponentLocator)
-            .filter(ComponentsUtil::isSubFlow);
-    return subFlowLocation;
+    ComponentLocation componentLocation = componentRegistryService.findComponentLocation(targetFlowName);
+    if (componentLocation == null) {
+      return null;
+    } else if (isSubFlow(componentLocation)) {
+      return componentLocation;
+    }
+    return null;
   }
 
-  public static boolean componentExists(ComponentIdentifier componentIdentifier, String location,
-      ConfigurationComponentLocator componentLocator) {
-    return findComponent(componentIdentifier, location, componentLocator).isPresent();
-  }
-
-  public static boolean isBatchOnComplete(String location, ConfigurationComponentLocator componentLocator) {
-    Optional<Component> component = componentLocator
-        .find(Location.builderFromStringRepresentation(location).build());
-    return component.filter(c -> c.getIdentifier().toString().equalsIgnoreCase(BATCH_ON_COMPLETE_TAG)).isPresent();
+  public static boolean isBatchOnComplete(String location, ComponentRegistryService componentRegistryService) {
+    Component component = componentRegistryService.findComponentByLocation(location);
+    return component != null && "batch".equalsIgnoreCase(component.getIdentifier().getNamespace())
+        && "on-complete".equalsIgnoreCase(component.getIdentifier().getName());
   }
 }

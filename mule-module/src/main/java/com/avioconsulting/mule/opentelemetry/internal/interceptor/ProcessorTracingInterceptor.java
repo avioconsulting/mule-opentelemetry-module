@@ -4,10 +4,9 @@ import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
-import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.interception.InterceptionEvent;
 import org.mule.runtime.api.interception.ProcessorInterceptor;
 import org.mule.runtime.api.interception.ProcessorParameterValue;
@@ -35,7 +34,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProcessorTracingInterceptor.class);
   private final MuleNotificationProcessor muleNotificationProcessor;
-  private final ConfigurationComponentLocator configurationComponentLocator;
+  private final ComponentRegistryService componentRegistryService;
 
   /**
    * Interceptor.
@@ -43,13 +42,10 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
    * @param muleNotificationProcessor
    *            {@link MuleNotificationProcessor} if configured fully to acquire
    *            connection supplier.
-   * @param configurationComponentLocator
-   *            to locate mule components
    */
-  public ProcessorTracingInterceptor(MuleNotificationProcessor muleNotificationProcessor,
-      ConfigurationComponentLocator configurationComponentLocator) {
+  public ProcessorTracingInterceptor(MuleNotificationProcessor muleNotificationProcessor) {
     this.muleNotificationProcessor = muleNotificationProcessor;
-    this.configurationComponentLocator = configurationComponentLocator;
+    this.componentRegistryService = muleNotificationProcessor.getComponentRegistryService();
   }
 
   @Override
@@ -78,17 +74,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
           event.addVariable(TRACE_CONTEXT_MAP_KEY,
               muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId));
         } else {
-          Component component = configurationComponentLocator
-              .find(Location.builderFromStringRepresentation(
-                  location.getLocation()).build())
-              // sub-flows are not beans by definitions,
-              // so any processors within sub-flows won't be found by location
-              // lookup by identifiers and then match the location to find it
-              .orElseGet(() -> configurationComponentLocator
-                  .find(location.getComponentIdentifier().getIdentifier()).stream()
-                  .filter(c -> c.getLocation().getLocation().equals(location.getLocation()))
-                  .findFirst()
-                  .orElse(null));
+          Component component = componentRegistryService.findComponentByLocation(location);
 
           if (component == null) {
             LOGGER.debug("Could not locate a component for {} at {}",
@@ -134,12 +120,11 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
 
   private void processFlowRef(ComponentLocation location, InterceptionEvent event, TraceComponent traceComponent,
       String transactionId) {
-    Optional<ComponentLocation> subFlowLocation = resolveFlowName(
+    ComponentLocation subFlowLocation = resolveFlowName(
         muleNotificationProcessor.getOpenTelemetryConnection().getExpressionManager(),
-        traceComponent, event.asBindingContext(), configurationComponentLocator);
-    if (subFlowLocation.isPresent()) {
-      TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation.get(), traceComponent);
-      copyBatchTags(traceComponent, subflowTrace);
+        traceComponent, event.asBindingContext(), componentRegistryService);
+    if (subFlowLocation != null) {
+      TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation, traceComponent);
       muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(subflowTrace,
           location.getLocation());
       event.addVariable(TRACE_CONTEXT_MAP_KEY,
@@ -163,7 +148,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
     if (location.getComponentIdentifier().getIdentifier().toString().equals(BATCH_JOB_TAG)) {
       event.addVariable(OTEL_BATCH_PARENT_CONTEXT_ID, getEventTransactionId(event.getContext().getId()));
     }
-    if (isBatchStepFirstProcessor(location, event, configurationComponentLocator)) {
+    if (isBatchStepFirstProcessor(location, event, componentRegistryService)) {
       // This context id will be used for ending a record span
       event.addVariable(OTEL_BATCH_STEP_RECORD_CONTEXT_ID, event.getContext().getId());
       event.removeVariable(OTEL_BATCH_PARENT_CONTEXT_ID);

@@ -60,9 +60,13 @@ public class TransactionContext {
     }
     transactionContext.traceContextMap.put(TRACE_TRANSACTION_ID, transaction.getTransactionId());
     transactionContext.traceContextMap.put(TRACE_ID, transactionContext.getTraceId());
-    transactionContext.traceContextMap.put(TRACE_ID_LONG_LOW_PART, transactionContext.getTraceIdLongLowPart());
+    // TODO: Can't migrate the data type String to Long due to external dependency
+    // Custom logger uses this context for auto-injection and it expects it to be
+    // String
+    transactionContext.traceContextMap.put(TRACE_ID_LONG_LOW_PART,
+        Long.toString(transactionContext.getTraceIdLongLowPart()));
+    transactionContext.traceContextMap.put(SPAN_ID_LONG, Long.toString(transactionContext.getSpanIdLong()));
     transactionContext.traceContextMap.put(SPAN_ID, transactionContext.getSpanId());
-    transactionContext.traceContextMap.put(SPAN_ID_LONG, transactionContext.getSpanIdLong());
     return transactionContext;
   }
 

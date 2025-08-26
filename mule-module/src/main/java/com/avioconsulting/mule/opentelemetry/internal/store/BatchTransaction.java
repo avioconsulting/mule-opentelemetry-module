@@ -4,12 +4,12 @@ import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,12 +38,7 @@ public class BatchTransaction extends AbstractTransaction {
   private final Span rootSpan;
   private final Function<String, SpanBuilder> spanBuilderFunction;
 
-  /**
-   * Batch transaction requires lookup of batch components.
-   * {@link ConfigurationComponentLocator} helps to find these component
-   * locations.
-   */
-  private final ConfigurationComponentLocator componentLocator;
+  private final ComponentRegistryService componentRegistryService;
   private boolean rootSpanEnded = false;
   private final TraceComponent batchTraceComponent;
   private final Map<String, String> stepLocationNames = new HashMap<>();
@@ -51,13 +46,13 @@ public class BatchTransaction extends AbstractTransaction {
 
   public BatchTransaction(String jobInstanceId, String traceId, String batchJobName,
       Span rootSpan, TraceComponent batchTraceComponent, Function<String, SpanBuilder> spanBuilderFunction,
-      ConfigurationComponentLocator componentLocator) {
+      ComponentRegistryService componentRegistryService) {
     super(jobInstanceId, traceId, batchJobName, batchTraceComponent.getStartTime());
     this.batchTraceComponent = batchTraceComponent;
     this.rootSpan = rootSpan;
     this.rootContext = rootSpan.storeInContext(Context.current());
     this.spanBuilderFunction = spanBuilderFunction;
-    this.componentLocator = componentLocator;
+    this.componentRegistryService = componentRegistryService;
     tagsToAttributes(batchTraceComponent, rootSpan);
     extractStepLocations(batchTraceComponent);
     setTransactionContext();
@@ -105,7 +100,7 @@ public class BatchTransaction extends AbstractTransaction {
         s -> new AtomicReference<>());
     String name = BATCH_STEP_TAG;
     String spanName = stepName;
-    if (ComponentsUtil.isBatchOnComplete(location, componentLocator)) {
+    if (ComponentsUtil.isBatchOnComplete(location, componentRegistryService)) {
       name = BATCH_ON_COMPLETE_TAG;
       spanName = BATCH_ON_COMPLETE_TAG;
     } else {
@@ -147,7 +142,7 @@ public class BatchTransaction extends AbstractTransaction {
   public SpanMeta addProcessorSpan(String containerPath, TraceComponent traceComponent, SpanBuilder spanBuilder) {
     SpanMeta spanMeta = null;
     String stepName = traceComponent.getTags().get(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
-    if (isBatchOnComplete(containerPath, componentLocator)) {
+    if (isBatchOnComplete(containerPath, componentRegistryService)) {
       stepName = BATCH_ON_COMPLETE_TAG;
     }
     ProcessorSpan containerProcessorSpan = getStepProcessorSpan(traceComponent, stepName);
@@ -231,7 +226,7 @@ public class BatchTransaction extends AbstractTransaction {
       SpanBuilder spanBuilder,
       ContainerSpan stepSpan, ProcessorSpan processorSpan) {
     SpanMeta spanMeta;
-    if (isBatchOnComplete(containerPath, componentLocator)) {
+    if (isBatchOnComplete(containerPath, componentRegistryService)) {
       // String onCompletePath = containerPath + "/on-complete";
       spanMeta = stepSpan.addProcessorSpan(containerPath, traceComponent, spanBuilder);
     } else {
@@ -280,7 +275,7 @@ public class BatchTransaction extends AbstractTransaction {
       String spanName = traceComponent.getTags().get(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
       if (spanName == null) {
         String locationParent = getLocationParent(traceComponent.getLocation());
-        if (isBatchOnComplete(locationParent, componentLocator)) {
+        if (isBatchOnComplete(locationParent, componentRegistryService)) {
           spanName = BATCH_ON_COMPLETE_TAG;
         }
       }

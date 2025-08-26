@@ -11,15 +11,13 @@ import com.avioconsulting.mule.opentelemetry.api.ee.batch.notifications.OtelBatc
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.interceptor.InterceptorProcessorConfig;
 import com.avioconsulting.mule.opentelemetry.internal.notifications.BatchError;
-import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentWrapperService;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
+import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.context.Context;
-import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
-import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.AsyncMessageNotification;
@@ -36,7 +34,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -64,7 +61,6 @@ public class MuleNotificationProcessor {
   private TraceLevelConfiguration traceLevelConfiguration;
   private OpenTelemetryConnection openTelemetryConnection;
 
-  ConfigurationComponentLocator configurationComponentLocator;
   private ProcessorComponentService processorComponentService;
   private final ProcessorComponent flowProcessorComponent;
   private final InterceptorProcessorConfig interceptorProcessorConfig;
@@ -78,21 +74,21 @@ public class MuleNotificationProcessor {
    * not have a specific processor like {@link HttpProcessorComponent}.
    */
   private final ProcessorComponent genericProcessorComponent;
-  private final ComponentWrapperService componentWrapperService;
+  private final ComponentRegistryService componentRegistryService;
 
   @Inject
-  public MuleNotificationProcessor(ConfigurationComponentLocator configurationComponentLocator,
-      ComponentWrapperService componentWrapperService) {
-    this.configurationComponentLocator = configurationComponentLocator;
+  public MuleNotificationProcessor(ComponentRegistryService componentRegistryService) {
     flowProcessorComponent = new FlowProcessorComponent()
-        .withConfigurationComponentLocator(configurationComponentLocator)
-        .withComponentWrapperService(componentWrapperService);
+        .withComponentRegistryService(componentRegistryService);
     genericProcessorComponent = new GenericProcessorComponent()
-        .withConfigurationComponentLocator(configurationComponentLocator)
-        .withComponentWrapperService(componentWrapperService);
+        .withComponentRegistryService(componentRegistryService);
     interceptorProcessorConfig = new InterceptorProcessorConfig()
-        .setComponentLocator(configurationComponentLocator);
-    this.componentWrapperService = componentWrapperService;
+        .setComponentRegistryService(componentRegistryService);
+    this.componentRegistryService = componentRegistryService;
+  }
+
+  public ComponentRegistryService getComponentRegistryService() {
+    return componentRegistryService;
   }
 
   public InterceptorProcessorConfig getInterceptorProcessorConfig() {
@@ -111,10 +107,6 @@ public class MuleNotificationProcessor {
     return connectionSupplier;
   }
 
-  public ConfigurationComponentLocator getConfigurationComponentLocator() {
-    return configurationComponentLocator;
-  }
-
   public void init(OpenTelemetryConnection connection,
       TraceLevelConfiguration traceLevelConfiguration) {
     this.openTelemetryConnection = connection;
@@ -125,7 +117,7 @@ public class MuleNotificationProcessor {
         .setTurnOffTracing(openTelemetryConnection.isTurnOffTracing())
         .updateTraceConfiguration(traceLevelConfiguration);
 
-    componentWrapperService.initializeComponentWrapperRegistry();
+    componentRegistryService.initializeComponentWrapperRegistry();
     processorComponentService = ProcessorComponentService.getInstance();
 
   }
@@ -179,11 +171,8 @@ public class MuleNotificationProcessor {
         addBatchTags(traceComponent, notification.getEvent());
         resolveExpressions(traceComponent, openTelemetryConnection.getExpressionManager(),
             notification.getEvent());
-        long siblings = configurationComponentLocator.findAllLocations().stream()
-            .filter(c -> c.getLocation()
-                .startsWith(ComponentsUtil.getLocationParent(
-                    notification.getComponent().getLocation().getLocation()) + "/"))
-            .count();
+        long siblings = componentRegistryService.findSiblingCount(
+            notification.getComponent().getLocation().getLocation());
         traceComponent.withSiblings(siblings);
         openTelemetryConnection.addProcessorSpan(traceComponent,
             ComponentsUtil.getLocationParent(notification.getComponent().getLocation().getLocation()));
@@ -200,11 +189,11 @@ public class MuleNotificationProcessor {
 
   private void processFlowRef(TraceComponent traceComponent, Event event) {
     if (isFlowRef(traceComponent.getComponentLocation())) {
-      Optional<ComponentLocation> subFlowLocation = resolveFlowName(
+      ComponentLocation subFlowLocation = resolveFlowName(
           getOpenTelemetryConnection().getExpressionManager(), traceComponent, event.asBindingContext(),
-          configurationComponentLocator);
-      if (subFlowLocation.isPresent()) {
-        TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation.get(), traceComponent);
+          componentRegistryService);
+      if (subFlowLocation != null) {
+        TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation, traceComponent);
         getOpenTelemetryConnection().addProcessorSpan(subflowTrace,
             traceComponent.getComponentLocation().getLocation());
       }
@@ -238,8 +227,8 @@ public class MuleNotificationProcessor {
       return null;
 
     ProcessorComponent processorComponent = processorComponentService
-        .getProcessorComponentFor(identifier, configurationComponentLocator,
-            openTelemetryConnection.getExpressionManager(), componentWrapperService);
+        .getProcessorComponentFor(identifier,
+            openTelemetryConnection.getExpressionManager(), componentRegistryService);
 
     if (processorComponent == null && (spanAllProcessors
         || multiMapContains(identifier.getNamespace(), identifier.getName(), "*",
@@ -279,21 +268,19 @@ public class MuleNotificationProcessor {
                 .toString();
             logger.trace("Resolved to value '{}'", targetFlowName);
           }
-          findLocation(targetFlowName,
-              configurationComponentLocator)
-                  .filter(ComponentsUtil::isSubFlow)
-                  .ifPresent(subFlowComp -> {
-                    TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowComp,
-                        traceComponent);
-                    SpanMeta subFlow = openTelemetryConnection.endProcessorSpan(subflowTrace,
-                        notification.getEvent().getError().orElse(null));
-                    if (subFlow != null) {
-                      openTelemetryConnection.getMetricsProviders().captureProcessorMetrics(
-                          notification.getComponent(),
-                          notification.getEvent().getError().orElse(null), location,
-                          spanMeta);
-                    }
-                  });
+          ComponentLocation subFlowComp = componentRegistryService.findComponentLocation(targetFlowName);
+          if (subFlowComp != null && ComponentsUtil.isSubFlow(subFlowComp)) {
+            TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowComp,
+                traceComponent);
+            SpanMeta subFlow = openTelemetryConnection.endProcessorSpan(subflowTrace,
+                notification.getEvent().getError().orElse(null));
+            if (subFlow != null) {
+              openTelemetryConnection.getMetricsProviders().captureProcessorMetrics(
+                  notification.getComponent(),
+                  notification.getEvent().getError().orElse(null), location,
+                  spanMeta);
+            }
+          }
         }
 
         if (spanMeta != null) {

@@ -10,6 +10,7 @@ import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.api.traces.TransactionContext;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
 import com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
@@ -25,7 +26,6 @@ import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
 import io.opentelemetry.semconv.ErrorAttributes;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.exception.MuleException;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.core.api.el.ExpressionManager;
@@ -41,7 +41,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
-import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.hasBatchJobInstanceId;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.copyBatchTags;
@@ -75,7 +74,7 @@ public class OpenTelemetryConnection implements TraceContextHandler,
   private final Tracer tracer;
   private boolean turnOffTracing = false;
   private boolean turnOffMetrics = false;
-  private ConfigurationComponentLocator configurationComponentLocator;
+  private ComponentRegistryService componentRegistryService;
 
   private OpenTelemetryConnection(OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
     Properties properties = getModuleProperties();
@@ -130,14 +129,14 @@ public class OpenTelemetryConnection implements TraceContextHandler,
     PropertiesUtil.init();
   }
 
-  public OpenTelemetryConnection setConfigurationComponentLocator(
-      ConfigurationComponentLocator configurationComponentLocator) {
-    this.configurationComponentLocator = configurationComponentLocator;
+  public OpenTelemetryConnection setComponentRegistryService(ComponentRegistryService componentRegistryService) {
+    this.componentRegistryService = componentRegistryService;
     return this;
   }
 
-  public ConfigurationComponentLocator getConfigurationComponentLocator() {
-    return configurationComponentLocator;
+  @Override
+  public ComponentRegistryService getComponentRegistryService() {
+    return componentRegistryService;
   }
 
   // For testing purpose only
@@ -328,7 +327,7 @@ public class OpenTelemetryConnection implements TraceContextHandler,
     tagsToAttributes(traceComponent, spanBuilder);
     String parentLocation = null;
     if (!hasBatchJobInstanceId(traceComponent) ||
-        !BatchHelperUtil.notBatchChildContainer(containerName, configurationComponentLocator)) {
+        !BatchHelperUtil.notBatchChildContainer(containerName, componentRegistryService)) {
       // When processing batch child containers are
       // handled by BatchTransaction, skip this
       parentLocation = getRouteContainerLocation(traceComponent);

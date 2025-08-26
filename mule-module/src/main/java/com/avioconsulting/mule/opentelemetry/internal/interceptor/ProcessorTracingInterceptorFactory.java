@@ -4,7 +4,6 @@ import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtens
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.interception.ProcessorInterceptor;
 import org.mule.runtime.api.interception.ProcessorInterceptorFactory;
 import org.slf4j.Logger;
@@ -44,10 +43,8 @@ public class ProcessorTracingInterceptorFactory implements ProcessorInterceptorF
   private final ProcessorTracingInterceptor processorTracingInterceptor;
 
   @Inject
-  public ProcessorTracingInterceptorFactory(MuleNotificationProcessor muleNotificationProcessor,
-      ConfigurationComponentLocator configurationComponentLocator) {
-    processorTracingInterceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
-        configurationComponentLocator);
+  public ProcessorTracingInterceptorFactory(MuleNotificationProcessor muleNotificationProcessor) {
+    processorTracingInterceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
   }
 
   @Override

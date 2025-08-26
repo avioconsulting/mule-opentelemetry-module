@@ -2,13 +2,11 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
-import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentWrapperService;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
-import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.Message;
@@ -33,19 +31,11 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractProcessorComponent.class);
 
-  protected ConfigurationComponentLocator configurationComponentLocator;
   protected ExpressionManager expressionManager;
-  protected ComponentWrapperService componentWrapperService;
+  protected ComponentRegistryService componentRegistryService;
 
-  @Override
-  public ProcessorComponent withConfigurationComponentLocator(
-      ConfigurationComponentLocator configurationComponentLocator) {
-    this.configurationComponentLocator = configurationComponentLocator;
-    return this;
-  }
-
-  public ProcessorComponent withComponentWrapperService(ComponentWrapperService componentWrapperService) {
-    this.componentWrapperService = componentWrapperService;
+  public ProcessorComponent withComponentRegistryService(ComponentRegistryService componentRegistryService) {
+    this.componentRegistryService = componentRegistryService;
     return this;
   }
 
@@ -105,7 +95,7 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   }
 
   protected Map<String, String> getProcessorCommonTags(Component component) {
-    ComponentWrapper componentWrapper = componentWrapperService.getComponentWrapper(component);
+    ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
     Map<String, String> tags = new HashMap<>();
     tags.put(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
         component.getIdentifier().getNamespace());
@@ -153,7 +143,7 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
    * @return TraceComponent
    */
   public TraceComponent getStartTraceComponent(Component component, Event event) {
-    ComponentWrapper componentWrapper = componentWrapperService.getComponentWrapper(component);
+    ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
     Map<String, String> tags = new HashMap<>(getProcessorCommonTags(component));
     tags.put(MULE_CORRELATION_ID.getKey(), event.getCorrelationId());
     tags.putAll(getAttributes(component,
@@ -174,9 +164,9 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
       targetMap.put(targetKey, sourceMap.get(sourceKey));
   }
 
-  protected Optional<Component> getSourceComponent(EnrichedServerNotification notification) {
-    return configurationComponentLocator.find(Location.builderFromStringRepresentation(
-        notification.getEvent().getContext().getOriginatingLocation().getLocation()).build());
+  protected Component getSourceComponent(EnrichedServerNotification notification) {
+    return componentRegistryService.findComponentByLocation(
+        notification.getEvent().getContext().getOriginatingLocation().getLocation());
   }
 
   protected enum ContextMapGetter implements TextMapGetter<Map<String, ? super String>> {

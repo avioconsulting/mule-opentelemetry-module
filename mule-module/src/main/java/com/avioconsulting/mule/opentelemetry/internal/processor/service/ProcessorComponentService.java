@@ -2,7 +2,6 @@ package com.avioconsulting.mule.opentelemetry.internal.processor.service;
 
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import org.mule.runtime.api.component.ComponentIdentifier;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.util.LazyValue;
 import org.mule.runtime.core.api.el.ExpressionManager;
 
@@ -28,14 +27,14 @@ public class ProcessorComponentService {
   }
 
   public ProcessorComponent getProcessorComponentFor(ComponentIdentifier identifier,
-      ConfigurationComponentLocator configurationComponentLocator, ExpressionManager expressionManager,
-      ComponentWrapperService componentWrapperService) {
+      ExpressionManager expressionManager,
+      ComponentRegistryService componentRegistryService) {
     return cachedMap.computeIfAbsent(identifier, id -> {
       for (ProcessorComponent pc : processorComponents) {
         if (pc.canHandle(identifier)) {
-          pc.withConfigurationComponentLocator(configurationComponentLocator)
+          pc
               .withExpressionManager(expressionManager)
-              .withComponentWrapperService(componentWrapperService);
+              .withComponentRegistryService(componentRegistryService);
           return pc;
         }
       }

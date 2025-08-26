@@ -3,7 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
-import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentWrapperService;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.test.util.TestInterceptionEvent;
 import io.opentelemetry.api.trace.SpanKind;
 import org.junit.Test;
@@ -15,7 +15,6 @@ import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.event.Event;
-import org.mule.runtime.api.event.EventContext;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
@@ -131,12 +130,11 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
 
     ConfigurationComponentLocator componentLocator = mock(ConfigurationComponentLocator.class);
     when(componentLocator.find(any(Location.class))).thenReturn(Optional.empty());
-    ComponentWrapperService componentWrapperService = mock(ComponentWrapperService.class);
-    ComponentWrapper wrapper = new ComponentWrapper(component, componentLocator);
-    when(componentWrapperService.getComponentWrapper(component)).thenReturn(wrapper);
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+    ComponentWrapper wrapper = new ComponentWrapper(component, componentRegistryService);
+    when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
     ProcessorComponent httpProcessorComponent = new HttpProcessorComponent()
-        .withConfigurationComponentLocator(componentLocator)
-        .withComponentWrapperService(componentWrapperService);
+        .withComponentRegistryService(componentRegistryService);
     TraceComponent endTraceComponent = httpProcessorComponent.getStartTraceComponent(notification);
 
     assertThat(endTraceComponent).isNotNull()

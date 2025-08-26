@@ -200,7 +200,7 @@ public class OpenTelemetryExtensionConfiguration
     openTelemetryConnection = OpenTelemetryConnection
         .getInstance(new OpenTelemetryConfigWrapper(this));
     openTelemetryConnection
-        .setConfigurationComponentLocator(muleNotificationProcessor.getConfigurationComponentLocator());
+        .setComponentRegistryService(muleNotificationProcessor.getComponentRegistryService());
     getTraceLevelConfiguration().initMuleComponentsMap();
     muleNotificationProcessor.init(openTelemetryConnection,
         getTraceLevelConfiguration());

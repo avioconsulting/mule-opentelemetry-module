@@ -5,15 +5,13 @@ import com.avioconsulting.mule.opentelemetry.api.ee.batch.BatchJob;
 import com.avioconsulting.mule.opentelemetry.api.ee.batch.BatchStep;
 import com.avioconsulting.mule.opentelemetry.api.ee.batch.BatchUtil;
 import com.avioconsulting.mule.opentelemetry.api.ee.batch.Record;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
-import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.metadata.TypedValue;
 
 import java.util.List;
-import java.util.Optional;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
@@ -51,15 +49,15 @@ public class BatchHelperUtil {
     return isBatchSupportDisabled() ? null : getBatchUtil().toBatchJob(component);
   }
 
-  public static boolean isBatchStep(String location, ConfigurationComponentLocator componentLocator) {
-    Optional<Component> component = componentLocator
-        .find(Location.builderFromStringRepresentation(location).build());
-    return component.filter(batchUtilDelegate::isBatchStep).isPresent();
+  public static boolean isBatchStep(String location, ComponentRegistryService componentRegistryService) {
+    Component component = componentRegistryService.findComponentByLocation(location);
+    return component != null && batchUtilDelegate.isBatchStep(component);
   }
 
-  public static boolean notBatchChildContainer(String containerName, ConfigurationComponentLocator componentLocator) {
+  public static boolean notBatchChildContainer(String containerName,
+      ComponentRegistryService componentRegistryService) {
     return BatchHelperUtil.isBatchStep(containerName,
-        componentLocator) || isBatchOnComplete(containerName, componentLocator);
+        componentRegistryService) || isBatchOnComplete(containerName, componentRegistryService);
   }
 
   public static boolean hasBatchJobInstanceId(TraceComponent traceComponent) {
@@ -80,11 +78,11 @@ public class BatchHelperUtil {
   }
 
   public static boolean isBatchStepFirstProcessor(ComponentLocation location, Event event,
-      ConfigurationComponentLocator componentLocator) {
+      ComponentRegistryService componentRegistryService) {
     if (isBatchSupportDisabled())
       return false;
     return (getBatchJobInstanceId(event) != null
-        && isBatchStep(getLocationParent(location.getLocation()), componentLocator)
+        && isBatchStep(getLocationParent(location.getLocation()), componentRegistryService)
         && isFirstProcessorInScope(location));
   }
 

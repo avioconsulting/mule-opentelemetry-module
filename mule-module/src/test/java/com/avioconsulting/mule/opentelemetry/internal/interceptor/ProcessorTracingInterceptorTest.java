@@ -6,6 +6,7 @@ import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryCo
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.test.util.TestInterceptionEvent;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
@@ -13,8 +14,6 @@ import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
-import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.event.EventContext;
 import org.mule.runtime.api.interception.InterceptionAction;
@@ -53,12 +52,12 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(connection.getTraceContext("random-id"))
         .thenReturn(traceparentMap);
     MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
     when(muleNotificationProcessor.getOpenTelemetryConnection()).thenReturn(connection);
     when(muleNotificationProcessor.hasConnection()).thenReturn(true);
     when(muleNotificationProcessor.getInterceptorProcessorConfig()).thenReturn(new InterceptorProcessorConfig());
-    ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
-    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
-        configurationComponentLocator);
+    when(muleNotificationProcessor.getComponentRegistryService()).thenReturn(componentRegistryService);
+    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
 
     InterceptionEvent interceptionEvent = mock(InterceptionEvent.class);
     EventContext eventContext = mock(EventContext.class);
@@ -71,9 +70,10 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
   @Test
   public void aroundInterceptProceeds() {
     MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
-    ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
-    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
-        configurationComponentLocator);
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+    when(muleNotificationProcessor.getComponentRegistryService()).thenReturn(componentRegistryService);
+
+    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
     ComponentLocation location = mock(ComponentLocation.class);
     when(location.getLocation()).thenReturn("test-location");
     InterceptionEvent interceptionEvent = mock(InterceptionEvent.class);
@@ -102,12 +102,12 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(connection.getTraceContext("random-id"))
         .thenReturn(traceparentMap);
     MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
     when(muleNotificationProcessor.getOpenTelemetryConnection()).thenReturn(connection);
     when(muleNotificationProcessor.hasConnection()).thenReturn(true);
     when(muleNotificationProcessor.getInterceptorProcessorConfig()).thenReturn(new InterceptorProcessorConfig());
-    ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
-    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
-        configurationComponentLocator);
+    when(muleNotificationProcessor.getComponentRegistryService()).thenReturn(componentRegistryService);
+    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
 
     TestInterceptionEvent interceptionEvent = new TestInterceptionEvent("random-id");
     TypedValue<String> preContext = TypedValue.of("prev-context-map");
@@ -149,20 +149,19 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
         .thenReturn(traceparentMap);
 
     ProcessorComponent processorComponent = mock(ProcessorComponent.class);
-
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
     MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
     when(muleNotificationProcessor.getOpenTelemetryConnection()).thenReturn(connection);
     when(muleNotificationProcessor.hasConnection()).thenReturn(true);
     when(muleNotificationProcessor.getProcessorComponent(ci)).thenReturn(processorComponent);
     when(muleNotificationProcessor.getInterceptorProcessorConfig()).thenReturn(new InterceptorProcessorConfig());
+    when(muleNotificationProcessor.getComponentRegistryService()).thenReturn(componentRegistryService);
 
     // Component not found
-    ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
-    when(configurationComponentLocator.find(any(Location.class))).thenReturn(Optional.empty());
-    when(configurationComponentLocator.find(ci)).thenReturn(Collections.emptyList());
+    ComponentRegistryService componentRegistryService2 = mock(ComponentRegistryService.class);
+    when(componentRegistryService2.findComponentByLocation(any(ComponentLocation.class))).thenReturn(null);
 
-    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
-        configurationComponentLocator);
+    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
 
     TestInterceptionEvent interceptionEvent = new TestInterceptionEvent("random-id");
     TypedValue<String> preContext = TypedValue.of("prev-context-map");
@@ -211,15 +210,14 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     when(muleNotificationProcessor.getProcessorComponent(ci)).thenReturn(processorComponent);
     when(muleNotificationProcessor.getInterceptorProcessorConfig()).thenReturn(new InterceptorProcessorConfig());
     Component component = mock(Component.class);
-    ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
-    when(configurationComponentLocator.find(any(Location.class))).thenReturn(Optional.of(component));
-
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+    when(componentRegistryService.findComponentByLocation(anyString())).thenReturn(component);
+    when(muleNotificationProcessor.getComponentRegistryService()).thenReturn(componentRegistryService);
     // Trace component not found
     when(processorComponent.getStartTraceComponent(any(Component.class), any(Event.class)))
         .thenReturn(null);
 
-    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
-        configurationComponentLocator);
+    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
 
     TestInterceptionEvent interceptionEvent = new TestInterceptionEvent("random-id");
     TypedValue<String> preContext = TypedValue.of("prev-context-map");
@@ -280,11 +278,10 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
         .thenReturn(processorComponent);
     when(muleNotificationProcessor.getInterceptorProcessorConfig()).thenReturn(new InterceptorProcessorConfig());
     Component component = mock(Component.class);
-    ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
-    when(configurationComponentLocator.find(any(Location.class))).thenReturn(Optional.of(component));
-
-    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
-        configurationComponentLocator);
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+    when(componentRegistryService.findComponentByLocation(any(ComponentLocation.class))).thenReturn(component);
+    when(muleNotificationProcessor.getComponentRegistryService()).thenReturn(componentRegistryService);
+    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
 
     TestInterceptionEvent interceptionEvent = new TestInterceptionEvent("random-id");
     TypedValue<String> preContext = TypedValue.of("prev-context-map");
@@ -309,8 +306,8 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
   public void verifyInterceptorDoesNotRaiseExceptionInBefore() {
 
     // Give an interceptor with no muleNotificationProcessor resulting in NPE
-    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(null,
-        null);
+    MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
+    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
 
     ComponentLocation location = mock(ComponentLocation.class);
     when(location.getLocation()).thenReturn("test-location");
