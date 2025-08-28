@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry.internal.util;
+package com.avioconsulting.mule.opentelemetry.internal.util.memoizers;
 
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,7 +13,7 @@ import java.util.function.BiFunction;
  *
  * @param <K>
  *            the type of the key for caching
- * @param <U>
+ * @param <T>
  *            the type of the input object
  * @param <R>
  *            the type of the result produced by the {@code BiFunction}
@@ -38,9 +38,8 @@ import java.util.function.BiFunction;
  * }
  *            </pre>
  */
-public class BiFunctionMemoizer<K, U, R> implements BiFunction<K, U, R> {
-  private final BiFunction<K, U, R> function;
-  private final ConcurrentHashMap<K, R> cache = new ConcurrentHashMap<>();
+public class BiFunctionMemoizer<K, T, R> extends AbstractMemoizer<K, R> implements BiFunction<K, T, R> {
+  private final BiFunction<K, T, R> function;
 
   /**
    * Constructs a {@code BiFunctionMemoizer} that wraps the given
@@ -51,16 +50,23 @@ public class BiFunctionMemoizer<K, U, R> implements BiFunction<K, U, R> {
    * @param function
    *            the {@code BiFunction} to be memoized, must not be null
    */
-  public BiFunctionMemoizer(BiFunction<K, U, R> function) {
+  public BiFunctionMemoizer(BiFunction<K, T, R> function) {
     this.function = Objects.requireNonNull(function);
   }
 
   @Override
-  public R apply(K k, U u) {
-    return cache.computeIfAbsent(k, key -> function.apply(key, u));
+  public R apply(K k, T t) {
+    R cached = cache.computeIfAbsent(k, key -> {
+      R computed = function.apply(key, t);
+      if (computed == null && supportNullValues) {
+        return (R) NULL_VALUE;
+      }
+      return computed;
+    });
+    return cached == NULL_VALUE ? null : cached;
   }
 
-  public static <K, U, R> BiFunctionMemoizer<K, U, R> memoize(BiFunction<K, U, R> function) {
+  public static <K, T, R> BiFunctionMemoizer<K, T, R> memoize(BiFunction<K, T, R> function) {
     return new BiFunctionMemoizer<>(function);
   }
 }

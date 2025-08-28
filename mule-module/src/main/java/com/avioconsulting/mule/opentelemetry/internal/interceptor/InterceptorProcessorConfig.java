@@ -4,6 +4,7 @@ import com.avioconsulting.mule.opentelemetry.api.config.MuleComponent;
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleCoreProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
+import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.BiFunctionMemoizer;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import org.mule.runtime.api.component.ComponentIdentifier;
@@ -119,6 +120,8 @@ public class InterceptorProcessorConfig {
 
   private boolean turnOffTracing = false;
 
+  private final BiFunctionMemoizer<ComponentLocation, Event, Boolean> shouldInterceptCache = BiFunctionMemoizer
+      .memoize(this::shouldInterceptCache);
   /**
    * Components that must be intercepted
    */
@@ -251,6 +254,10 @@ public class InterceptorProcessorConfig {
   }
 
   public boolean shouldIntercept(ComponentLocation location, Event event) {
+    return shouldInterceptCache.apply(location, event);
+  }
+
+  public boolean shouldInterceptCache(ComponentLocation location, Event event) {
     if (!interceptorFeatureEnabled())
       return false;
 

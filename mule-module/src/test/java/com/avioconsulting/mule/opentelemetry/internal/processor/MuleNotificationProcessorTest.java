@@ -118,6 +118,9 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
     ProcessorComponent processorComponent = notificationProcessor.getProcessorComponent(component.getIdentifier());
     Assertions.assertThat(processorComponent).as("Processor without the additional list to create span").isNull();
 
+    // New notification processor to clear any cached values
+    notificationProcessor = new MuleNotificationProcessor(
+        componentRegistryService);
     List<MuleComponent> additionalSpans = new ArrayList<>();
     additionalSpans.add(new MuleComponent("mule", "remove-variable"));
     traceLevelConfiguration = new TraceLevelConfiguration(false, Collections.emptyList(), additionalSpans);

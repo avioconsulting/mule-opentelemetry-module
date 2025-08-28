@@ -222,7 +222,8 @@ public class InterceptorProcessorConfigTest extends AbstractInternalTest {
         interceptorProcessorConfig.shouldIntercept(location, event))
             .isTrue();
 
-    // Turn off tracing
+    // Turn off tracing with new config to reset any object cache
+    interceptorProcessorConfig = new InterceptorProcessorConfig();
     interceptorProcessorConfig
         .setTurnOffTracing(true);
 

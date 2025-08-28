@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry.internal.util;
+package com.avioconsulting.mule.opentelemetry.internal.util.memoizers;
 
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,25 +17,29 @@ import java.util.function.Function;
  * @param <R>
  *            the type of the result of the function
  */
-public class FunctionMemoizer<T, R> implements Function<T, R> {
+public class FunctionMemoizer<T, R> extends AbstractMemoizer<T, R> implements Function<T, R> {
   private final Function<T, R> function;
-  private final ConcurrentHashMap<T, R> cache = new ConcurrentHashMap<>();
 
   public FunctionMemoizer(Function<T, R> function) {
+    super();
+    this.function = Objects.requireNonNull(function);
+  }
+
+  public FunctionMemoizer(Function<T, R> function, boolean supportNullValues) {
+    super(supportNullValues);
     this.function = Objects.requireNonNull(function);
   }
 
   @Override
   public R apply(T input) {
-    return cache.computeIfAbsent(input, function);
-  }
-
-  public void clear() {
-    cache.clear();
-  }
-
-  public int size() {
-    return cache.size();
+    R cached = cache.computeIfAbsent(input, key -> {
+      R computed = function.apply(key);
+      if (computed == null && supportNullValues) {
+        return (R) NULL_VALUE;
+      }
+      return computed;
+    });
+    return cached == NULL_VALUE ? null : cached;
   }
 
   /**
@@ -53,5 +57,9 @@ public class FunctionMemoizer<T, R> implements Function<T, R> {
    */
   public static <T, R> FunctionMemoizer<T, R> memoize(Function<T, R> function) {
     return new FunctionMemoizer<>(function);
+  }
+
+  public static <T, R> FunctionMemoizer<T, R> memoize(Function<T, R> function, boolean allowNullValues) {
+    return new FunctionMemoizer<>(function, allowNullValues);
   }
 }

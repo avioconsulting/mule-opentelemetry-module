@@ -14,8 +14,7 @@ import org.mule.runtime.core.api.el.ExpressionManager;
 
 import java.util.*;
 
-import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_PROCESSOR_NAME;
-import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_SCOPE_SUBFLOW_NAME;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.copyBatchTags;
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.FLOW;
 import static org.mule.runtime.api.component.TypedComponentIdentifier.ComponentType.ROUTE;
@@ -30,6 +29,12 @@ public class ComponentsUtil {
   public static final String BATCH_JOB_TAG = "batch:job";
   public static final String BATCH_ON_COMPLETE_TAG = "batch:on-complete";
   public static final String PROCESSOR_0_PATH_SUFFIX = "/processors/0";
+  public static final String ASYNC = "async";
+  public static final String ROUTE_NAME = "route";
+  public static final String SUB_FLOW = "sub-flow";
+  public static final String FLOW_REF = "flow-ref";
+  public static final String BATCH = "batch";
+  public static final String ON_COMPLETE = "on-complete";
 
   public static Optional<ComponentLocation> findLocation(String location,
       ConfigurationComponentLocator configurationComponentLocator) {
@@ -38,11 +43,11 @@ public class ComponentsUtil {
   }
 
   public static boolean isSubFlow(ComponentLocation location) {
-    return location.getComponentIdentifier().getIdentifier().getName().equals("sub-flow");
+    return location.getComponentIdentifier().getIdentifier().getName().equals(SUB_FLOW);
   }
 
   public static boolean isFlowRef(ComponentLocation location) {
-    return location.getComponentIdentifier().getIdentifier().getName().equals("flow-ref");
+    return location.getComponentIdentifier().getIdentifier().getName().equals(FLOW_REF);
   }
 
   public static Optional<Component> findComponent(ComponentIdentifier identifier, String location,
@@ -123,7 +128,7 @@ public class ComponentsUtil {
 
   public static boolean isRoute(TypedComponentIdentifier tci) {
     Objects.requireNonNull(tci, "Component Identifier cannot be null");
-    return tci.getIdentifier().getName().equals("route")
+    return tci.getIdentifier().getName().equals(ROUTE_NAME)
         || ROUTE.equals(tci.getType());
   }
 
@@ -155,7 +160,7 @@ public class ComponentsUtil {
   }
 
   public static boolean isAsyncScope(TypedComponentIdentifier identifier) {
-    return SCOPE.equals(identifier.getType()) && identifier.getIdentifier().getName().equals("async");
+    return SCOPE.equals(identifier.getType()) && identifier.getIdentifier().getName().equals(ASYNC);
   }
 
   /**
@@ -203,12 +208,12 @@ public class ComponentsUtil {
   public static ComponentLocation resolveFlowName(ExpressionManager expressionManager,
       TraceComponent traceComponent, BindingContext context,
       ComponentRegistryService componentRegistryService) {
-    String targetFlowName = traceComponent.getTags().get("mule.app.processor.flowRef.name");
+    String targetFlowName = traceComponent.getTags().get(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey());
     if (expressionManager
         .isExpression(targetFlowName)) {
       targetFlowName = expressionManager
           .evaluate(targetFlowName, context).getValue().toString();
-      traceComponent.getTags().put("mule.app.processor.flowRef.name", targetFlowName);
+      traceComponent.getTags().put(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(), targetFlowName);
     }
     ComponentLocation componentLocation = componentRegistryService.findComponentLocation(targetFlowName);
     if (componentLocation == null) {
@@ -221,7 +226,7 @@ public class ComponentsUtil {
 
   public static boolean isBatchOnComplete(String location, ComponentRegistryService componentRegistryService) {
     Component component = componentRegistryService.findComponentByLocation(location);
-    return component != null && "batch".equalsIgnoreCase(component.getIdentifier().getNamespace())
-        && "on-complete".equalsIgnoreCase(component.getIdentifier().getName());
+    return component != null && BATCH.equalsIgnoreCase(component.getIdentifier().getNamespace())
+        && ON_COMPLETE.equalsIgnoreCase(component.getIdentifier().getName());
   }
 }

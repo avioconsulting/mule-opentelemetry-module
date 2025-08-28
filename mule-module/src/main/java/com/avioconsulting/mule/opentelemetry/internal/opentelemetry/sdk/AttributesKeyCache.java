@@ -1,7 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk;
 
 import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
-import com.avioconsulting.mule.opentelemetry.internal.util.FunctionMemoizer;
+import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.FunctionMemoizer;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.semconv.HttpAttributes;
 import io.opentelemetry.semconv.ServerAttributes;

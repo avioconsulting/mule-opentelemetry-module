@@ -1,8 +1,8 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor.service;
 
-import com.avioconsulting.mule.opentelemetry.internal.util.BiFunctionMemoizer;
+import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.BiFunctionMemoizer;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
-import com.avioconsulting.mule.opentelemetry.internal.util.FunctionMemoizer;
+import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.FunctionMemoizer;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;

@@ -14,6 +14,7 @@ import com.avioconsulting.mule.opentelemetry.internal.notifications.BatchError;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
+import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.FunctionMemoizer;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.context.Context;
 import org.mule.runtime.api.component.ComponentIdentifier;
@@ -87,6 +88,12 @@ public class MuleNotificationProcessor {
     this.componentRegistryService = componentRegistryService;
   }
 
+  // Visible for testing purpose
+  MuleNotificationProcessor setProcessorComponentService(ProcessorComponentService processorComponentService) {
+    this.processorComponentService = processorComponentService;
+    return this;
+  }
+
   public ComponentRegistryService getComponentRegistryService() {
     return componentRegistryService;
   }
@@ -119,7 +126,6 @@ public class MuleNotificationProcessor {
 
     componentRegistryService.initializeComponentWrapperRegistry();
     processorComponentService = ProcessorComponentService.getInstance();
-
   }
 
   public void handleProcessorStartEvent(MessageProcessorNotification notification) {
@@ -200,27 +206,10 @@ public class MuleNotificationProcessor {
     }
   }
 
-  /**
-   * <pre>
-   * Finds a {@link ProcessorComponent} for {@link org.mule.runtime.api.component.Component} that caused {@link MessageProcessorNotification} event.
-   *
-   * If `spanAllProcessors` is set to <code>true</code> but the target component is marked to ignore spans, no processor will be returned.
-   *
-   * If a specific processor isn't found and `spanAllProcessors` is <code>true</code> then {@link GenericProcessorComponent} will be returned to process target component.
-   *
-   * </pre>
-   * 
-   * @param notification
-   *            {@link MessageProcessorNotification} instance containing the
-   *            target {@link org.mule.runtime.api.component.Component}.
-   * @return Optional<ProcessorComponent> that can process this notification
-   */
-  ProcessorComponent getProcessorComponent(MessageProcessorNotification notification) {
-    ComponentIdentifier identifier = notification.getComponent().getIdentifier();
-    return getProcessorComponent(identifier);
-  }
+  private final FunctionMemoizer<ComponentIdentifier, ProcessorComponent> resolveProcessorComponent = FunctionMemoizer
+      .memoize(this::resolveProcessorComponent, true);
 
-  public ProcessorComponent getProcessorComponent(ComponentIdentifier identifier) {
+  public ProcessorComponent resolveProcessorComponent(ComponentIdentifier identifier) {
     boolean ignored = multiMapContains(identifier.getNamespace(), identifier.getName(), "*",
         traceLevelConfiguration.getIgnoreMuleComponentsMap());
     if (spanAllProcessors && ignored)
@@ -243,6 +232,10 @@ public class MuleNotificationProcessor {
     return values.contains(value) || values.contains(alternate);
   }
 
+  public ProcessorComponent getProcessorComponent(ComponentIdentifier identifier) {
+    return resolveProcessorComponent.apply(identifier);
+  }
+
   public void handleProcessorEndEvent(EnrichedServerNotification notification) {
     String location = notification.getComponent().getLocation().getLocation();
     try {
@@ -260,17 +253,12 @@ public class MuleNotificationProcessor {
             notification.getEvent().getError().orElse(null));
 
         if (isFlowRef(notification.getComponent().getLocation())) {
-          String targetFlowName = traceComponent.getTags().get("mule.app.processor.flowRef.name");
-          if (openTelemetryConnection.getExpressionManager().isExpression(targetFlowName)) {
-            logger.trace("Resolving expression '{}'", targetFlowName);
-            targetFlowName = openTelemetryConnection.getExpressionManager()
-                .evaluate(targetFlowName, notification.getEvent().asBindingContext()).getValue()
-                .toString();
-            logger.trace("Resolved to value '{}'", targetFlowName);
-          }
-          ComponentLocation subFlowComp = componentRegistryService.findComponentLocation(targetFlowName);
-          if (subFlowComp != null && ComponentsUtil.isSubFlow(subFlowComp)) {
-            TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowComp,
+          ComponentLocation subFlowLocation = resolveFlowName(
+              openTelemetryConnection.getExpressionManager(), traceComponent,
+              notification.getEvent().asBindingContext(),
+              componentRegistryService);
+          if (subFlowLocation != null) {
+            TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation,
                 traceComponent);
             SpanMeta subFlow = openTelemetryConnection.endProcessorSpan(subflowTrace,
                 notification.getEvent().getError().orElse(null));
