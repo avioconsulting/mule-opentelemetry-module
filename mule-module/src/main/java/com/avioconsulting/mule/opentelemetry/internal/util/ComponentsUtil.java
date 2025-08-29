@@ -35,6 +35,7 @@ public class ComponentsUtil {
   public static final String FLOW_REF = "flow-ref";
   public static final String BATCH = "batch";
   public static final String ON_COMPLETE = "on-complete";
+  public static final String MULE_ANY = "MULE:ANY";
 
   public static Optional<ComponentLocation> findLocation(String location,
       ConfigurationComponentLocator configurationComponentLocator) {

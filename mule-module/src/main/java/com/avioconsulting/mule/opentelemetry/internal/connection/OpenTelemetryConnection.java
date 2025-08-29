@@ -380,7 +380,7 @@ public class OpenTelemetryConnection implements TraceContextHandler,
             traceComponent.getTags().put(ERROR_MESSAGE.getKey(),
                 error.getDescription());
             if (error.getErrorType() != null
-                && !"MULE:ANY".equals(error.getErrorType().toString())) {
+                && !MULE_ANY.equals(error.getErrorType().toString())) {
               traceComponent.getTags().put(ErrorAttributes.ERROR_TYPE.getKey(),
                   error.getErrorType().toString());
             }
@@ -450,14 +450,14 @@ public class OpenTelemetryConnection implements TraceContextHandler,
           setSpanStatus(traceComponent, rootSpan);
           if (exception != null) {
             rootSpan.recordException(exception);
-            rootSpan.setAttribute(ERROR_TYPE.getKey(), exception.getClass().getCanonicalName());
-            rootSpan.setAttribute(ERROR_MESSAGE.getKey(), exception.getMessage());
+            rootSpan.setAttribute(ERROR_TYPE, exception.getClass().getCanonicalName());
+            rootSpan.setAttribute(ERROR_MESSAGE, exception.getMessage());
             if (exception instanceof MuleException) {
               MuleException muleException = (MuleException) exception;
               if (muleException.getExceptionInfo() != null
                   && muleException.getExceptionInfo().getErrorType() != null
-                  && !"MULE:ANY".equals(muleException.getExceptionInfo().getErrorType().toString())) {
-                rootSpan.setAttribute(ERROR_TYPE.getKey(),
+                  && !MULE_ANY.equals(muleException.getExceptionInfo().getErrorType().toString())) {
+                rootSpan.setAttribute(ERROR_TYPE,
                     muleException.getExceptionInfo().getErrorType().toString());
               }
             }

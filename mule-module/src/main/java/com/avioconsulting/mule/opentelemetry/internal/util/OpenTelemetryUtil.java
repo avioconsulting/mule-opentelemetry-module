@@ -86,7 +86,8 @@ public class OpenTelemetryUtil {
   public static String getEventTransactionId(String eventId) {
     // For child contexts, the primary id is appended with "_{timeInMillis}".
     // We remove time part to get a unique id across the event processing.
-    return eventId.split("_")[0];
+    int index = eventId.indexOf('_');
+    return (index != -1) ? eventId.substring(0, index) : eventId;
   }
 
   /**

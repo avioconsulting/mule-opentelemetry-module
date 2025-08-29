@@ -3,7 +3,6 @@ package com.avioconsulting.mule.opentelemetry.internal.store;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.traces.ComponentEventContext;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
-import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.context.Context;
@@ -13,14 +12,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
 
 import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.*;
 
@@ -92,10 +87,9 @@ public class ContainerSpan implements Serializable {
       if (getContainerName().equals(containerName)) {
         spanBuilder.setParent(getRootContext());
       } else {
-        String contextScopedContainer = traceComponent.contextScopedPath(containerName);
         parentSpan = getParentSpan(traceComponent, containerName);
         if (parentSpan == null) {
-          LOGGER.debug("Parent span not found for {}. Child span keys - {}", contextScopedContainer,
+          LOGGER.debug("Parent span not found for {}/{}. Child span keys - {}", traceComponent.getEventContextId(), traceComponent.getLocation(),
               childSpans.keySet());
           parentSpan = rootProcessorSpan;
         }
@@ -207,27 +201,71 @@ public class ContainerSpan implements Serializable {
    * @param endTime
    *            {@link Instant}
    */
-  private void endRouteSpans(TraceComponent traceComponent, Instant endTime) {
+  void endRouteSpans(TraceComponent traceComponent, Instant endTime) {
     if (traceComponent.getComponentLocation() == null ||
         !TypedComponentIdentifier.ComponentType.ROUTER
             .equals(traceComponent.getComponentLocation().getComponentIdentifier().getType()))
       return;
-    // Location string may contain characters not allowed in REGEX, so let's quote
-    // it with \Q\E
-    String regexPattern = String.format("^%s(_\\d.*)?\\/%s\\/route\\/\\d*$", traceComponent.getEventContextId(),
-        Pattern.quote(traceComponent.getLocation()));
-    Pattern pattern = Pattern.compile(regexPattern);
-    Predicate<String> predicate = pattern.asPredicate();
-    childSpans.keySet().stream().filter(predicate).forEach(k -> {
-      ProcessorSpan removed = childSpans.remove(k);
-      if (removed != null) {
-        LOGGER.trace("Ending Route Span at location {} for container {} trace transaction {} context {}",
-            k,
-            this.getRootSpanName(),
-            this.transactionId, removed.getSpan().getSpanContext());
-        removed.getSpan().end(endTime);
+
+    String parentContextId = traceComponent.getEventContextId();
+    String routeSuffix = "/" + traceComponent.getLocation() + "/route/";
+
+    List<String> routeSpanKeys = new ArrayList<>();
+
+    for (String key : childSpans.keySet()) {
+      if (isRouteKey(key, parentContextId, routeSuffix)) {
+        routeSpanKeys.add(key);
       }
-    });
+    }
+    for (String key : routeSpanKeys) {
+      ProcessorSpan span = childSpans.remove(key);
+      if (span != null) {
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace("Ending Route Span at location {} for container {} trace transaction {} context {}",
+              key, this.getRootSpanName(), this.transactionId,
+              span.getSpan().getSpanContext());
+        }
+        span.getSpan().end(endTime);
+      }
+    }
+  }
+
+  private boolean isRouteKey(String spanKey, String parentContextId, String routeSuffix) {
+    // Fast checks:
+    // 1. Must start with parent context ID
+    if (!spanKey.startsWith(parentContextId)) {
+      return false;
+    }
+
+    // 2. Must contain the route suffix
+    int routeIndex = spanKey.indexOf(routeSuffix, parentContextId.length());
+    if (routeIndex == -1) {
+      return false;
+    }
+
+    // 3. Validate the middle part (empty or _digits)
+    String middlePart = spanKey.substring(parentContextId.length(), routeIndex);
+    if (!middlePart.isEmpty()) {
+      // Must be _<numbers> pattern
+      if (!middlePart.startsWith("_") || middlePart.length() < 2) {
+        return false;
+      }
+      // Check if rest are digits
+      for (int i = 1; i < middlePart.length(); i++) {
+        if (!Character.isDigit(middlePart.charAt(i))) {
+          return false;
+        }
+      }
+    }
+
+    // 4. Validate route number at the end
+    String routeNumber = spanKey.substring(routeIndex + routeSuffix.length());
+    for (int i = 0; i < routeNumber.length(); i++) {
+      if (!Character.isDigit(routeNumber.charAt(i))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public ProcessorSpan findSpan(String location) {

@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor.util;
 
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
+import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.FunctionMemoizer;
 import io.opentelemetry.semconv.HttpAttributes;
 
 import java.util.Locale;
@@ -54,18 +55,56 @@ public class HttpSpanUtil {
     return method.toUpperCase(Locale.ROOT) + " " + route;
   }
 
+  private final static FunctionMemoizer<String, String> apiKitRoutePathExtractorMemoizer = new FunctionMemoizer<>(
+      HttpSpanUtil::apiKitRoutePathExtractor);
+
   /**
-   * Extracts the APIKit route path from the flow name
-   * 
+   * Extracts and transforms the APIKit route path from the flow name.
+   * Format: action:\path[:content-type][:config-name]
+   *
    * @param tags
-   *            {@link Map} containing span tags
-   * @return String apikit route path
+   *            Map containing MULE_APP_FLOW_NAME
+   * @return Normalized path (e.g., "/accounts/{accountId}")
    */
   public static String apiKitRoutePath(Map<String, String> tags) {
     String flowName = tags.get(MULE_APP_FLOW_NAME.getKey());
+    return apiKitRoutePathExtractorMemoizer.apply(flowName);
+  }
+
+  private static String apiKitRoutePathExtractor(String flowName) {
     Objects.requireNonNull(flowName, "Flow name must not be null");
-    return (flowName.split(":")[1]).replace(":", "")
-        .replaceAll("\\\\", "/")
-        .replaceAll("\\(", "{").replaceAll("\\)", "}");
+    // Extract path boundaries (after action, before optional content-type)
+    int pathStart = flowName.indexOf(':') + 1;
+    if (pathStart == 0) {
+      throw new RuntimeException("Invalid flow name format: " + flowName);
+    }
+
+    // End where next colon for content type or config name is
+    int pathEnd = flowName.indexOf(':', pathStart);
+    if (pathEnd == -1) {
+      pathEnd = flowName.length();
+    }
+
+    StringBuilder result = new StringBuilder(pathEnd - pathStart);
+
+    for (int i = pathStart; i < pathEnd; i++) {
+      char c = flowName.charAt(i);
+      switch (c) {
+        case '\\':
+          result.append('/');
+          break;
+        case '(':
+          result.append('{');
+          break;
+        case ')':
+          result.append('}');
+          break;
+        default:
+          result.append(c);
+          break;
+      }
+    }
+
+    return result.toString();
   }
 }
