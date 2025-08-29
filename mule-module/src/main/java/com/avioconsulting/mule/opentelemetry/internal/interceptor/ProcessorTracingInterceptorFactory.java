@@ -35,7 +35,7 @@ public class ProcessorTracingInterceptorFactory implements ProcessorInterceptorF
   // Negating the property value since usage is negated
   private final boolean NOT_FIRST_PROCESSOR_ONLY_MODE = !PropertiesUtil
       .getBoolean(MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY, false);
-
+  private final InterceptorProcessorConfig interceptorProcessorConfig;
   /**
    * {@link MuleNotificationProcessor} instance for getting opentelemetry
    * connection supplier by processor.
@@ -45,6 +45,7 @@ public class ProcessorTracingInterceptorFactory implements ProcessorInterceptorF
   @Inject
   public ProcessorTracingInterceptorFactory(MuleNotificationProcessor muleNotificationProcessor) {
     processorTracingInterceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
+    interceptorProcessorConfig = muleNotificationProcessor.getInterceptorProcessorConfig();
   }
 
   @Override
@@ -74,11 +75,7 @@ public class ProcessorTracingInterceptorFactory implements ProcessorInterceptorF
    */
   @Override
   public boolean intercept(ComponentLocation location) {
-    boolean intercept = false;
-    if (interceptorEnabled) {
-      intercept = (isFirstProcessor(location)
-          || NOT_FIRST_PROCESSOR_ONLY_MODE);
-    }
+    boolean intercept = interceptorProcessorConfig.shouldIntercept(location, null);
     if (LOGGER.isTraceEnabled() && intercept) {
       LOGGER.trace("Will Intercept '{}::{}'", location.getRootContainerName(), location.getLocation());
     }

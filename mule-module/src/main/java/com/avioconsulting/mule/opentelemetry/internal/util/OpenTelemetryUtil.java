@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -132,12 +133,12 @@ public class OpenTelemetryUtil {
           traceComponent.withSpanName(value);
         }
       }
-      List<Map.Entry<String, String>> expressionTags = traceComponent.getTags().entrySet().stream()
-          .filter(e -> expressionManager.isExpression(e.getValue())).collect(Collectors.toList());
-      for (Map.Entry<String, String> expressionTag : expressionTags) {
-        String value = resolveExpression(expressionTag.getValue(), expressionManager, event);
-        if (value != null) {
-          traceComponent.getTags().replace(expressionTag.getKey(), value);
+      for (Map.Entry<String, String> e : traceComponent.getTags().entrySet()) {
+        if (expressionManager.isExpression(e.getValue())) {
+          String value = resolveExpression(e.getValue(), expressionManager, event);
+          if (value != null) {
+            e.setValue(value);
+          }
         }
       }
     } catch (Exception ignored) {

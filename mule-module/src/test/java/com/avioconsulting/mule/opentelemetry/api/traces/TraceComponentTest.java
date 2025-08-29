@@ -61,7 +61,7 @@ public class TraceComponentTest {
   public void testContextScopedPathWithLevel(int level, String expectedPath) throws Exception {
     TraceComponent traceComponent = TraceComponent.of("Test")
         .withEventContextId("58660cf1-e735-11ee-bd25-ca89f39a1b64_493033029_784814100_894835844_515059234");
-    assertThat(traceComponent.contextCopedPath("test-location-path", level))
+    assertThat(traceComponent.contextScopedPath("test-location-path", level))
         .isEqualTo(expectedPath);
   }
 

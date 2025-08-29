@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.*;
+import static com.avioconsulting.mule.opentelemetry.internal.util.StringUtil.UNDERSCORE;
 
 public class ContainerSpan implements Serializable {
 
@@ -89,7 +90,8 @@ public class ContainerSpan implements Serializable {
       } else {
         parentSpan = getParentSpan(traceComponent, containerName);
         if (parentSpan == null) {
-          LOGGER.debug("Parent span not found for {}/{}. Child span keys - {}", traceComponent.getEventContextId(), traceComponent.getLocation(),
+          LOGGER.debug("Parent span not found for {}/{}. Child span keys - {}",
+              traceComponent.getEventContextId(), traceComponent.getLocation(),
               childSpans.keySet());
           parentSpan = rootProcessorSpan;
         }
@@ -136,7 +138,7 @@ public class ContainerSpan implements Serializable {
 
   private ProcessorSpan getParentSpan(ComponentEventContext context, String container) {
     for (int i = 0; i < context.contextNestingLevel(); i++) {
-      ProcessorSpan processorSpan = childSpans.get(context.contextCopedPath(container, i));
+      ProcessorSpan processorSpan = childSpans.get(context.contextScopedPath(container, i));
       if (processorSpan != null)
         return processorSpan;
     }
@@ -247,7 +249,7 @@ public class ContainerSpan implements Serializable {
     String middlePart = spanKey.substring(parentContextId.length(), routeIndex);
     if (!middlePart.isEmpty()) {
       // Must be _<numbers> pattern
-      if (!middlePart.startsWith("_") || middlePart.length() < 2) {
+      if (!middlePart.startsWith(UNDERSCORE) || middlePart.length() < 2) {
         return false;
       }
       // Check if rest are digits

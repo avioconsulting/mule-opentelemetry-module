@@ -63,6 +63,7 @@ public class InMemoryTransactionStoreTest {
         .withSpanName("GET /api/*")
         .withStartTime(startTimestamp)
         .withLocation(TEST_1_FLOW_FLOW_REF)
+        .withEventContextId("test-1-context-id")
         .withTags(new HashMap<>());
     connection.getTransactionStore().startTransaction(traceComponent, TEST_1_FLOW, spanBuilder);
     connection.getTransactionStore().addProcessorSpan(TEST_1_FLOW, traceComponent,

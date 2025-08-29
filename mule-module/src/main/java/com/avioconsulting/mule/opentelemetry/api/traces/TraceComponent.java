@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.api.traces;
 
+import com.avioconsulting.mule.opentelemetry.internal.util.StringUtil;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
@@ -8,6 +9,9 @@ import org.mule.runtime.api.component.location.ComponentLocation;
 
 import java.time.Instant;
 import java.util.Map;
+
+import static com.avioconsulting.mule.opentelemetry.internal.util.StringUtil.UNDERSCORE;
+import static com.avioconsulting.mule.opentelemetry.internal.util.StringUtil.UNDERSCORE_CHAR;
 
 public class TraceComponent implements ComponentEventContext {
   private Map<String, String> tags;
@@ -23,11 +27,13 @@ public class TraceComponent implements ComponentEventContext {
   private Instant endTime;
   private String eventContextId;
   private ComponentLocation componentLocation;
-
+  private String contextScopedLocation = null;
+  private int contextNestingLevel = 0;
   /**
    * Number of processors in the same container
    */
   private long siblings = -1;
+  private String eventContextPrimaryId;
 
   private TraceComponent(String name) {
     this.name = name;
@@ -116,6 +122,9 @@ public class TraceComponent implements ComponentEventContext {
 
   public TraceComponent withLocation(String val) {
     location = val;
+    if (getEventContextId() != null && val != null && contextScopedLocation == null) {
+      contextScopedLocation = getEventContextId() + "/" + val;
+    }
     return this;
   }
 
@@ -151,6 +160,15 @@ public class TraceComponent implements ComponentEventContext {
 
   public TraceComponent withEventContextId(String eventContextId) {
     this.eventContextId = eventContextId;
+    if (eventContextId != null && getLocation() != null && contextScopedLocation == null) {
+      contextScopedLocation = eventContextId + "/" + getLocation();
+    }
+    if (eventContextId != null) {
+      eventContextPrimaryId = eventContextId.contains(UNDERSCORE)
+          ? eventContextId.substring(0, eventContextId.indexOf(UNDERSCORE))
+          : eventContextId;
+      contextNestingLevel = StringUtil.countParts(eventContextId, UNDERSCORE_CHAR);
+    }
     return this;
   }
 
@@ -170,6 +188,18 @@ public class TraceComponent implements ComponentEventContext {
 
   public long getSiblings() {
     return siblings;
+  }
+
+  public String contextScopedLocation() {
+    return contextScopedLocation;
+  }
+
+  public String getEventContextPrimaryId() {
+    return eventContextPrimaryId;
+  }
+
+  public int contextNestingLevel() {
+    return contextNestingLevel;
   }
 
   @Override
