@@ -26,8 +26,8 @@ public class MuleOpenTelemetryDBTest extends AbstractMuleArtifactTraceTest {
 
   @Override
   protected void doSetUpBeforeMuleContextCreation() throws Exception {
-    super.doSetUpBeforeMuleContextCreation();
     System.setProperty("Database_Config.otel.db.system.fromprop", "derby_Sys");
+    super.doSetUpBeforeMuleContextCreation();
   }
 
   @Before

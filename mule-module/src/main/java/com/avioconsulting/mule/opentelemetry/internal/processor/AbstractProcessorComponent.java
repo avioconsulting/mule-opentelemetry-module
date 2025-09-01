@@ -96,15 +96,7 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   protected Map<String, String> getProcessorCommonTags(Component component) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
-    Map<String, String> tags = new HashMap<>();
-    tags.put(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
-        component.getIdentifier().getNamespace());
-    tags.put(MULE_APP_PROCESSOR_NAME.getKey(), component.getIdentifier().getName());
-    if (componentWrapper.getDocName() != null)
-      tags.put(MULE_APP_PROCESSOR_DOC_NAME.getKey(), componentWrapper.getDocName());
-    if (componentWrapper.getConfigRef() != null)
-      tags.put(MULE_APP_PROCESSOR_CONFIG_REF.getKey(), componentWrapper.getConfigRef());
-    return tags;
+    return new HashMap<>(componentWrapper.staticParametersAsReadOnlyMap());
   }
 
   protected ComponentIdentifier getSourceIdentifier(EnrichedServerNotification notification) {
@@ -123,8 +115,17 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
     return sourceIdentifier;
   }
 
-  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    return Collections.emptyMap();
+  /**
+   * Adds attributes to collector if needed
+   * 
+   * @param component
+   * @param attributes
+   * @param collector
+   * @param <A>
+   */
+  protected <A> void addAttributes(Component component, TypedValue<A> attributes,
+      final Map<String, String> collector) {
+    // nothing to do in the abstract
   }
 
   @Override
@@ -144,10 +145,9 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
    */
   public TraceComponent getStartTraceComponent(Component component, Event event) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
-    Map<String, String> tags = new HashMap<>(getProcessorCommonTags(component));
+    Map<String, String> tags = getProcessorCommonTags(component);
     tags.put(MULE_CORRELATION_ID.getKey(), event.getCorrelationId());
-    tags.putAll(getAttributes(component,
-        event.getMessage().getAttributes()));
+    addAttributes(component, event.getMessage().getAttributes(), tags);
     TraceComponent traceComponent = TraceComponent.of(component)
         .withSpanName(componentWrapper.getDefaultSpanName())
         .withTags(tags)

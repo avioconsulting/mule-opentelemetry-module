@@ -13,9 +13,9 @@ import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfig
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
 import com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil;
-import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.ServiceProviderUtil;
+import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.BiFunctionMemoizer;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.trace.*;
@@ -38,7 +38,6 @@ import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.hasBatchJobInstanceId;
@@ -62,12 +61,6 @@ public class OpenTelemetryConnection implements TraceContextHandler,
    */
   private static final String INSTRUMENTATION_VERSION = "0.0.1-DEV";
 
-  /**
-   * Collect all otel specific system properties and cache them in a map.
-   */
-  public final Map<String, String> OTEL_SYSTEM_PROPERTIES_MAP = System.getProperties().stringPropertyNames().stream()
-      .filter(p -> p.contains(".otel.")).collect(Collectors.toMap(String::toLowerCase, System::getProperty));
-
   private static final String INSTRUMENTATION_NAME = "mule-opentelemetry-module-DEV";
   private final TransactionStore transactionStore;
   private OpenTelemetry openTelemetry;
@@ -75,6 +68,8 @@ public class OpenTelemetryConnection implements TraceContextHandler,
   private boolean turnOffTracing = false;
   private boolean turnOffMetrics = false;
   private ComponentRegistryService componentRegistryService;
+  private final BiFunctionMemoizer<String, TraceComponent, String> parentLocationMemoizer = BiFunctionMemoizer
+      .memoize((key, traceComponent) -> getRouteContainerLocation(traceComponent), true);
 
   private OpenTelemetryConnection(OpenTelemetryConfigWrapper openTelemetryConfigWrapper) {
     Properties properties = getModuleProperties();
@@ -321,16 +316,13 @@ public class OpenTelemetryConnection implements TraceContextHandler,
         .spanBuilder(traceComponent.getSpanName())
         .setSpanKind(traceComponent.getSpanKind())
         .setStartTimestamp(traceComponent.getStartTime());
-    OpenTelemetryUtil.addGlobalConfigSystemAttributes(
-        traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF.getKey()),
-        traceComponent.getTags(), OTEL_SYSTEM_PROPERTIES_MAP);
     tagsToAttributes(traceComponent, spanBuilder);
     String parentLocation = null;
     if (!hasBatchJobInstanceId(traceComponent) ||
         !BatchHelperUtil.notBatchChildContainer(containerName, componentRegistryService)) {
       // When processing batch child containers are
       // handled by BatchTransaction, skip this
-      parentLocation = getRouteContainerLocation(traceComponent);
+      parentLocation = parentLocationMemoizer.apply(traceComponent.getLocation(), traceComponent);
       if (parentLocation != null) {
         // Create parent span for the first processor in the chain /0
         TraceComponent parentTrace = TraceComponent.of(parentLocation)
@@ -429,11 +421,10 @@ public class OpenTelemetryConnection implements TraceContextHandler,
         .setSpanKind(traceComponent.getSpanKind())
         .setParent(traceComponent.getContext())
         .setStartTimestamp(traceComponent.getStartTime());
-
-    OpenTelemetryUtil.addGlobalConfigSystemAttributes(
-        traceComponent.getTags().get(SemanticAttributes.MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey()),
-        traceComponent.getTags(), this.OTEL_SYSTEM_PROPERTIES_MAP);
-
+    String configName;
+    if ((configName = traceComponent.getTags().get(MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey())) != null) {
+      traceComponent.getTags().putAll(componentRegistryService.getGlobalConfigOtelSystemProperties(configName));
+    }
     getTransactionStore().startTransaction(
         traceComponent, traceComponent.getName(), spanBuilder);
   }

@@ -35,17 +35,15 @@ public class WSCProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
+  protected <A> void addAttributes(Component component, TypedValue<A> attributes, Map<String, String> collector) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
-    Map<String, String> tags = new HashMap<>();
-    tags.put(WSC_CONSUMER_OPERATION.getKey(), componentWrapper.getParameter("operation"));
+    collector.put(WSC_CONSUMER_OPERATION.getKey(), componentWrapper.getParameter("operation"));
     Map<String, String> configConnectionParameters = componentWrapper.getConfigConnectionParameters();
-    tags.put(WSC_CONFIG_SERVICE.getKey(), configConnectionParameters.get("service"));
-    tags.put(WSC_CONFIG_PORT.getKey(), configConnectionParameters.get("port"));
+    collector.put(WSC_CONFIG_SERVICE.getKey(), configConnectionParameters.get("service"));
+    collector.put(WSC_CONFIG_PORT.getKey(), configConnectionParameters.get("port"));
     if (configConnectionParameters.containsKey("address")) {
-      tags.put(WSC_CONFIG_ADDRESS.getKey(), configConnectionParameters.get("address"));
+      collector.put(WSC_CONFIG_ADDRESS.getKey(), configConnectionParameters.get("address"));
     }
-    return tags;
   }
 
   @Override

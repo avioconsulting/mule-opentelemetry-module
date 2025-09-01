@@ -258,11 +258,10 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
 
   @Override
   protected void doSetUpBeforeMuleContextCreation() throws Exception {
-    super.doSetUpBeforeMuleContextCreation();
     System.setProperty("SELF_HTTP_Request_configuration.otel.peer.service", "service_prop_name");
     System.setProperty("SELF_HTTP_Request_configuration.otel.mule.serverId", "test-server-id");
     System.setProperty("HTTP_Listener_config.otel.key.from.sysprop", "value_from_sysprop");
-
+    super.doSetUpBeforeMuleContextCreation();
   }
 
   @Test

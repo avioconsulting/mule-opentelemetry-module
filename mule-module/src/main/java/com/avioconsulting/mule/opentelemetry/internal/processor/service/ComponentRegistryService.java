@@ -1,6 +1,8 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor.service;
 
 import com.avioconsulting.mule.opentelemetry.internal.processor.ComponentWrapper;
+import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
+import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.FunctionMemoizer;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
@@ -10,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * The ComponentRegistryService class provides management and initialization of
@@ -24,6 +27,17 @@ public class ComponentRegistryService {
 
   private final ComponentLocatorService componentLocatorService;
   private final ConcurrentHashMap<String, ComponentWrapper> componentWrapperRegistry = new ConcurrentHashMap<>();
+
+  /**
+   * Collect all otel specific system properties and cache them in a map.
+   */
+  public final Map<String, String> OTEL_SYSTEM_PROPERTIES_MAP = System.getProperties().stringPropertyNames()
+      .stream()
+      .filter(p -> p.contains(".otel.")).collect(Collectors.toMap(String::toLowerCase, System::getProperty));
+
+  private final FunctionMemoizer<String, Map<String, String>> getGlobalConfigOtelSystemProperties = FunctionMemoizer
+      .memoize(configName -> OpenTelemetryUtil.getGlobalConfigSystemAttributes(configName,
+          OTEL_SYSTEM_PROPERTIES_MAP));
 
   @Inject
   public ComponentRegistryService(ConfigurationComponentLocator configurationComponentLocator) {
@@ -45,6 +59,10 @@ public class ComponentRegistryService {
       try {
         LOGGER.trace("Initialization of component wrapper for {}", location);
         ComponentWrapper wrapper = new ComponentWrapper(component, this);
+        if (wrapper.getConfigRef() != null) {
+          // initialize the cache for cache system properties
+          getGlobalConfigOtelSystemProperties.apply(wrapper.getConfigRef());
+        }
         componentWrapperRegistry.put(component.getLocation().getLocation(), wrapper);
       } catch (Exception ex) {
         LOGGER.warn(
@@ -53,6 +71,14 @@ public class ComponentRegistryService {
         LOGGER.trace("Exception during initialization of component wrapper for {}.", location, ex);
       }
     }
+  }
+
+  public Map<String, String> getOtelSystemPropertiesMap() {
+    return OTEL_SYSTEM_PROPERTIES_MAP;
+  }
+
+  public Map<String, String> getGlobalConfigOtelSystemProperties(String configName) {
+    return getGlobalConfigOtelSystemProperties.apply(configName);
   }
 
   public ComponentWrapper getComponentWrapper(String location) {

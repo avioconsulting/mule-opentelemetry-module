@@ -4,13 +4,29 @@ import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.FunctionMemoizer;
 import io.opentelemetry.semconv.HttpAttributes;
 
-import java.util.Locale;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_FLOW_NAME;
 
 public class HttpSpanUtil {
+
+  // Pre-compute common HTTP methods (already uppercase)
+  private static final Map<String, String> HTTP_METHODS = new HashMap<>(10, 1.0f);
+  private static final ConcurrentHashMap<String, String> HTTP_SPAN_NAME_CACHE = new ConcurrentHashMap<>();
+  static {
+    HTTP_METHODS.put("connect", "CONNECT");
+    HTTP_METHODS.put("delete", "DELETE");
+    HTTP_METHODS.put("get", "GET");
+    HTTP_METHODS.put("head", "HEAD");
+    HTTP_METHODS.put("options", "OPTIONS");
+    HTTP_METHODS.put("patch", "PATCH");
+    HTTP_METHODS.put("post", "POST");
+    HTTP_METHODS.put("put", "PUT");
+    HTTP_METHODS.put("trace", "TRACE");
+  }
 
   /**
    * Get HTTP Method name with either old and new Semantic Attribute for Method.
@@ -20,9 +36,8 @@ public class HttpSpanUtil {
    * @return String HTTP Method name
    */
   public static String method(Map<String, String> tags) {
-    String method = tags.get(HttpAttributes.HTTP_REQUEST_METHOD.getKey());
-    Objects.requireNonNull(method, "HTTP Method must not be null");
-    return method;
+    return Objects.requireNonNull(tags.get(HttpAttributes.HTTP_REQUEST_METHOD.getKey()),
+        "HTTP Method must not be null");
   }
 
   /**
@@ -52,7 +67,14 @@ public class HttpSpanUtil {
       // Backward compatible to use old route naming without method names
       return route;
     }
-    return method.toUpperCase(Locale.ROOT) + " " + route;
+    String key = method + route;
+    return HTTP_SPAN_NAME_CACHE.computeIfAbsent(key, k -> {
+      if (HTTP_METHODS.containsKey(method)) {
+        return HTTP_METHODS.get(method) + " " + route;
+      } else {
+        return method.toUpperCase() + " " + route;
+      }
+    });
   }
 
   private final static FunctionMemoizer<String, String> apiKitRoutePathExtractorMemoizer = new FunctionMemoizer<>(

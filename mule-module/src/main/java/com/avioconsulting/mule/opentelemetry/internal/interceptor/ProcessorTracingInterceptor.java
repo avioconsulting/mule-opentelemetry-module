@@ -122,7 +122,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
       String transactionId) {
     ComponentLocation subFlowLocation = resolveFlowName(
         muleNotificationProcessor.getOpenTelemetryConnection().getExpressionManager(),
-        traceComponent, event.asBindingContext(), componentRegistryService);
+        traceComponent, event::asBindingContext, componentRegistryService);
     if (subFlowLocation != null) {
       TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation, traceComponent);
       muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(subflowTrace,

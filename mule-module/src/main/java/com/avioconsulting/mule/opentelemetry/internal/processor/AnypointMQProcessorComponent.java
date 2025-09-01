@@ -13,6 +13,7 @@ import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_PROCESSOR_NAME;
 import static io.opentelemetry.semconv.incubating.MessagingIncubatingAttributes.*;
@@ -39,8 +40,11 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
     return SpanKind.PRODUCER;
   }
 
-  private String formattedSpanName(String queueName, String operation) {
-    return queueName + " " + operation;
+  private final ConcurrentHashMap<String, String> spanNamesCache = new ConcurrentHashMap<>();
+
+  private String formattedSpanName(final String queueName, final String operation) {
+    String key = queueName + operation;
+    return spanNamesCache.computeIfAbsent(key, k -> (queueName + " " + operation));
   }
 
   @Override
@@ -62,22 +66,21 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
+  protected <A> void addAttributes(Component component, TypedValue<A> attributes, Map<String, String> collector) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
     Map<String, String> connectionParams = componentWrapper.getConfigConnectionParameters();
 
-    Map<String, String> tags = new HashMap<>();
-    tags.put(MessagingIncubatingAttributes.MESSAGING_CLIENT_ID.getKey(), connectionParams.get("clientId"));
+    collector.put(MessagingIncubatingAttributes.MESSAGING_CLIENT_ID.getKey(), connectionParams.get("clientId"));
     if (attributes != null && attributes.getValue() instanceof AnypointMQMessageAttributes) {
       AnypointMQMessageAttributes attrs = (AnypointMQMessageAttributes) attributes.getValue();
-      tags.put(MESSAGING_MESSAGE_ID.getKey(), attrs.getMessageId());
+      collector.put(MESSAGING_MESSAGE_ID.getKey(), attrs.getMessageId());
     }
-    tags.put(MESSAGING_SYSTEM.getKey(), "anypointmq");
+    collector.put(MESSAGING_SYSTEM.getKey(), "anypointmq");
 
-    addTagIfPresent(componentWrapper.getParameters(), "destination", tags, MESSAGING_DESTINATION_NAME.getKey());
+    addTagIfPresent(componentWrapper.getParameters(), "destination", collector,
+        MESSAGING_DESTINATION_NAME.getKey());
 
-    addTagIfPresent(connectionParams, "url", tags, UrlAttributes.URL_FULL.getKey());
-    return tags;
+    addTagIfPresent(connectionParams, "url", collector, UrlAttributes.URL_FULL.getKey());
   }
 
   @Override
@@ -90,11 +93,9 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
     if (sourceComponent == null) {
       sourceComponent = notification.getComponent();
     }
-    Map<String, String> tags = getAttributes(sourceComponent,
-        attributesTypedValue);
-    tags.put(MESSAGING_OPERATION_NAME.getKey(), PROCESS);
     TraceComponent traceComponent = getTraceComponentBuilderFor(notification);
-    traceComponent.getTags().putAll(tags);
+    addAttributes(sourceComponent, attributesTypedValue, traceComponent.getTags());
+    traceComponent.getTags().put(MESSAGING_OPERATION_NAME.getKey(), PROCESS);
     return traceComponent
         .withSpanName(formattedSpanName(attributes.getDestination(), PROCESS))
         .withStatsCode(StatusCode.OK)

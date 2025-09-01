@@ -32,8 +32,8 @@ public class MuleOpenTelemetryAnypointMQTest extends AbstractMuleArtifactTraceTe
 
   @Override
   protected void doSetUpBeforeMuleContextCreation() throws Exception {
-    super.doSetUpBeforeMuleContextCreation();
     System.setProperty("Anypoint_MQ_Config.otel.mq.system.fromprop", "AnypointMQ_Sys");
+    super.doSetUpBeforeMuleContextCreation();
   }
 
   @Before

@@ -43,14 +43,6 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
 
   @Override
   public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
-
-    if (!canHandle(notification.getComponent().getIdentifier())) {
-      throw new RuntimeException(
-          "Unsupported component "
-              + notification.getComponent().getIdentifier().toString()
-              + " for flow processor.");
-    }
-
     TraceComponent traceComponent = TraceComponent.of(notification.getResourceIdentifier(),
         notification.getComponent().getLocation());
 

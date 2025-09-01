@@ -55,14 +55,12 @@ public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    Map<String, String> tags = new HashMap<>();
+  protected <A> void addAttributes(Component component, TypedValue<A> attributes, Map<String, String> collector) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
     if (ComponentsUtil.isFlowRef(component.getLocation())) {
-      tags.put(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(),
+      collector.put(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(),
           componentWrapper.getParameter("name"));
     }
-    return tags;
   }
 
   @Override

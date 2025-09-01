@@ -65,6 +65,10 @@ public abstract class AbstractMuleNotificationListener<T extends Notification> i
 
   private void replaceMDCEntry(Map<String, Object> contextMap, String key) {
     if (contextMap.containsKey(key)) {
+      String mdcValue = MDC.get(key);
+      if (mdcValue != null && mdcValue.equalsIgnoreCase(contextMap.get(key).toString())) {
+        return;
+      }
       MDC.remove(key);
       MDC.put(key, contextMap.get(key).toString());
     }

@@ -1,7 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.util.memoizers;
 
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 
 /**
@@ -54,6 +53,11 @@ public class BiFunctionMemoizer<K, T, R> extends AbstractMemoizer<K, R> implemen
     this.function = Objects.requireNonNull(function);
   }
 
+  public BiFunctionMemoizer(BiFunction<K, T, R> function, boolean supportNullValues) {
+    super(supportNullValues);
+    this.function = Objects.requireNonNull(function);
+  }
+
   @Override
   public R apply(K k, T t) {
     R cached = cache.computeIfAbsent(k, key -> {
@@ -68,5 +72,9 @@ public class BiFunctionMemoizer<K, T, R> extends AbstractMemoizer<K, R> implemen
 
   public static <K, T, R> BiFunctionMemoizer<K, T, R> memoize(BiFunction<K, T, R> function) {
     return new BiFunctionMemoizer<>(function);
+  }
+
+  public static <K, T, R> BiFunctionMemoizer<K, T, R> memoize(BiFunction<K, T, R> function, boolean allowNullValues) {
+    return new BiFunctionMemoizer<>(function, allowNullValues);
   }
 }

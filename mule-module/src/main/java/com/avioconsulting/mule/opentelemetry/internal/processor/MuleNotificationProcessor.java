@@ -196,7 +196,7 @@ public class MuleNotificationProcessor {
   private void processFlowRef(TraceComponent traceComponent, Event event) {
     if (isFlowRef(traceComponent.getComponentLocation())) {
       ComponentLocation subFlowLocation = resolveFlowName(
-          getOpenTelemetryConnection().getExpressionManager(), traceComponent, event.asBindingContext(),
+          getOpenTelemetryConnection().getExpressionManager(), traceComponent, event::asBindingContext,
           componentRegistryService);
       if (subFlowLocation != null) {
         TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation, traceComponent);
@@ -255,7 +255,7 @@ public class MuleNotificationProcessor {
         if (isFlowRef(notification.getComponent().getLocation())) {
           ComponentLocation subFlowLocation = resolveFlowName(
               openTelemetryConnection.getExpressionManager(), traceComponent,
-              notification.getEvent().asBindingContext(),
+              () -> notification.getEvent().asBindingContext(),
               componentRegistryService);
           if (subFlowLocation != null) {
             TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation,

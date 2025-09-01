@@ -1,10 +1,10 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
-import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.db.DBConnectionConfigParser;
 import com.avioconsulting.mule.opentelemetry.internal.processor.db.DBInfo;
 import com.avioconsulting.mule.opentelemetry.internal.processor.db.JDBCUrlParser;
+import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.BiFunctionMemoizer;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.semconv.incubating.DbIncubatingAttributes;
 import org.mule.runtime.api.component.Component;
@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.DB_DATASOURCE;
 import static io.opentelemetry.semconv.ServerAttributes.SERVER_ADDRESS;
 import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;
 import static io.opentelemetry.semconv.incubating.DbIncubatingAttributes.DB_NAMESPACE;
@@ -82,13 +83,35 @@ public class DBProcessorComponent extends AbstractProcessorComponent {
     return startTraceComponent;
   }
 
+  private final BiFunctionMemoizer<String, ComponentWrapper, DBInfo> dbInfoBiFunctionMemoizer = BiFunctionMemoizer
+      .memoize((configName, cw) -> getDbInfo(cw));
+
   @Override
-  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
+  protected <A> void addAttributes(Component component, TypedValue<A> attributes, Map<String, String> collector) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
+
+    DBInfo dbInfo = dbInfoBiFunctionMemoizer.apply(componentWrapper.getConfigRef(), componentWrapper);
+
+    collector.put(DB_SYSTEM.getKey(), dbInfo.getSystem());
+    if (dbInfo.getDatasourceRef() != null) {
+      collector.put(DB_DATASOURCE.getKey(), dbInfo.getDatasourceRef());
+    }
+    if (dbInfo.getNamespace() != null) {
+      collector.put(DB_NAMESPACE.getKey(), dbInfo.getNamespace());
+    }
+    if (dbInfo.getHost() != null) {
+      collector.put(SERVER_ADDRESS.getKey(), dbInfo.getHost());
+    }
+    if (dbInfo.getPort() != null) {
+      collector.put(SERVER_PORT.getKey(), dbInfo.getPort());
+    }
+    collector.put(DB_QUERY_TEXT.getKey(), componentWrapper.getParameter("sql"));
+    collector.put(DB_OPERATION_NAME.getKey(), component.getIdentifier().getName());
+    collector.put("inputParameters", componentWrapper.getParameter("inputParameters"));
+  }
+
+  private DBInfo getDbInfo(ComponentWrapper componentWrapper) {
     Map<String, String> connectionParams = componentWrapper.getConfigConnectionParameters();
-
-    Map<String, String> tags = new HashMap<>();
-
     String connectionComponentName = connectionParams.get(ComponentWrapper.COMPONENT_NAME_KEY);
     String connectionName = "other_sql";
     DBInfo dbInfo = new DBInfo("other_sql", null, null, null, null, null, "", null);
@@ -98,9 +121,12 @@ public class DBProcessorComponent extends AbstractProcessorComponent {
         String jdbcUrl = connectionParams.get("url");
         dbInfo = JDBCUrlParser.parse(jdbcUrl);
       } else if ("data-source".equalsIgnoreCase(connectionName)) {
-        addTagIfPresent(connectionParams, "dataSourceRef", tags, SemanticAttributes.DB_DATASOURCE.getKey());
+        String dataSourceRef = connectionParams.get("dataSourceRef");
         dbInfo = new DBInfo("other_sql", null, null, null, null, null,
-            tags.get(SemanticAttributes.DB_DATASOURCE.getKey()), null);
+            dataSourceRef, null);
+        if (dataSourceRef != null) {
+          dbInfo.setDatasourceRef(connectionParams.get("dataSourceRef"));
+        }
       } else {
         if (connectionName.contains("-")) {
           connectionName = connectionName.replace("-", "");
@@ -108,22 +134,6 @@ public class DBProcessorComponent extends AbstractProcessorComponent {
         dbInfo = DBConnectionConfigParser.getDBInfo(connectionName, connectionParams);
       }
     }
-
-    tags.put(DB_SYSTEM.getKey(), dbInfo.getSystem());
-
-    if (dbInfo.getNamespace() != null) {
-      tags.put(DB_NAMESPACE.getKey(), dbInfo.getNamespace());
-    }
-    if (dbInfo.getHost() != null) {
-      tags.put(SERVER_ADDRESS.getKey(), dbInfo.getHost());
-    }
-    if (dbInfo.getPort() != null) {
-      tags.put(SERVER_PORT.getKey(), dbInfo.getPort());
-    }
-    tags.put(DB_QUERY_TEXT.getKey(), componentWrapper.getParameter("sql"));
-    tags.put(DB_OPERATION_NAME.getKey(), component.getIdentifier().getName());
-    tags.put("inputParameters", componentWrapper.getParameter("inputParameters"));
-    return tags;
+    return dbInfo;
   }
-
 }

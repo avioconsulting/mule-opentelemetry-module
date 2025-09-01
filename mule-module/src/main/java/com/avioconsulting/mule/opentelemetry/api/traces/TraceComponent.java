@@ -15,7 +15,7 @@ import static com.avioconsulting.mule.opentelemetry.internal.util.StringUtil.UND
 
 public class TraceComponent implements ComponentEventContext {
   private Map<String, String> tags;
-  private final String name;
+  private String name;
   private String transactionId;
   private String spanName;
   private String location;
@@ -63,6 +63,11 @@ public class TraceComponent implements ComponentEventContext {
 
   public Map<String, String> getTags() {
     return tags;
+  }
+
+  public TraceComponent setName(String name) {
+    this.name = name;
+    return this;
   }
 
   public String getName() {

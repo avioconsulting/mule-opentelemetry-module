@@ -13,6 +13,7 @@ import org.mule.runtime.api.el.BindingContext;
 import org.mule.runtime.core.api.el.ExpressionManager;
 
 import java.util.*;
+import java.util.function.Supplier;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.copyBatchTags;
@@ -60,7 +61,7 @@ public class ComponentsUtil {
 
   /**
    * Gets the parent container for router's route.
-   * 
+   *
    * <br/>
    * <br/>
    *
@@ -74,31 +75,43 @@ public class ComponentsUtil {
    * <li>get-greeting-2/processors/0 - router component as Scatter-Gather i.e
    * Parent container returned by this method</li>
    * </ul>
-   * 
+   *
    * @param traceComponent
    *            {@link TraceComponent}
    * @return String
    */
   public static String getRouteContainerLocation(TraceComponent traceComponent) {
     String parentLocation = null;
-    if (traceComponent.getComponentLocation() != null) {
-      List<LocationPart> parts = traceComponent.getComponentLocation().getParts();
-      if (parts.size() > 2) {
-        int routeIndex = parts.size() - 3;
-        LocationPart parentPart = parts.get(routeIndex);
-        parentLocation = parentPart
-            .getPartIdentifier()
-            .filter(ComponentsUtil::isRoute)
-            .map(tci -> {
-              StringBuffer sb = new StringBuffer(parts.get(0).getPartPath());
-              for (int i = 1; i <= routeIndex; i++) {
-                sb.append("/")
-                    .append(parts.get(i).getPartPath());
-              }
-              return sb.toString();
-            }).orElse(null);
-      }
+
+    ComponentLocation location = traceComponent.getComponentLocation();
+
+    if (location == null) {
+      return null;
     }
+
+    List<LocationPart> parts = location.getParts();
+    int size = parts.size();
+
+    if (size <= 2) {
+      return null;
+    }
+
+    int routeIndex = size - 3;
+    LocationPart parentPart = parts.get(routeIndex);
+    Optional<TypedComponentIdentifier> identifier = parentPart.getPartIdentifier();
+    if (!identifier.filter(ComponentsUtil::isRoute).isPresent()) {
+      return null;
+    }
+
+    parentLocation = identifier.map(tci -> {
+      StringBuilder sb = new StringBuilder(parts.get(0).getPartPath());
+      for (int i = 1; i <= routeIndex; i++) {
+        sb.append("/")
+            .append(parts.get(i).getPartPath());
+      }
+      return sb.toString();
+    }).orElse(null);
+
     return parentLocation;
   }
 
@@ -207,13 +220,13 @@ public class ComponentsUtil {
    * @return ComponentLocation of resolved target flow
    */
   public static ComponentLocation resolveFlowName(ExpressionManager expressionManager,
-      TraceComponent traceComponent, BindingContext context,
+      TraceComponent traceComponent, Supplier<BindingContext> context,
       ComponentRegistryService componentRegistryService) {
     String targetFlowName = traceComponent.getTags().get(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey());
     if (expressionManager
         .isExpression(targetFlowName)) {
       targetFlowName = expressionManager
-          .evaluate(targetFlowName, context).getValue().toString();
+          .evaluate(targetFlowName, context.get()).getValue().toString();
       traceComponent.getTags().put(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(), targetFlowName);
     }
     ComponentLocation componentLocation = componentRegistryService.findComponentLocation(targetFlowName);

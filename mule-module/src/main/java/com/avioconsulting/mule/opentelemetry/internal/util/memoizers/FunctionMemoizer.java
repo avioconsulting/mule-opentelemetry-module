@@ -32,6 +32,7 @@ public class FunctionMemoizer<T, R> extends AbstractMemoizer<T, R> implements Fu
 
   @Override
   public R apply(T input) {
+    Objects.requireNonNull(input, "Memoizer Input cannot be null");
     R cached = cache.computeIfAbsent(input, key -> {
       R computed = function.apply(key);
       if (computed == null && supportNullValues) {

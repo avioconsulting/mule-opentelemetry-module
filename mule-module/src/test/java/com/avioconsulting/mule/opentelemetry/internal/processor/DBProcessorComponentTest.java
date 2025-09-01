@@ -61,7 +61,8 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
     dbProcessorComponent
         .withComponentRegistryService(componentRegistryService);
-    Map<String, String> attributes = dbProcessorComponent.getAttributes(component, null);
+    Map<String, String> attributes = new HashMap<>();
+    dbProcessorComponent.addAttributes(component, null, attributes);
 
     assertThat(attributes)
         .containsEntry("db.system", expectedDbSysName)
@@ -94,7 +95,8 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
     dbProcessorComponent
         .withComponentRegistryService(componentRegistryService);
-    Map<String, String> attributes = dbProcessorComponent.getAttributes(component, null);
+    Map<String, String> attributes = new HashMap<>();
+    dbProcessorComponent.addAttributes(component, null, attributes);
 
     assertThat(attributes)
         .containsEntry("db.system", "other_sql")

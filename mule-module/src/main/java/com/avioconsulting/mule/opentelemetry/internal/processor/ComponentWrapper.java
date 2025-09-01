@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
+import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.Location;
 import org.slf4j.Logger;
@@ -10,6 +11,9 @@ import javax.xml.namespace.QName;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
+import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF;
 
 public class ComponentWrapper {
 
@@ -22,6 +26,7 @@ public class ComponentWrapper {
   private final ComponentRegistryService componentRegistryService;
   private String defaultSpanName;
   private static final Logger LOGGER = LoggerFactory.getLogger(ComponentWrapper.class);
+  private final Map<String, String> staticParameters;
 
   public ComponentWrapper(Component component, ComponentRegistryService componentRegistryService) {
     this.component = component;
@@ -33,6 +38,31 @@ public class ComponentWrapper {
     configParameters = Collections.unmodifiableMap(initConfigMap());
     connectionParameters = Collections.unmodifiableMap(initConnectionParameters());
     setDefaultSpanName(component);
+    staticParameters = setStaticParameters();
+  }
+
+  private Map<String, String> setStaticParameters() {
+    Map<String, String> staticParameters = new HashMap<>();
+    staticParameters.put(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
+        component.getIdentifier().getNamespace());
+    staticParameters.put(MULE_APP_PROCESSOR_NAME.getKey(), component.getIdentifier().getName());
+    if (this.getDocName() != null)
+      staticParameters.put(MULE_APP_PROCESSOR_DOC_NAME.getKey(), this.getDocName());
+    if (this.getConfigRef() != null) {
+      staticParameters.put(MULE_APP_PROCESSOR_CONFIG_REF.getKey(), this.getConfigRef());
+      staticParameters.putAll(componentRegistryService.getGlobalConfigOtelSystemProperties(this.getConfigRef()));
+    }
+    return Collections.unmodifiableMap(staticParameters);
+  }
+
+  /**
+   * Retrieves the static parameters associated with the component.
+   *
+   * @return an unmodifiable {@link Map} of static parameters where the keys and
+   *         values are both {@link String}.
+   */
+  public Map<String, String> staticParametersAsReadOnlyMap() {
+    return staticParameters;
   }
 
   private void setDefaultSpanName(Component component) {

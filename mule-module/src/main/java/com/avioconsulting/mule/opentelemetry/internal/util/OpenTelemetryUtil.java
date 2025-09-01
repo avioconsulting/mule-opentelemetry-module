@@ -17,10 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.OTEL_BATCH_PARENT_CONTEXT_ID;
@@ -41,23 +38,26 @@ public class OpenTelemetryUtil {
    * @param configName
    *            {@link String} name of the component's global configuration
    *            element
-   * @param tags
-   *            Modifiable {@link Map} to populate any
    * @param sourceMap
    *            {@link Map} contains all properties to search in
-   *
+   * @return Map of a key-value pair resolved from given source map
    */
-  public static void addGlobalConfigSystemAttributes(String configName, Map<String, String> tags,
+  public static Map<String, String> getGlobalConfigSystemAttributes(String configName,
       Map<String, String> sourceMap) {
-    if (configName == null || configName.trim().isEmpty())
-      return;
-    Objects.requireNonNull(tags, "Tags map cannot be null");
+    if (configName == null || configName.trim().isEmpty()
+        || sourceMap == null || sourceMap.isEmpty()) {
+      return Collections.emptyMap();
+    }
     String configRef = configName.toLowerCase();
     String replaceVal = configRef + ".otel.";
-    sourceMap.entrySet().stream().filter(e -> e.getKey().startsWith(configRef)).forEach(entry -> {
-      String propKey = entry.getKey().substring(replaceVal.length());
-      tags.put(propKey, entry.getValue());
-    });
+    Map<String, String> newTags = new HashMap<>();
+    for (Map.Entry<String, String> e : sourceMap.entrySet()) {
+      if (e.getKey().startsWith(configRef)) {
+        String propKey = e.getKey().substring(replaceVal.length());
+        newTags.put(propKey, e.getValue());
+      }
+    }
+    return newTags;
   }
 
   /**

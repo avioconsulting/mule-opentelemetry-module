@@ -11,6 +11,7 @@ public class DBInfo {
   private final String serviceName;
   private final String namespace;
   private final Map<String, String> parameters;
+  private String datasourceRef;
 
   public DBInfo(String system, String host, String port, String database,
       String instance, String serviceName, String namespace,
@@ -57,4 +58,12 @@ public class DBInfo {
     return parameters;
   }
 
+  public String getDatasourceRef() {
+    return datasourceRef;
+  }
+
+  public DBInfo setDatasourceRef(String datasourceRef) {
+    this.datasourceRef = datasourceRef;
+    return this;
+  }
 }

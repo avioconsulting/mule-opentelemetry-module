@@ -3,18 +3,15 @@ package com.avioconsulting.mule.opentelemetry.internal.util;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-import static com.avioconsulting.mule.opentelemetry.internal.util.StringUtil.UNDERSCORE;
-
 public class PropertiesUtil {
   public static final String MULE_OTEL_USE_APIKIT_SPAN_NAMES = "mule.otel.use.apikit.span.names";
   public static final String MULE_OTEL_ENABLE_DYNAMIC_CONTEXT_DETECTION = "mule.otel.enable.dynamic.context.detection";
   private static boolean enableDynamicContextDetection;
+
   /**
    * Should APIKit Flow names be used to name http root spans? Default true.
    */
   private static boolean useAPIKitSpanNames = true;
-  private static final Pattern REGEX_DOT = Pattern.compile("\\.");
-  private static final Pattern REGEX_DASH = Pattern.compile("-");
 
   private PropertiesUtil() {
   }

@@ -30,7 +30,6 @@ import static io.opentelemetry.semconv.HttpAttributes.*;
 import static io.opentelemetry.semconv.ServerAttributes.SERVER_PORT;
 import static io.opentelemetry.semconv.UrlAttributes.*;
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 
 public class HttpProcessorComponent extends AbstractProcessorComponent {
 
@@ -130,42 +129,34 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
 
   @Override
   public TraceComponent getStartTraceComponent(Component component, Event event) {
-
     TraceComponent traceComponent = super.getStartTraceComponent(component, event);
+    addAttributes(component,
+        event.getMessage().getAttributes(), traceComponent.getTags());
 
-    Map<String, String> requesterTags = getAttributes(component,
-        event.getMessage().getAttributes());
-    requesterTags.putAll(traceComponent.getTags());
-
-    return TraceComponent.of(component.getLocation().getRootContainerName(), component.getLocation())
-        .withTags(requesterTags)
-        .withSpanName(requesterTags.get(HTTP_ROUTE.getKey()))
-        .withTransactionId(traceComponent.getTransactionId())
-        .withSpanKind(getSpanKind())
-        .withEventContextId(traceComponent.getEventContextId());
+    return traceComponent.setName(component.getLocation().getRootContainerName())
+        .withLocation(component.getLocation().getLocation())
+        .withSpanName(traceComponent.getTags().get(HTTP_ROUTE.getKey()));
   }
 
   @Override
-  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
+  protected <A> void addAttributes(Component component, TypedValue<A> attributes,
+      final Map<String, String> collector) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
-    Map<String, String> tags = new HashMap<>();
     if (isRequester(component.getIdentifier())) {
-      tags.putAll(getRequesterTags(componentWrapper));
+      getRequesterTags(componentWrapper, collector);
     } else {
       HttpRequestAttributes attr = (HttpRequestAttributes) attributes.getValue();
-      tags.putAll(attributesToTags(attr));
+      attributesToTags(attr, collector);
     }
-    return tags;
   }
 
-  private Map<String, String> getRequesterTags(ComponentWrapper componentWrapper) {
-    Map<String, String> tags = new HashMap<>();
+  private void getRequesterTags(ComponentWrapper componentWrapper, final Map<String, String> collector) {
     String path = componentWrapper.getParameters().get("path");
     Map<String, String> connectionParameters = componentWrapper.getConfigConnectionParameters();
     if (!connectionParameters.isEmpty()) {
-      tags.put(URL_SCHEME.getKey(), connectionParameters.getOrDefault("protocol", "").toLowerCase());
-      tags.put(ServerAttributes.SERVER_ADDRESS.getKey(), connectionParameters.getOrDefault("host", ""));
-      tags.put(SERVER_PORT.getKey(), connectionParameters.getOrDefault("port", ""));
+      collector.put(URL_SCHEME.getKey(), connectionParameters.getOrDefault("protocol", "").toLowerCase());
+      collector.put(ServerAttributes.SERVER_ADDRESS.getKey(), connectionParameters.getOrDefault("host", ""));
+      collector.put(SERVER_PORT.getKey(), connectionParameters.getOrDefault("port", ""));
     }
     Map<String, String> configParameters = componentWrapper.getConfigParameters();
     if (!configParameters.isEmpty()) {
@@ -174,20 +165,17 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         path = configParameters.get("basePath").concat(path).intern();
       }
     }
-    tags.put(HTTP_ROUTE.getKey(), path);
-    tags.put(HttpAttributes.HTTP_REQUEST_METHOD.getKey(), componentWrapper.getParameters().get("method"));
-    return tags;
+    collector.put(HTTP_ROUTE.getKey(), path);
+    collector.put(HttpAttributes.HTTP_REQUEST_METHOD.getKey(), componentWrapper.getParameters().get("method"));
   }
 
   @Override
   public TraceComponent getSourceStartTraceComponent(EnrichedServerNotification notification,
       TraceContextHandler traceContextHandler) {
-    if (!isListenerFlowEvent(notification)) {
-      return null;
-    }
     TypedValue<HttpRequestAttributes> attributesTypedValue = notification.getEvent().getMessage().getAttributes();
     HttpRequestAttributes attributes = attributesTypedValue.getValue();
-    Map<String, String> tags = attributesToTags(attributes);
+    Map<String, String> tags = new HashMap<>();
+    attributesToTags(attributes, tags);
     return TraceComponent.of(notification.getResourceIdentifier(), notification.getComponent().getLocation())
         .withTags(tags)
         .withTransactionId(getTransactionId(notification))
@@ -216,7 +204,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
           statusCode = statusCode.substring(1, statusCode.length() - 1);
         }
         TraceComponent traceComponent = getTraceComponentBuilderFor(notification);
-        traceComponent.withTags(singletonMap(HTTP_RESPONSE_STATUS_CODE.getKey(), statusCode));
+        traceComponent.getTags().put(HTTP_RESPONSE_STATUS_CODE.getKey(), statusCode);
         traceComponent.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
         return traceComponent;
       }
@@ -231,21 +219,21 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     return null;
   }
 
-  private Map<String, String> attributesToTags(HttpRequestAttributes attributes) {
-    Map<String, String> tags = new HashMap<>();
+  private Map<String, String> attributesToTags(HttpRequestAttributes attributes,
+      final Map<String, String> collector) {
     // TODO: Server span should have client.address
     // tags.put(SERVER_ADDRESS.getKey(), attributes.getHeaders().get("host"));
-    tags.put(UserAgentAttributes.USER_AGENT_ORIGINAL.getKey(), attributes.getHeaders().get("user-agent"));
-    tags.put(HTTP_REQUEST_METHOD.getKey(), attributes.getMethod());
-    tags.put(URL_SCHEME.getKey(), attributes.getScheme());
-    tags.put(HTTP_ROUTE.getKey(), attributes.getListenerPath());
-    tags.put(URL_PATH.getKey(), attributes.getRequestPath());
+    collector.put(UserAgentAttributes.USER_AGENT_ORIGINAL.getKey(), attributes.getHeaders().get("user-agent"));
+    collector.put(HTTP_REQUEST_METHOD.getKey(), attributes.getMethod());
+    collector.put(URL_SCHEME.getKey(), attributes.getScheme());
+    collector.put(HTTP_ROUTE.getKey(), attributes.getListenerPath());
+    collector.put(URL_PATH.getKey(), attributes.getRequestPath());
     if (attributes.getQueryString() != null) {
-      tags.put(URL_QUERY.getKey(), attributes.getQueryString());
+      collector.put(URL_QUERY.getKey(), attributes.getQueryString());
     }
     // TODO: Support additional request headers to be added in
     // http.request.header.<key>=<header-value> attribute.
-    return tags;
+    return collector;
   }
 
 }
