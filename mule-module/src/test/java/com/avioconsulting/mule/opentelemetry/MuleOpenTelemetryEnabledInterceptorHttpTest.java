@@ -48,7 +48,7 @@ public class MuleOpenTelemetryEnabledInterceptorHttpTest extends AbstractMuleArt
         .doesNotContainEntry(TransactionStore.TRACE_TRANSACTION_ID, "test-correlation-id")
         .describedAs("transaction id is event context id, not correlation id")
         .containsKey("traceparent")
-        .containsKey(TransactionStore.SPAN_ID);
+        .containsKey(TransactionStore.spanId);
   }
 
   @Test
@@ -64,7 +64,7 @@ public class MuleOpenTelemetryEnabledInterceptorHttpTest extends AbstractMuleArt
         .doesNotContainEntry(TransactionStore.TRACE_TRANSACTION_ID, "test-correlation-id")
         .describedAs("transaction id is event context id, not correlation id")
         .containsKey("traceparent")
-        .containsKey(TransactionStore.SPAN_ID);
+        .containsKey(TransactionStore.spanId);
   }
 
   @Test

@@ -5,11 +5,13 @@ import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
+import com.avioconsulting.mule.opentelemetry.internal.util.MDCUtil;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.interception.InterceptionEvent;
 import org.mule.runtime.api.interception.ProcessorInterceptor;
 import org.mule.runtime.api.interception.ProcessorParameterValue;
+import org.mule.runtime.api.metadata.TypedValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +73,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
         if (processorComponent == null) {
           // when spanAllProcessor is false, and it's the first generic processor
           String transactionId = getEventTransactionId(event);
-          event.addVariable(TRACE_CONTEXT_MAP_KEY,
+          addTraceContextMap(event,
               muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId));
         } else {
           Component component = componentRegistryService.findComponentByLocation(location);
@@ -104,7 +106,7 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
           if (isFlowRef(location)) {
             processFlowRef(location, event, traceComponent, transactionId);
           } else {
-            event.addVariable(TRACE_CONTEXT_MAP_KEY,
+            addTraceContextMap(event,
                 muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId,
                     traceComponent.contextScopedLocation()));
           }
@@ -124,6 +126,12 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
     }
   }
 
+  private void addTraceContextMap(InterceptionEvent event, Map<String, Object> contextMap) {
+    event.addVariable(TRACE_CONTEXT_MAP_KEY,
+        contextMap);
+    MDCUtil.replaceMDCOtelEntries(contextMap);
+  }
+
   private void processFlowRef(ComponentLocation location, InterceptionEvent event, TraceComponent traceComponent,
       String transactionId) {
     ComponentLocation subFlowLocation = resolveFlowName(
@@ -133,15 +141,13 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
       TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation, traceComponent);
       muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(subflowTrace,
           location.getLocation());
-      event.addVariable(TRACE_CONTEXT_MAP_KEY,
-          muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(
-              transactionId,
-              subflowTrace.contextScopedLocation()));
+      addTraceContextMap(event, muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(
+          transactionId,
+          subflowTrace.contextScopedLocation()));
     } else {
-      event.addVariable(TRACE_CONTEXT_MAP_KEY,
-          muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(
-              transactionId,
-              traceComponent.contextScopedLocation()));
+      addTraceContextMap(event, muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(
+          transactionId,
+          traceComponent.contextScopedLocation()));
     }
   }
 
@@ -163,7 +169,12 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
 
   private void switchTraceContext(InterceptionEvent event, String removalContextKey, String newContextKey) {
     if (event.getVariables().containsKey(removalContextKey)) {
-      event.addVariable(newContextKey, event.getVariables().get(removalContextKey));
+      TypedValue<?> prevContext = event.getVariables().get(removalContextKey);
+      if (removalContextKey.equalsIgnoreCase(TRACE_PREV_CONTEXT_MAP_KEY)) {
+        Map<String, Object> contextMap = (Map<String, Object>) prevContext.getValue();
+        MDCUtil.replaceMDCOtelEntries(contextMap);
+      }
+      event.addVariable(newContextKey, prevContext);
       event.removeVariable(removalContextKey);
     }
   }

@@ -1,6 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.api.traces;
 
-import com.avioconsulting.mule.opentelemetry.api.util.EncodingUtil;
+import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.internal.store.Transaction;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanId;
@@ -29,44 +29,14 @@ public class TransactionContext {
    */
   private String traceId = TraceId.getInvalid();
 
-  /**
-   * This method returns the String formatted Long value of span id. See
-   * {@link TransactionContext#getSpanId()}.
-   * Example: Span Id - "53f9aa133a283c1a"
-   * Long Low Id - "6051054573905787930"
-   */
-  private long spanIdLong = 0L;
-
-  /**
-   * This method returns the String formatted Long value of the Low part of the
-   * trace id. See {@link TransactionContext#getTraceId()}.
-   * Example: Trace Id - fbc14552c62fbabc6a4bc6817cd983ce
-   * High-part - "fbc14552c62fbabc"
-   * Low-part - "6a4bc6817cd983ce"
-   * Long Low Id - "7659433850721371086"
-   */
-  private long traceIdLongLowPart = 0L;
-
   public static TransactionContext of(Span span, Transaction transaction) {
     TransactionContext transactionContext = new TransactionContext();
     transactionContext.context = span.storeInContext(Context.current());
     transactionContext.spanId = span.getSpanContext().getSpanId();
     transactionContext.traceId = span.getSpanContext().getTraceId();
-    if (SpanId.isValid(transactionContext.getSpanId())) {
-      transactionContext.spanIdLong = EncodingUtil.spanIdHexToLong(transactionContext.getSpanId());
-    }
-    if (TraceId.isValid(transactionContext.getTraceId())) {
-      transactionContext.traceIdLongLowPart = EncodingUtil.traceIdHexToLowLong(transactionContext.getTraceId());
-    }
     transactionContext.traceContextMap.put(TRACE_TRANSACTION_ID, transaction.getTransactionId());
-    transactionContext.traceContextMap.put(TRACE_ID, transactionContext.getTraceId());
-    // TODO: Can't migrate the data type String to Long due to external dependency
-    // Custom logger uses this context for auto-injection and it expects it to be
-    // String
-    transactionContext.traceContextMap.put(TRACE_ID_LONG_LOW_PART,
-        Long.toString(transactionContext.getTraceIdLongLowPart()));
-    transactionContext.traceContextMap.put(SPAN_ID_LONG, Long.toString(transactionContext.getSpanIdLong()));
-    transactionContext.traceContextMap.put(SPAN_ID, transactionContext.getSpanId());
+    transactionContext.traceContextMap.put(TransactionStore.traceId, transactionContext.getTraceId());
+    transactionContext.traceContextMap.put(TransactionStore.spanId, transactionContext.getSpanId());
     return transactionContext;
   }
 
@@ -90,14 +60,6 @@ public class TransactionContext {
     return traceId;
   }
 
-  public long getSpanIdLong() {
-    return spanIdLong;
-  }
-
-  public long getTraceIdLongLowPart() {
-    return traceIdLongLowPart;
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o)
@@ -106,13 +68,11 @@ public class TransactionContext {
       return false;
     TransactionContext that = (TransactionContext) o;
     return Objects.equals(getContext(), that.getContext()) && Objects.equals(getSpanId(), that.getSpanId())
-        && Objects.equals(getTraceId(), that.getTraceId())
-        && Objects.equals(getSpanIdLong(), that.getSpanIdLong())
-        && Objects.equals(getTraceIdLongLowPart(), that.getTraceIdLongLowPart());
+        && Objects.equals(getTraceId(), that.getTraceId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getContext(), getSpanId(), getTraceId(), getSpanIdLong(), getTraceIdLongLowPart());
+    return Objects.hash(getContext(), getSpanId(), getTraceId());
   }
 }

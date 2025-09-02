@@ -110,7 +110,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
 
     TestInterceptionEvent interceptionEvent = new TestInterceptionEvent("random-id");
-    TypedValue<String> preContext = TypedValue.of("prev-context-map");
+    TypedValue<Map<String, String>> preContext = TypedValue.of(Collections.emptyMap());
     interceptionEvent.getVariables().put(TRACE_CONTEXT_MAP_KEY, preContext);
 
     interceptor.before(location, Collections.emptyMap(), interceptionEvent);
@@ -164,7 +164,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
 
     TestInterceptionEvent interceptionEvent = new TestInterceptionEvent("random-id");
-    TypedValue<String> preContext = TypedValue.of("prev-context-map");
+    TypedValue<Map<String, String>> preContext = TypedValue.of(Collections.emptyMap());
     interceptionEvent.getVariables().put(TRACE_CONTEXT_MAP_KEY, preContext);
 
     interceptor.before(location, Collections.emptyMap(), interceptionEvent);
@@ -284,7 +284,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
 
     TestInterceptionEvent interceptionEvent = new TestInterceptionEvent("random-id");
-    TypedValue<String> preContext = TypedValue.of("prev-context-map");
+    TypedValue<Map<String, String>> preContext = TypedValue.of(Collections.emptyMap());
     interceptionEvent.getVariables().put(TRACE_CONTEXT_MAP_KEY, preContext);
 
     interceptor.before(location, Collections.emptyMap(), interceptionEvent);

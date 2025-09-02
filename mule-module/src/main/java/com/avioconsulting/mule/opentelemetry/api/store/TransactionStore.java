@@ -18,10 +18,8 @@ public interface TransactionStore {
   String TRACE_TRANSACTION_ID = "TRACE_TRANSACTION_ID";
   String TRACE_CONTEXT_MAP_KEY = "OTEL_TRACE_CONTEXT";
   String TRACE_PREV_CONTEXT_MAP_KEY = "OTEL_PREV_TRACE_CONTEXT";
-  String TRACE_ID = "traceId";
-  String SPAN_ID = "spanId";
-  String TRACE_ID_LONG_LOW_PART = "traceIdLongLowPart";
-  String SPAN_ID_LONG = "spanIdLong";
+  String traceId = "traceId";
+  String spanId = "spanId";
   String OTEL_FLOW_CONTEXT_ID = "_OTEL_FLOW_CONTEXT_ID";
   String OTEL_FLOW_PREV_CONTEXT_ID = "_OTEL_FLOW_PREV_CONTEXT_ID";
   String OTEL_BATCH_PARENT_CONTEXT_ID = "_OTEL_BATCH_PARENT_CONTEXT_ID";

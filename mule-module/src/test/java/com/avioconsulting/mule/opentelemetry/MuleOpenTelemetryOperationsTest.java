@@ -68,12 +68,7 @@ public class MuleOpenTelemetryOperationsTest extends AbstractMuleArtifactTraceTe
     assertThat(otel_trace_context_from_interceptor.getValue())
         .containsExactlyEntriesOf(otel_context_from_operation.getValue());
     assertThat(otel_trace_context_from_interceptor.getValue())
-        .containsKeys("traceId", "spanId", "spanIdLong", "traceIdLongLowPart", "TRACE_TRANSACTION_ID");
-    assertThat(otel_trace_context_from_interceptor.getValue())
-        .hasEntrySatisfying("spanIdLong", (value) -> assertThat(value).isNotEqualTo(0));
-    assertThat(otel_trace_context_from_interceptor.getValue())
-        .hasEntrySatisfying("traceIdLongLowPart",
-            (value) -> assertThat(value).isNotEqualTo(0));
+        .containsKeys("traceId", "spanId", "TRACE_TRANSACTION_ID");
   }
 
   @Test
@@ -90,12 +85,7 @@ public class MuleOpenTelemetryOperationsTest extends AbstractMuleArtifactTraceTe
     assertThat(otel_trace_context_from_interceptor.getValue())
         .containsExactlyEntriesOf(otel_context_from_operation.getValue());
     assertThat(otel_trace_context_from_interceptor.getValue())
-        .containsKeys("traceId", "spanId", "spanIdLong", "traceIdLongLowPart", "TRACE_TRANSACTION_ID");
-    assertThat(otel_trace_context_from_interceptor.getValue())
-        .hasEntrySatisfying("spanIdLong", (value) -> assertThat(value).isNotEqualTo(0));
-    assertThat(otel_trace_context_from_interceptor.getValue())
-        .hasEntrySatisfying("traceIdLongLowPart",
-            (value) -> assertThat(value).isNotEqualTo(0));
+        .containsKeys("traceId", "spanId", "TRACE_TRANSACTION_ID");
   }
 
 }

@@ -28,8 +28,8 @@ public class TransactionContextTest {
   public void current() {
     TransactionContext transactionContext = TransactionContext.current();
     assertThat(transactionContext)
-        .extracting("spanId", "spanIdLong", "traceId", "traceIdLongLowPart")
-        .containsOnly("0000000000000000", 0L, "00000000000000000000000000000000", 0L);
+        .extracting("spanId", "traceId")
+        .containsOnly("0000000000000000", "00000000000000000000000000000000");
     assertThat(transactionContext.getContext())
         .as("Current Context")
         .isNotNull();
@@ -53,9 +53,8 @@ public class TransactionContextTest {
 
     TransactionContext transactionContext = TransactionContext.of(span, transaction);
     assertThat(transactionContext)
-        .extracting("spanId", "spanIdLong", "traceId", "traceIdLongLowPart")
-        .containsOnly("53f9aa133a283c1a", 6051054573905787930L, "fbc14552c62fbabc6a4bc6817cd983ce",
-            7659433850721371086L);
+        .extracting("spanId", "traceId")
+        .containsOnly("53f9aa133a283c1a", "fbc14552c62fbabc6a4bc6817cd983ce");
     assertThat(transactionContext.getContext())
         .as("Current Context")
         .isNotNull();
@@ -63,9 +62,7 @@ public class TransactionContextTest {
         .isNotNull()
         .containsEntry("TRACE_TRANSACTION_ID", transactionId)
         .containsEntry("traceId", "fbc14552c62fbabc6a4bc6817cd983ce")
-        .containsEntry("spanId", "53f9aa133a283c1a")
-        .containsKey("spanIdLong")
-        .containsKey("traceIdLongLowPart");
+        .containsEntry("spanId", "53f9aa133a283c1a");
   }
 
 }

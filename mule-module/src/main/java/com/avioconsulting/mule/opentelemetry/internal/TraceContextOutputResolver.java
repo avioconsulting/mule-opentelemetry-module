@@ -14,8 +14,6 @@ public class TraceContextOutputResolver implements OutputTypeResolver<String> {
   private static final String TRACE_TRANSACTION_ID = "TRACE_TRANSACTION_ID";
   private static final String TRACE_ID = "traceId";
   private static final String SPAN_ID = "spanId";
-  private static final String TRACE_ID_LONG_LOW = "traceIdLongLowPart";
-  private static final String SPAN_ID_LONG = "spanIdLong";
   private static final String TRACEPARENT = "traceparent";
   private static final String TRACESTATE = "tracestate";
 
@@ -41,8 +39,6 @@ public class TraceContextOutputResolver implements OutputTypeResolver<String> {
     addTransactionIdField(builder, typeBuilder, true);
     addTraceIdHexField(builder, typeBuilder, true);
     addSpanIdHexField(builder, typeBuilder, true);
-    addTraceIdLongField(builder, typeBuilder, true);
-    addSpanIdLongField(builder, typeBuilder, true);
     addTraceparentField(builder, typeBuilder, true);
     addTracestateField(builder, typeBuilder, false);
 
@@ -73,24 +69,6 @@ public class TraceContextOutputResolver implements OutputTypeResolver<String> {
         .value(typeBuilder.stringType()
             .id("span-id-hex"))
         .description("16-character hexadecimal span ID")
-        .required(required);
-  }
-
-  private void addTraceIdLongField(ObjectTypeBuilder builder, BaseTypeBuilder typeBuilder, boolean required) {
-    builder.addField()
-        .key(TRACE_ID_LONG_LOW)
-        .value(typeBuilder.numberType()
-            .id("long-number"))
-        .description("Lower 64 bits of trace ID as long")
-        .required(required);
-  }
-
-  private void addSpanIdLongField(ObjectTypeBuilder builder, BaseTypeBuilder typeBuilder, boolean required) {
-    builder.addField()
-        .key(SPAN_ID_LONG)
-        .value(typeBuilder.numberType()
-            .id("long-number"))
-        .description("Span ID as long value")
         .required(required);
   }
 

@@ -64,13 +64,8 @@ public class MuleOpenTelemetryOperationsWithoutInterceptorTest extends AbstractM
     TypedValue<Map<String, Object>> otel_context_from_operation = (TypedValue<Map<String, Object>>) coreEvent
         .getVariables().get("OTEL_CONTEXT");
     assertThat(otel_context_from_operation.getValue())
-        .containsKeys("traceId", "spanId", "spanIdLong", "traceparent", "traceIdLongLowPart",
+        .containsKeys("traceId", "spanId", "traceparent",
             "TRACE_TRANSACTION_ID");
-    assertThat(otel_context_from_operation.getValue())
-        .hasEntrySatisfying("spanIdLong", (value) -> assertThat(value).isNotEqualTo(0L));
-    assertThat(otel_context_from_operation.getValue())
-        .hasEntrySatisfying("traceIdLongLowPart",
-            (value) -> assertThat(value).isNotEqualTo(0L));
   }
 
 }
