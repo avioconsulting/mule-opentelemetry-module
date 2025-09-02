@@ -198,9 +198,11 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         if (statusCode.charAt(0) == DOUBLE_QUOTE
             && statusCode.charAt(statusCode.length() - 1) == DOUBLE_QUOTE) {
           // When httpStatus is set as JSON string, DW wraps it under additional quotes.
-          LOGGER.warn(
-              "Received HTTP status code as a String '{}', removing the quotes. It is recommended to set the HTTP status to a number.",
-              statusCode);
+          if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn(
+                "Received HTTP status code as a String '{}', removing the quotes. It is recommended to set the HTTP status to a number.",
+                statusCode);
+          }
           statusCode = statusCode.substring(1, statusCode.length() - 1);
         }
         TraceComponent traceComponent = getTraceComponentBuilderFor(notification);
@@ -209,12 +211,16 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         return traceComponent;
       }
     } catch (NumberFormatException nfe) {
-      LOGGER.error(
-          "Failed to parse httpStatus value to a valid status code - {}", nfe.getLocalizedMessage());
+      if (LOGGER.isErrorEnabled()) {
+        LOGGER.error(
+            "Failed to parse httpStatus value to a valid status code - {}", nfe.getLocalizedMessage());
+      }
     } catch (Exception ex) {
-      LOGGER.warn(
-          "Failed to extract httpStatus variable value. Resulted span may not have http status code attribute. - {}",
-          ex.getLocalizedMessage());
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn(
+            "Failed to extract httpStatus variable value. Resulted span may not have http status code attribute. - {}",
+            ex.getLocalizedMessage());
+      }
     }
     return null;
   }

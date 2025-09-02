@@ -77,8 +77,10 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
           Component component = componentRegistryService.findComponentByLocation(location);
 
           if (component == null) {
-            LOGGER.debug("Could not locate a component for {} at {}",
-                location.getComponentIdentifier().getIdentifier(), location.getLocation());
+            if (LOGGER.isDebugEnabled()) {
+              LOGGER.debug("Could not locate a component for {} at {}",
+                  location.getComponentIdentifier().getIdentifier(), location.getLocation());
+            }
             switchTraceContext(event, TRACE_PREV_CONTEXT_MAP_KEY, TRACE_CONTEXT_MAP_KEY);
             return;
           }
@@ -90,8 +92,10 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
             return;
           }
           addBatchTags(traceComponent, event);
-          LOGGER.trace("Creating Span in the interceptor for {} at {}",
-              location.getComponentIdentifier().getIdentifier(), location.getLocation());
+          if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Creating Span in the interceptor for {} at {}",
+                location.getComponentIdentifier().getIdentifier(), location.getLocation());
+          }
           resolveExpressions(traceComponent,
               muleNotificationProcessor.getOpenTelemetryConnection().getExpressionManager(), event);
           muleNotificationProcessor.getOpenTelemetryConnection().addProcessorSpan(traceComponent,
@@ -111,10 +115,12 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
         }
       }
     } catch (Exception ex) {
-      LOGGER.trace(
-          "Failed to intercept processor {} at {}, span may not be captured for this processor. Error - {}",
-          location.getComponentIdentifier().getIdentifier().toString(), location.getLocation(),
-          ex.getLocalizedMessage(), ex);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace(
+            "Failed to intercept processor {} at {}, span may not be captured for this processor. Error - {}",
+            location.getComponentIdentifier().getIdentifier().toString(), location.getLocation(),
+            ex.getLocalizedMessage(), ex);
+      }
     }
   }
 

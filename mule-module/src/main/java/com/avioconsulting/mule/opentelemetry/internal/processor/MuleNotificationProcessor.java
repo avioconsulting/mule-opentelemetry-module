@@ -137,9 +137,11 @@ public class MuleNotificationProcessor {
     }
     if (interceptorProcessorConfig.shouldIntercept(notification.getComponent().getLocation(),
         notification.getEvent())) {
-      logger.trace(
-          "Component {} will be processed by interceptor, skipping notification processing to create span",
-          location);
+      if (logger.isTraceEnabled()) {
+        logger.trace(
+            "Component {} will be processed by interceptor, skipping notification processing to create span",
+            location);
+      }
       return;
     }
     processComponentStartSpan(notification);
@@ -166,10 +168,12 @@ public class MuleNotificationProcessor {
     try {
       ProcessorComponent processorComponent = getProcessorComponent(notification.getComponent().getIdentifier());
       if (processorComponent != null) {
-        logger.trace("Handling '{}:{}' processor start event context id {} correlation id {} ",
-            notification.getResourceIdentifier(), notification.getComponent().getIdentifier(),
-            notification.getEvent().getContext().getId(),
-            notification.getEvent().getCorrelationId());
+        if (logger.isTraceEnabled()) {
+          logger.trace("Handling '{}:{}' processor start event context id {} correlation id {} ",
+              notification.getResourceIdentifier(), notification.getComponent().getIdentifier(),
+              notification.getEvent().getContext().getId(),
+              notification.getEvent().getCorrelationId());
+        }
         TraceComponent traceComponent = processorComponent.getStartTraceComponent(notification)
             .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()))
             .withEventContextId(notification.getEvent().getContext().getId())
@@ -185,11 +189,13 @@ public class MuleNotificationProcessor {
         processFlowRef(traceComponent, notification.getEvent());
       }
     } catch (Exception ex) {
-      logger.trace(
-          "Failed to intercept processor {} at {}, span may not be captured for this processor. Error - {}",
-          notification.getComponent().getIdentifier().toString(),
-          notification.getComponent().getLocation().getLocation(),
-          ex.getLocalizedMessage(), ex);
+      if (logger.isTraceEnabled()) {
+        logger.trace(
+            "Failed to intercept processor {} at {}, span may not be captured for this processor. Error - {}",
+            notification.getComponent().getIdentifier().toString(),
+            notification.getComponent().getLocation().getLocation(),
+            ex.getLocalizedMessage(), ex);
+      }
     }
   }
 
@@ -241,10 +247,12 @@ public class MuleNotificationProcessor {
     try {
       ProcessorComponent processorComponent = getProcessorComponent(notification.getComponent().getIdentifier());
       if (processorComponent != null) {
-        logger.trace("Handling '{}:{}' processor end event context id {} correlation id {} ",
-            notification.getResourceIdentifier(), notification.getComponent().getIdentifier(),
-            notification.getEvent().getContext().getId(),
-            notification.getEvent().getCorrelationId());
+        if (logger.isTraceEnabled()) {
+          logger.trace("Handling '{}:{}' processor end event context id {} correlation id {} ",
+              notification.getResourceIdentifier(), notification.getComponent().getIdentifier(),
+              notification.getEvent().getContext().getId(),
+              notification.getEvent().getCorrelationId());
+        }
         TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification)
             .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()))
             .withEventContextId(notification.getEvent().getContext().getId());
@@ -284,9 +292,11 @@ public class MuleNotificationProcessor {
 
   public void handleFlowStartEvent(PipelineMessageNotification notification) {
     try {
-      logger.trace("Handling '{}' flow start event context id {} correlation id {} ",
-          notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
-          notification.getEvent().getCorrelationId());
+      if (logger.isTraceEnabled()) {
+        logger.trace("Handling '{}' flow start event context id {} correlation id {} ",
+            notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
+            notification.getEvent().getCorrelationId());
+      }
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceStartTraceComponent(notification, openTelemetryConnection)
           .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()))
@@ -320,7 +330,9 @@ public class MuleNotificationProcessor {
     }
     if (flowContextExpressions.containsKey(notification.getResourceIdentifier())) {
       String expression = flowContextExpressions.get(notification.getResourceIdentifier());
-      logger.trace("Getting context for {} with {}", notification.getResourceIdentifier(), expression);
+      if (logger.isTraceEnabled()) {
+        logger.trace("Getting context for {} with {}", notification.getResourceIdentifier(), expression);
+      }
       Context context = getContext(expression, notification);
       traceComponent = traceComponent.withContext(context);
     } else {
@@ -369,9 +381,11 @@ public class MuleNotificationProcessor {
 
   public void handleFlowEndEvent(PipelineMessageNotification notification) {
     try {
-      logger.trace("Handling '{}' flow end event context id {} correlation id {} ",
-          notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
-          notification.getEvent().getCorrelationId());
+      if (logger.isTraceEnabled()) {
+        logger.trace("Handling '{}' flow end event context id {} correlation id {} ",
+            notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
+            notification.getEvent().getCorrelationId());
+      }
       TraceComponent traceComponent = flowProcessorComponent
           .getSourceEndTraceComponent(notification, openTelemetryConnection)
           .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()))
@@ -385,7 +399,9 @@ public class MuleNotificationProcessor {
         TypedValue<String> contextId = (TypedValue<String>) notification.getEvent().getVariables()
             .get(TransactionStore.OTEL_FLOW_CONTEXT_ID);
         if (contextId != null && contextId.getValue() != null) {
-          logger.trace("Attempting to find {} by {}", traceComponent, contextId.getValue());
+          if (logger.isTraceEnabled()) {
+            logger.trace("Attempting to find {} by {}", traceComponent, contextId.getValue());
+          }
           traceComponent = traceComponent.withEventContextId(contextId.getValue());
         }
         transactionMeta = openTelemetryConnection.endTransaction(traceComponent,

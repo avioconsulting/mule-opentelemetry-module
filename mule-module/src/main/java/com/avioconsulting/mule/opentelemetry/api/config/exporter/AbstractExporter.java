@@ -55,12 +55,16 @@ public abstract class AbstractExporter implements OpenTelemetryExporter {
   protected String transformToAbsolutePath(String propertyName, String path) {
     if (path != null && !path.isEmpty()) {
       if (Files.exists(Paths.get(path))) {
-        LOGGER.debug("{} path exists - {}", propertyName, path);
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug("{} path exists - {}", propertyName, path);
+        }
         return path;
       } else {
         String absolutePath = Objects.requireNonNull(this.getClass().getClassLoader().getResource(path),
             path + " not found on the classpath").getPath();
-        LOGGER.info("Transforming {} from {} to absolute path {}", propertyName, path, absolutePath);
+        if (LOGGER.isInfoEnabled()) {
+          LOGGER.info("Transforming {} from {} to absolute path {}", propertyName, path, absolutePath);
+        }
         return absolutePath;
       }
     }

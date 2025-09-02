@@ -32,14 +32,18 @@ public class AsyncMessageNotificationListener extends AbstractMuleNotificationLi
   protected void processNotification(AsyncMessageNotification notification) {
     switch (Integer.parseInt(notification.getAction().getIdentifier())) {
       case AsyncMessageNotification.PROCESS_ASYNC_SCHEDULED:
-        LOGGER.trace("Scheduled {}:{} - {}", notification.getEventName(),
-            notification.getComponent().getIdentifier().getName(),
-            notification.getEvent().getContext().getId());
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace("Scheduled {}:{} - {}", notification.getEventName(),
+              notification.getComponent().getIdentifier().getName(),
+              notification.getEvent().getContext().getId());
+        }
         muleNotificationProcessor.handleAsyncScheduledEvent(notification);
         break;
       case AsyncMessageNotification.PROCESS_ASYNC_COMPLETE:
-        LOGGER.trace("Completed {} - {}", notification.getEventName(),
-            notification.getEvent().getContext().getId());
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace("Completed {} - {}", notification.getEventName(),
+              notification.getEvent().getContext().getId());
+        }
         muleNotificationProcessor.handleProcessorEndEvent(notification);
         break;
     }

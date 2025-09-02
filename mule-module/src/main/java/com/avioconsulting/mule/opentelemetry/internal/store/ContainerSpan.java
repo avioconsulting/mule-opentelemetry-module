@@ -79,10 +79,12 @@ public class ContainerSpan implements Serializable {
    * @return Span
    */
   public SpanMeta addProcessorSpan(String containerName, TraceComponent traceComponent, SpanBuilder spanBuilder) {
-    LOGGER.trace("Adding Span at location {} for container {} trace transaction {} context {}",
-        traceComponent.contextScopedLocation(),
-        this.getRootSpanName(),
-        this.transactionId, this.getSpan().getSpanContext().toString());
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("Adding Span at location {} for container {} trace transaction {} context {}",
+          traceComponent.contextScopedLocation(),
+          this.getRootSpanName(),
+          this.transactionId, this.getSpan().getSpanContext().toString());
+    }
     ProcessorSpan parentSpan = null;
     if (containerName != null) {
       if (getContainerName().equals(containerName)) {
@@ -90,13 +92,17 @@ public class ContainerSpan implements Serializable {
       } else {
         parentSpan = getParentSpan(traceComponent, containerName);
         if (parentSpan == null) {
-          LOGGER.debug("Parent span not found for {}/{}. Child span keys - {}",
-              traceComponent.getEventContextId(), traceComponent.getLocation(),
-              childSpans.keySet());
+          if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Parent span not found for {}/{}. Child span keys - {}",
+                traceComponent.getEventContextId(), traceComponent.getLocation(),
+                childSpans.keySet());
+          }
           parentSpan = rootProcessorSpan;
         }
-        LOGGER.debug("Parent span existence check for {} at {}", traceComponent.getLocation(),
-            parentSpan.getLocation());
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug("Parent span existence check for {} at {}", traceComponent.getLocation(),
+              parentSpan.getLocation());
+        }
         spanBuilder.setParent(parentSpan.getContext());
       }
     }
@@ -105,8 +111,11 @@ public class ContainerSpan implements Serializable {
         traceComponent.getStartTime(), this.containerName, traceComponent.getSiblings())
             .setTags(traceComponent.getTags());
     ps.setParentSpan(parentSpan);
-    LOGGER.trace("Adding span for {}:{} - {}", traceComponent.contextScopedLocation(), traceComponent.getSpanName(),
-        span.getSpanContext().getSpanId());
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("Adding span for {}:{} - {}", traceComponent.contextScopedLocation(),
+          traceComponent.getSpanName(),
+          span.getSpanContext().getSpanId());
+    }
     childSpans.putIfAbsent(traceComponent.contextScopedLocation(), ps);
     return ps;
   }
@@ -120,18 +129,24 @@ public class ContainerSpan implements Serializable {
   public ProcessorSpan endChildContainer(TraceComponent traceComponent, Consumer<Span> endSpan) {
     ProcessorSpan processorSpan = findSpan(traceComponent.contextScopedPath(traceComponent.getName()));
     if (processorSpan == null) {
-      LOGGER.trace("Attempting to find in parent scopes for {} in list {}", traceComponent,
-          childSpans);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Attempting to find in parent scopes for {} in list {}", traceComponent,
+            childSpans);
+      }
       processorSpan = getParentSpan(traceComponent, traceComponent.getName());
     }
     if (processorSpan != null) {
       endSpan.accept(processorSpan.getSpan());
       processorSpan.setEndTime(traceComponent.getEndTime());
       childContainerCounter.decrementAndGet();
-      LOGGER.trace("Ended a span of a container {} invoked with flow-ref for transaction {} ",
-          traceComponent.getName(), traceComponent.getTransactionId());
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Ended a span of a container {} invoked with flow-ref for transaction {} ",
+            traceComponent.getName(), traceComponent.getTransactionId());
+      }
     } else {
-      LOGGER.trace("No Processor span found for {} ", traceComponent);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("No Processor span found for {} ", traceComponent);
+      }
     }
     return processorSpan;
   }
@@ -146,17 +161,21 @@ public class ContainerSpan implements Serializable {
   }
 
   public SpanMeta endProcessorSpan(TraceComponent traceComponent, Consumer<Span> spanUpdater, Instant endTime) {
-    LOGGER.trace("Ending Span at location {} for container {} trace transaction {} context {}",
-        traceComponent.contextScopedLocation(),
-        this.getRootSpanName(),
-        this.transactionId, this.getSpan().getSpanContext().toString());
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("Ending Span at location {} for container {} trace transaction {} context {}",
+          traceComponent.contextScopedLocation(),
+          this.getRootSpanName(),
+          this.transactionId, this.getSpan().getSpanContext().toString());
+    }
     if (childSpans.containsKey(traceComponent.contextScopedLocation())) {
       ProcessorSpan removed = Objects.requireNonNull(childSpans.remove(traceComponent.contextScopedLocation()),
           "Missing child span at location " + traceComponent.contextScopedLocation() + " for flow "
               + getRootSpanName()
               + " trace transaction " + transactionId + " context "
               + getSpan().getSpanContext().toString());
-      LOGGER.trace("Removing span for {} - {}", traceComponent.contextScopedLocation(), removed.getSpanId());
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Removing span for {} - {}", traceComponent.contextScopedLocation(), removed.getSpanId());
+      }
       endRouteSpans(traceComponent, endTime);
       removed.setEndTime(endTime);
       if (spanUpdater != null)
@@ -273,7 +292,9 @@ public class ContainerSpan implements Serializable {
   public ProcessorSpan findSpan(String location) {
     ProcessorSpan processorSpan = childSpans.get(location);
     if (processorSpan == null)
-      LOGGER.trace("Could not find span for location {}  in the list {}", location, childSpans);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Could not find span for location {}  in the list {}", location, childSpans);
+      }
     return processorSpan;
   }
 

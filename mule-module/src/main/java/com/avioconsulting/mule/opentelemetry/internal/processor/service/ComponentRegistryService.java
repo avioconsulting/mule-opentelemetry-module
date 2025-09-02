@@ -48,16 +48,22 @@ public class ComponentRegistryService {
     componentWrapperRegistry.clear();
     Map<String, ComponentLocation> locations = this.componentLocatorService.getAllComponentLocations();
     for (String location : locations.keySet()) {
-      LOGGER.trace("Finding component wrapper for {}", location);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Finding component wrapper for {}", location);
+      }
       Component component = this.componentLocatorService.findComponentByLocation(location);
       if (component == null) {
-        LOGGER.debug(
-            "Component not found for location {}, it may have not been initialized. Later lookups will resolve it when needed.",
-            location);
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug(
+              "Component not found for location {}, it may have not been initialized. Later lookups will resolve it when needed.",
+              location);
+        }
         continue;
       }
       try {
-        LOGGER.trace("Initialization of component wrapper for {}", location);
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace("Initialization of component wrapper for {}", location);
+        }
         ComponentWrapper wrapper = new ComponentWrapper(component, this);
         if (wrapper.getConfigRef() != null) {
           // initialize the cache for cache system properties
@@ -65,10 +71,14 @@ public class ComponentRegistryService {
         }
         componentWrapperRegistry.put(component.getLocation().getLocation(), wrapper);
       } catch (Exception ex) {
-        LOGGER.warn(
-            "Could not pre-initialize component wrapper for {}. Processing will continue and wrapper may be initialized when needed.",
-            location);
-        LOGGER.trace("Exception during initialization of component wrapper for {}.", location, ex);
+        if (LOGGER.isWarnEnabled()) {
+          LOGGER.warn(
+              "Could not pre-initialize component wrapper for {}. Processing will continue and wrapper may be initialized when needed.",
+              location);
+        }
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace("Exception during initialization of component wrapper for {}.", location, ex);
+        }
       }
     }
   }
@@ -84,7 +94,9 @@ public class ComponentRegistryService {
   public ComponentWrapper getComponentWrapper(String location) {
     return componentWrapperRegistry.computeIfAbsent(location,
         c -> {
-          LOGGER.trace("Delayed Initialization of component wrapper for {}", location);
+          if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Delayed Initialization of component wrapper for {}", location);
+          }
           return getComponentWrapper(componentLocatorService.findComponentByLocation(location));
         });
   }
@@ -92,8 +104,10 @@ public class ComponentRegistryService {
   public ComponentWrapper getComponentWrapper(Component component) {
     return componentWrapperRegistry.computeIfAbsent(component.getLocation().getLocation(),
         c -> {
-          LOGGER.trace("Delayed Initialization of component wrapper for {}",
-              component.getLocation().getLocation());
+          if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Delayed Initialization of component wrapper for {}",
+                component.getLocation().getLocation());
+          }
           return new ComponentWrapper(component, this);
         });
   }

@@ -135,9 +135,12 @@ public class ComponentWrapper {
       }
       return toExtendedParameters(new ComponentWrapper(component, componentRegistryService));
     } catch (Exception ex) {
-      LOGGER.trace(
-          "Failed to extract connection parameters for {}. Ignoring this failure - {}", componentConfigRef,
-          ex.getMessage());
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace(
+            "Failed to extract connection parameters for {}. Ignoring this failure - {}",
+            componentConfigRef,
+            ex.getMessage());
+      }
       return Collections.emptyMap();
     }
 
@@ -159,9 +162,12 @@ public class ComponentWrapper {
       }
       return toExtendedParameters(new ComponentWrapper(component, componentRegistryService));
     } catch (Exception ex) {
-      LOGGER.trace(
-          "Failed to extract connection parameters for {}. Ignoring this failure - {}", componentConfigRef,
-          ex.getMessage());
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace(
+            "Failed to extract connection parameters for {}. Ignoring this failure - {}",
+            componentConfigRef,
+            ex.getMessage());
+      }
       return Collections.emptyMap();
     }
   }

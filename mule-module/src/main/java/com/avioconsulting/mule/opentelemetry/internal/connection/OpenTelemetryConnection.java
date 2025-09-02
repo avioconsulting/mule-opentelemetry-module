@@ -76,8 +76,10 @@ public class OpenTelemetryConnection implements TraceContextHandler,
     String instrumentationVersion = properties.getProperty("module.version", INSTRUMENTATION_VERSION);
     String instrumentationName = properties.getProperty("module.artifactId", INSTRUMENTATION_NAME);
 
-    logger.info("Initialising OpenTelemetry Mule 4 Agent for instrumentation {}:{}", instrumentationName,
-        instrumentationVersion);
+    if (logger.isInfoEnabled()) {
+      logger.info("Initialising OpenTelemetry Mule 4 Agent for instrumentation {}:{}", instrumentationName,
+          instrumentationVersion);
+    }
     // See here for autoconfigure options
     // https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure
     AutoConfiguredOpenTelemetrySdkBuilder builder = AutoConfiguredOpenTelemetrySdk.builder();
@@ -99,7 +101,9 @@ public class OpenTelemetryConnection implements TraceContextHandler,
       configMap.put("otel.java.disabled.resource.providers",
           "io.opentelemetry.instrumentation.resources.HostResourceProvider,io.opentelemetry.instrumentation.resources.ContainerResourceProvider");
       builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
-      logger.debug("Creating OpenTelemetryConnection with properties: [{}]", configMap);
+      if (logger.isDebugEnabled()) {
+        logger.debug("Creating OpenTelemetryConnection with properties: [{}]", configMap);
+      }
       turnOffTracing = openTelemetryConfigWrapper.isTurnOffTracing();
       turnOffMetrics = openTelemetryConfigWrapper.isTurnOffMetrics();
       appIdentifier = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getAppIdentifier();
@@ -112,11 +116,15 @@ public class OpenTelemetryConnection implements TraceContextHandler,
     openTelemetry = builder.build().getOpenTelemetrySdk();
     installOpenTelemetryLogger();
     if (!turnOffMetrics) {
-      logger.info("Initializing Metrics Providers");
+      if (logger.isInfoEnabled()) {
+        logger.info("Initializing Metrics Providers");
+      }
       metricsProvider.start();
       metricsProviders.initialize(metricsProvider, openTelemetry);
     } else {
-      logger.info("Disabling loaded Metrics Providers");
+      if (logger.isInfoEnabled()) {
+        logger.info("Disabling loaded Metrics Providers");
+      }
       metricsProviders.clear();
     }
     tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
@@ -144,11 +152,15 @@ public class OpenTelemetryConnection implements TraceContextHandler,
       Class<?> clazz = Class
           .forName("com.avioconsulting.mule.opentelemetry.logs.api.OpenTelemetryLog4jAppender");
       Method install = clazz.getMethod("install", OpenTelemetry.class);
-      logger.info("Initializing AVIO OpenTelemetry Log4J support");
+      if (logger.isInfoEnabled()) {
+        logger.info("Initializing AVIO OpenTelemetry Log4J support");
+      }
       install.invoke(null, openTelemetry);
     } catch (ClassNotFoundException e) {
-      logger.warn(
-          "OpenTelemetry Log4j support not found on the classpath. Logs will not be exported via OpenTelemetry.");
+      if (logger.isWarnEnabled()) {
+        logger.warn(
+            "OpenTelemetry Log4j support not found on the classpath. Logs will not be exported via OpenTelemetry.");
+      }
     } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
       throw new RuntimeException(e);
     }
@@ -250,9 +262,12 @@ public class OpenTelemetryConnection implements TraceContextHandler,
     Map<String, Object> traceContext = transactionContext.getTraceContextMap();
     injectTraceContext(transactionContext.getContext(), traceContext,
         HashMapObjectMapSetter.INSTANCE);
-    logger.debug("Created trace context '{}' for TRACE_TRANSACTION_ID={}, Component Location '{}'", traceContext,
-        transactionId,
-        componentLocation);
+    if (logger.isDebugEnabled()) {
+      logger.debug("Created trace context '{}' for TRACE_TRANSACTION_ID={}, Component Location '{}'",
+          traceContext,
+          transactionId,
+          componentLocation);
+    }
     return traceContext;
   }
 

@@ -42,7 +42,9 @@ public class OpenTelemetryOperations {
   public Map<String, Object> getTraceContext(@Config OpenTelemetryExtensionConfiguration config,
       @DisplayName("Trace Transaction Id") @Optional(defaultValue = "#[vars.OTEL_TRACE_CONTEXT.TRACE_TRANSACTION_ID]") ParameterResolver<String> traceTransactionId,
       CorrelationInfo correlationInfo) {
-    LOGGER.warn("get-trace-context has been deprecated. Use get-current-trace-context instead");
+    if (LOGGER.isWarnEnabled()) {
+      LOGGER.warn("get-trace-context has been deprecated. Use get-current-trace-context instead");
+    }
     return config.getOpenTelemetryConnection().getTraceContext(traceTransactionId.resolve());
   }
 
@@ -93,7 +95,9 @@ public class OpenTelemetryOperations {
       @DisplayName("Trace Transaction Id") @Optional(defaultValue = "#[vars.OTEL_TRACE_CONTEXT.TRACE_TRANSACTION_ID]") ParameterResolver<String> traceTransactionId,
       Map<String, String> tags,
       CorrelationInfo correlationInfo) {
-    LOGGER.warn("add-custom-tags has been deprecated. Use add-transaction-tags instead.");
+    if (LOGGER.isWarnEnabled()) {
+      LOGGER.warn("add-custom-tags has been deprecated. Use add-transaction-tags instead.");
+    }
     config.getOpenTelemetryConnection().getTransactionStore().addTransactionTags(traceTransactionId.resolve(),
         "custom",
         tags);

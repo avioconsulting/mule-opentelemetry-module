@@ -4,9 +4,9 @@ import com.avioconsulting.mule.opentelemetry.api.config.MuleComponent;
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleCoreProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
-import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.BiFunctionMemoizer;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
+import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.BiFunctionMemoizer;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.event.Event;
@@ -216,34 +216,44 @@ public class InterceptorProcessorConfig {
             continue;
           }
           String[] split = line.split(":");
-          LOGGER.trace("Attempting to add component to intercept: {}", line);
+          if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Attempting to add component to intercept: {}", line);
+          }
           if (split.length == 2) {
             interceptInclusions.add(line);
             propagationRequiredComponents.add(line);
           } else {
-            LOGGER.warn("Unable to parse intercept components entry: {}, skipping this line", line);
+            if (LOGGER.isWarnEnabled()) {
+              LOGGER.warn("Unable to parse intercept components entry: {}, skipping this line", line);
+            }
           }
         }
       }
 
       if (contextEnabledProcessors != null && !contextEnabledProcessors.trim().isEmpty()) {
-        LOGGER.info("Intercepting additional processor configured with sys/env property {} : {}",
-            MULE_OTEL_INTERCEPTOR_CONTEXT_ENABLED_PROCESSORS, contextEnabledProcessors);
+        if (LOGGER.isInfoEnabled()) {
+          LOGGER.info("Intercepting additional processor configured with sys/env property {} : {}",
+              MULE_OTEL_INTERCEPTOR_CONTEXT_ENABLED_PROCESSORS, contextEnabledProcessors);
+        }
         Set<String> processors = splitByComma(contextEnabledProcessors);
         interceptInclusions.addAll(processors);
         propagationRequiredComponents.addAll(processors);
       }
 
       if (contextDisabledProcessors != null && !contextDisabledProcessors.trim().isEmpty()) {
-        LOGGER.info("Removing processor configured with sys/env property {} from interception: {}",
-            MULE_OTEL_INTERCEPTOR_CONTEXT_ENABLED_PROCESSORS, contextEnabledProcessors);
+        if (LOGGER.isInfoEnabled()) {
+          LOGGER.info("Removing processor configured with sys/env property {} from interception: {}",
+              MULE_OTEL_INTERCEPTOR_CONTEXT_ENABLED_PROCESSORS, contextEnabledProcessors);
+        }
         Set<String> processors = splitByComma(contextDisabledProcessors);
         propagationRequiredComponents.removeAll(processors);
       }
     } catch (IOException e) {
       throw new RuntimeException("Failed to load interceptor components", e);
     }
-    LOGGER.info("Final list of Context Intercepted components: {}", propagationRequiredComponents);
+    if (LOGGER.isInfoEnabled()) {
+      LOGGER.info("Final list of Context Intercepted components: {}", propagationRequiredComponents);
+    }
   }
 
   private Set<String> splitByComma(String input) {
@@ -271,11 +281,15 @@ public class InterceptorProcessorConfig {
 
   private boolean interceptorFeatureEnabled() {
     if (!INTERCEPTOR_ENABLED_BY_SYS_PROPERTY) {
-      LOGGER.trace("Interceptors are disabled by system property");
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Interceptors are disabled by system property");
+      }
       return false;
     }
     if (turnOffTracing) {
-      LOGGER.trace("Tracing has been turned off by global configuration");
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Tracing has been turned off by global configuration");
+      }
       return false;
     }
     return true;
@@ -288,7 +302,9 @@ public class InterceptorProcessorConfig {
         + location.getComponentIdentifier().getIdentifier().getName();
     boolean intercept = propagationRequiredComponents.contains(identifier);
     if (intercept) {
-      LOGGER.trace("Component {} is configured for context propagation, will intercept", identifier);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Component {} is configured for context propagation, will intercept", identifier);
+      }
     }
     return intercept;
   }
@@ -299,17 +315,25 @@ public class InterceptorProcessorConfig {
     if ((interceptDisabledByConfigComponents.contains(wildcardIdentifier)
         && !interceptEnabledByConfigComponents.contains(identifier))
         || interceptDisabledByConfigComponents.contains(identifier)) {
-      LOGGER.trace("Component {} is disabled by global configuration", identifier);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Component {} is disabled by global configuration", identifier);
+      }
       return false;
     } else if (interceptInclusions.contains(identifier)) {
-      LOGGER.trace("Component {} is enabled by default configuration", identifier);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Component {} is enabled by default configuration", identifier);
+      }
       return true;
     } else if (interceptEnabledByConfigComponents.contains(wildcardIdentifier)
         || interceptEnabledByConfigComponents.contains(identifier)) {
-      LOGGER.trace("Component {} is enabled by global configuration", identifier);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Component {} is enabled by global configuration", identifier);
+      }
       return true;
     } else {
-      LOGGER.trace("Component {} is not configured for interception, skipping interception", identifier);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Component {} is not configured for interception, skipping interception", identifier);
+      }
       return false;
     }
   }

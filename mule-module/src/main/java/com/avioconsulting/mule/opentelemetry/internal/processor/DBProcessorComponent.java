@@ -75,9 +75,11 @@ public class DBProcessorComponent extends AbstractProcessorComponent {
           }
         }
       } catch (ExpressionExecutionException e) {
-        LOGGER.warn(
-            "Failed to evaluate input parameters expression, capturing the SQL operation parameters for {} at {} will be skipped",
-            startTraceComponent.getName(), startTraceComponent.getLocation(), e);
+        if (LOGGER.isWarnEnabled()) {
+          LOGGER.warn(
+              "Failed to evaluate input parameters expression, capturing the SQL operation parameters for {} at {} will be skipped",
+              startTraceComponent.getName(), startTraceComponent.getLocation(), e);
+        }
       }
     }
     return startTraceComponent;

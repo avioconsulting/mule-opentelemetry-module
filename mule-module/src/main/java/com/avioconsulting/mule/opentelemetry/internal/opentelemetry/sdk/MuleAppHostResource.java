@@ -73,7 +73,9 @@ public final class MuleAppHostResource {
         case "":
           break;
         default:
-          LOGGER.warn("Invalid mule.otel.service.host.chv1.strategy value: {}", hostStrategy);
+          if (LOGGER.isWarnEnabled()) {
+            LOGGER.warn("Invalid mule.otel.service.host.chv1.strategy value: {}", hostStrategy);
+          }
       }
       if (hostname != null) {
         attributes.put(HOST_NAME, hostname);

@@ -25,11 +25,15 @@ public abstract class AbstractMuleNotificationListener<T extends Notification> i
 
   @Override
   public void onNotification(T notification) {
-    LOGGER.trace("===> Received {}:{}", notification.getClass().getName(),
-        notification.getAction().getIdentifier());
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("===> Received {}:{}", notification.getClass().getName(),
+          notification.getAction().getIdentifier());
+    }
     if (BatchHelperUtil.shouldSkipThisBatchProcessing(getEvent(notification))) {
-      LOGGER.trace("Batch support is disabled. Batch spans will not be processed for location - {}",
-          notification);
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Batch support is disabled. Batch spans will not be processed for location - {}",
+            notification);
+      }
       return;
     }
     replaceMDCEntry(getEvent(notification));

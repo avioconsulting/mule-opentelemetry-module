@@ -27,9 +27,11 @@ public class OtelBatchNotificationListener extends AbstractMuleNotificationListe
   protected void processNotification(OtelBatchNotification notification) {
     replaceMDCEntry(
         notification.getRecord() != null ? notification.getRecord().getAllVariables() : Collections.emptyMap());
-    LOGGER.debug("Batch notification received: {}, Step: {}, Record: {}", notification.getActionName(),
-        notification.getStep() == null ? "null" : notification.getStep().getName(),
-        notification.getRecord() == null ? "null" : notification.getRecord().getCurrentStepId());
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Batch notification received: {}, Step: {}, Record: {}", notification.getActionName(),
+          notification.getStep() == null ? "null" : notification.getStep().getName(),
+          notification.getRecord() == null ? "null" : notification.getRecord().getCurrentStepId());
+    }
     int action = Integer.parseInt(notification.getAction().getIdentifier());
     if (STEP_JOB_END == action) {
       muleNotificationProcessor.handleBatchStepEndEvent(notification);
