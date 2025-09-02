@@ -609,7 +609,10 @@ It is always injected under a key **OTEL_TRACE_CONTEXT**.
 
 |mule.otel.interceptor.processor.enable
 |MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE
-|Enable or Disable the interceptor feature. Disabling the interceptor processing can result in incorrect context propagation.
+|*Enable or Disable the interceptor feature*.
+
+Disabling the interceptor processing can result in incorrect context propagation.
+|`true`
 |`false`
 |`false`
 
@@ -646,6 +649,40 @@ NOTE: Module already includes the most commonly used processors, use this proper
 |`http:request,jms:publish`
 
 
+|mule.otel.interceptor.enabled.processors
+|MULE_OTEL_INTERCEPTOR_ENABLED_PROCESSORS
+|List of additional processors for interception processing.
+
+NOTE: Module already includes the most commonly used processors, use this property only if you are certain that target processors are missed, like a custom operation.
+|link:module-config.adoc#_list_of_context_propagation_interceptor[List of included operations] and other scope containers such as Flow, sub-flow, routers etc.
+|`http:request,jms:publish`
+
+
+
+|mule.otel.interceptor.disabled.processors
+|MULE_OTEL_INTERCEPTOR_DISABLED_PROCESSORS
+|Remove processors for interception processing.
+|
+|`http:request,jms:publish`
+
+
+|mule.otel.interceptor.context.enabled.processors
+|MULE_OTEL_INTERCEPTOR_CONTEXT_ENABLED_PROCESSORS
+|List of additional processors for required OTEL context propagation.
+
+NOTE: Module already includes the most commonly used processors, use this property only if you are certain that target processors are missed, like a custom operation.
+|link:module-config.adoc#_list_of_context_propagation_interceptor[List of included operations]
+|`http:request,jms:publish`
+
+
+
+|mule.otel.interceptor.context.disabled.processors
+|MULE_OTEL_INTERCEPTOR_CONTEXT_DISABLED_PROCESSORS
+|Remove processors from context propagation. Use this only if the processor is by default configured for context propagation but resulting in issues and needs disabling the context.
+|
+|`http:request,jms:publish`
+
+
 |mule.otel.interceptor.first.processor.only
 |MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY
 |When interception is enabled, intercept only the first processor in each flow
@@ -662,7 +699,7 @@ WARNING: This context relates to the main flow span and if used for propagation 
 
 NOTE: OTEL_TRACE_CONTEXT.spanId will be of the flow container span.
 
-Following examples show a **W3C Trace Context** extracted from incoming http request and injected into flow variables:
+The following examples show a **W3C Trace Context** extracted from incoming http request and injected into flow variables:
 
 image::auto-context-flow-injection.png[600,600,title="Context Injection - First Processor",align="center"]
 
@@ -672,13 +709,14 @@ image::auto-context-flow-injection-2.png[600,600,title="Context Injection - Firs
 
 ====== Processor Interceptor
 
-For the context propagation accuracy, certain processors are intercepted to inject current span's context into the flow variable.
+For the context propagation accuracy, certain processors are intercepted to inject the current span's context into the flow variable.
 
 NOTE: *OTEL_TRACE_CONTEXT.spanId* will be of the span of the intercepted component.
 
-The connector is pre-configured to intercept following connector operations -
+The connector is pre-configured to intercept the following connector operations to inject OTEL context for propagation-
 
-.List of intercepted operations
+[#_list_of_context_propagation_interceptor]
+.List of processors intercepted for Context Propagation
 ,===
 include::../../main/resources/com/avioconsulting/mule/opentelemetry/internal/interceptor/intercept-components.txt[lines=5..-1]
 ,===
