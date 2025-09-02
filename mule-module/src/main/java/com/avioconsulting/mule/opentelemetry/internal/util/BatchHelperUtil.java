@@ -81,9 +81,8 @@ public class BatchHelperUtil {
       ComponentRegistryService componentRegistryService) {
     if (isBatchSupportDisabled())
       return false;
-    return (getBatchJobInstanceId(event) != null
-        && isBatchStep(getLocationParent(location.getLocation()), componentRegistryService)
-        && isFirstProcessorInScope(location));
+    return isBatchStep(getLocationParent(location.getLocation()), componentRegistryService)
+        && isFirstProcessorInScope(location);
   }
 
   public static boolean hasBatchStep(TraceComponent traceComponent) {

@@ -6,7 +6,6 @@ import com.avioconsulting.mule.opentelemetry.internal.processor.MuleCoreProcesso
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
-import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.BiFunctionMemoizer;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.event.Event;
@@ -21,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.*;
@@ -120,8 +120,8 @@ public class InterceptorProcessorConfig {
 
   private boolean turnOffTracing = false;
 
-  private final BiFunctionMemoizer<ComponentLocation, Event, Boolean> shouldInterceptCache = BiFunctionMemoizer
-      .memoize(this::shouldInterceptCache);
+  private final ConcurrentHashMap<String, Boolean> shouldInterceptCacheMap = new ConcurrentHashMap<>();
+
   /**
    * Components that must be intercepted
    */
@@ -264,17 +264,26 @@ public class InterceptorProcessorConfig {
   }
 
   public boolean shouldIntercept(ComponentLocation location, Event event) {
-    return shouldInterceptCache.apply(location, event);
+    try {
+      return shouldInterceptCacheMap.computeIfAbsent(location.getLocation(),
+          key -> computeInterception(location, event));
+    } catch (Exception e) {
+      if (LOGGER.isTraceEnabled()) {
+        LOGGER.trace("Exception occurred while computing interception for component {}. Returning false.",
+            location.getComponentIdentifier().getIdentifier().getName(), e);
+      }
+      return false;
+    }
   }
 
-  public boolean shouldInterceptCache(ComponentLocation location, Event event) {
+  private boolean computeInterception(ComponentLocation location, Event event) {
     if (!interceptorFeatureEnabled())
       return false;
 
     if (event != null && shouldSkipThisBatchProcessing(event))
       return false;
     return ComponentsUtil.isFirstProcessor(location)
-        || (event != null && isBatchStepFirstProcessor(location, event, componentRegistryService))
+        || (isBatchStepFirstProcessor(location, event, componentRegistryService))
         || (NOT_FIRST_PROCESSOR_ONLY_MODE
             && (shouldIntercept(location.getComponentIdentifier().getIdentifier())));
   }

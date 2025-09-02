@@ -6,20 +6,19 @@ import com.avioconsulting.mule.opentelemetry.internal.AbstractInternalTest;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.mule.runtime.api.component.TypedComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.component.location.LocationPart;
 import org.mule.runtime.api.event.Event;
+import org.mule.runtime.dsl.api.component.config.DefaultComponentLocation;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Time-based performance test for shouldIntercept() method in
@@ -43,19 +42,14 @@ public class InterceptorProcessorConfigPerformanceTest extends AbstractInternalT
   }
 
   private @NotNull ComponentLocation getLocationAt(String namespace, String name, String locationEndPath) {
-    ComponentLocation location = Mockito.mock(ComponentLocation.class);
-    when(location.getRootContainerName()).thenReturn("MyFlow");
-    when(location.getLocation()).thenReturn("MyFlow/processors/" + locationEndPath);
+    DefaultComponentLocation.DefaultLocationPart part = new DefaultComponentLocation.DefaultLocationPart(
+        locationEndPath,
+        Optional.of(getComponentIdentifier(namespace, name, TypedComponentIdentifier.ComponentType.UNKNOWN)),
+        Optional.empty(),
+        OptionalInt.empty(),
+        OptionalInt.empty());
 
-    TypedComponentIdentifier componentIdentifier = getComponentIdentifier(namespace, name);
-    when(location.getComponentIdentifier()).thenReturn(componentIdentifier);
-
-    LocationPart part1 = mock(LocationPart.class);
-    TypedComponentIdentifier identifier = mock(TypedComponentIdentifier.class);
-    when(identifier.getType()).thenReturn(TypedComponentIdentifier.ComponentType.FLOW);
-    when(part1.getPartIdentifier()).thenReturn(Optional.of(identifier));
-    when(location.getParts()).thenReturn(Arrays.asList(part1));
-    return location;
+    return new DefaultComponentLocation(Optional.of(name), Arrays.asList(rootFlowPart, processorsPart, part));
   }
 
   @Test

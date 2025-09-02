@@ -160,6 +160,9 @@ public class ComponentsUtil {
   public static boolean isFirstProcessorInScope(ComponentLocation location) {
     if (location.getParts().size() <= 2)
       return false;
+    if (!location.getLocation().endsWith(PROCESSOR_0_PATH_SUFFIX)) {
+      return false;
+    }
     LocationPart parentPart = location.getParts().get(location.getParts().size() - 3);
     String firstProcessorPath = getLocationParent(location.getLocation()) + PROCESSOR_0_PATH_SUFFIX;
     return parentPart.getPartIdentifier().isPresent() && isRoute(parentPart.getPartIdentifier().get())
