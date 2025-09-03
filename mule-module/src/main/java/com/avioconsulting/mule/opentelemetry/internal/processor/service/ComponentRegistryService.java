@@ -61,13 +61,13 @@ public class ComponentRegistryService {
         continue;
       }
       try {
-        if (LOGGER.isTraceEnabled()) {
-          LOGGER.trace("Initialization of component wrapper for {}", location);
-        }
         ComponentWrapper wrapper = new ComponentWrapper(component, this);
         if (wrapper.getConfigRef() != null) {
           // initialize the cache for cache system properties
           getGlobalConfigOtelSystemProperties.apply(wrapper.getConfigRef());
+        }
+        if (LOGGER.isTraceEnabled()) {
+          LOGGER.trace("Initialized component wrapper for {} - {}", location, wrapper);
         }
         componentWrapperRegistry.put(component.getLocation().getLocation(), wrapper);
       } catch (Exception ex) {
@@ -102,6 +102,9 @@ public class ComponentRegistryService {
   }
 
   public ComponentWrapper getComponentWrapper(Component component) {
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("Getting component wrapper for {}", component.getLocation().getLocation());
+    }
     return componentWrapperRegistry.computeIfAbsent(component.getLocation().getLocation(),
         c -> {
           if (LOGGER.isTraceEnabled()) {

@@ -179,4 +179,15 @@ public class ComponentWrapper {
     return map;
   }
 
+  @Override
+  public String toString() {
+    return "ComponentWrapper{" +
+        "parameters=" + parameters +
+        ", configParameters=" + configParameters +
+        ", connectionParameters=" + connectionParameters +
+        ", defaultSpanName='" + defaultSpanName + '\'' +
+        ", staticParameters=" + staticParameters +
+        ", component=" + component +
+        '}';
+  }
 }
