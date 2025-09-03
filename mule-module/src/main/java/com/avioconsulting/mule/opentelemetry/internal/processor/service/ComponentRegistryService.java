@@ -61,14 +61,7 @@ public class ComponentRegistryService {
         continue;
       }
       try {
-        ComponentWrapper wrapper = new ComponentWrapper(component, this);
-        if (wrapper.getConfigRef() != null) {
-          // initialize the cache for cache system properties
-          getGlobalConfigOtelSystemProperties.apply(wrapper.getConfigRef());
-        }
-        if (LOGGER.isTraceEnabled()) {
-          LOGGER.trace("Initialized component wrapper for {} - {}", location, wrapper);
-        }
+        ComponentWrapper wrapper = createNewWrapper(component);
         componentWrapperRegistry.put(component.getLocation().getLocation(), wrapper);
       } catch (Exception ex) {
         if (LOGGER.isWarnEnabled()) {
@@ -83,6 +76,21 @@ public class ComponentRegistryService {
     }
   }
 
+  private ComponentWrapper createNewWrapper(Component component) {
+    ComponentWrapper wrapper = new ComponentWrapper(component, this);
+    if (wrapper.getConfigRef() != null) {
+      // initialize the cache for cache system properties
+      getGlobalConfigOtelSystemProperties.apply(wrapper.getConfigRef());
+    }
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("Initialized component wrapper for {} - {}", component.getLocation().getLocation(), wrapper);
+      LOGGER.trace("Existing cache keys: " + componentWrapperRegistry.keySet());
+      LOGGER.trace("Cache contains key {} : {}", component.getLocation().getLocation(),
+          componentWrapperRegistry.containsKey(component.getLocation().getLocation()));
+    }
+    return wrapper;
+  }
+
   public Map<String, String> getOtelSystemPropertiesMap() {
     return OTEL_SYSTEM_PROPERTIES_MAP;
   }
@@ -90,29 +98,24 @@ public class ComponentRegistryService {
   public Map<String, String> getGlobalConfigOtelSystemProperties(String configName) {
     return getGlobalConfigOtelSystemProperties.apply(configName);
   }
-
-  public ComponentWrapper getComponentWrapper(String location) {
-    return componentWrapperRegistry.computeIfAbsent(location,
-        c -> {
-          if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("Delayed Initialization of component wrapper for {}", location);
-          }
-          return getComponentWrapper(componentLocatorService.findComponentByLocation(location));
-        });
-  }
+  //
+  // public ComponentWrapper getComponentWrapper(String location) {
+  // return componentWrapperRegistry.computeIfAbsent(location,
+  // c -> {
+  // if (LOGGER.isTraceEnabled()) {
+  // LOGGER.trace("Delayed Initialization of component wrapper for {}", location);
+  // }
+  // return
+  // getComponentWrapper(componentLocatorService.findComponentByLocation(location));
+  // });
+  // }
 
   public ComponentWrapper getComponentWrapper(Component component) {
     if (LOGGER.isTraceEnabled()) {
       LOGGER.trace("Getting component wrapper for {}", component.getLocation().getLocation());
     }
     return componentWrapperRegistry.computeIfAbsent(component.getLocation().getLocation(),
-        c -> {
-          if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("Delayed Initialization of component wrapper for {}",
-                component.getLocation().getLocation());
-          }
-          return new ComponentWrapper(component, this);
-        });
+        c -> createNewWrapper(component));
   }
 
   public Map<String, ComponentLocation> getAllComponentLocations() {
