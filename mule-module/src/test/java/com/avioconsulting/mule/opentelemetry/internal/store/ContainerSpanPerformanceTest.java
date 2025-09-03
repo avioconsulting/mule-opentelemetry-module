@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.store;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanContext;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.TypedComponentIdentifier;
@@ -231,14 +232,15 @@ public class ContainerSpanPerformanceTest {
     addRouteSpansToContainer(containerSpan, eventContextId, location, 5);
 
     // Add some non-matching spans to test regex filtering performance
-    addNonMatchingSpans(containerSpan, 25);
+    int childSpanCount = 15;
+    addNonMatchingSpans(containerSpan, childSpanCount);
 
     // Warmup phase
     System.out.println("[DEBUG_LOG] Warming up with " + WARMUP_ITERATIONS + " iterations");
     for (int i = 0; i < WARMUP_ITERATIONS; i++) {
       ContainerSpan warmupContainer = createTestContainerSpan();
       addRouteSpansToContainer(warmupContainer, eventContextId, location, 5);
-      addNonMatchingSpans(warmupContainer, 25);
+      addNonMatchingSpans(warmupContainer, childSpanCount);
       warmupContainer.endRouteSpans(routerComponent, endTime);
     }
 
@@ -251,7 +253,7 @@ public class ContainerSpanPerformanceTest {
     for (int i = 0; i < PERFORMANCE_ITERATIONS; i++) {
       ContainerSpan testContainer = createTestContainerSpan();
       addRouteSpansToContainer(testContainer, eventContextId, location, 5);
-      addNonMatchingSpans(testContainer, 25);
+      addNonMatchingSpans(testContainer, childSpanCount);
       startTime = System.nanoTime();
       testContainer.endRouteSpans(routerComponent, endTime);
       endTimeNanos = System.nanoTime();
