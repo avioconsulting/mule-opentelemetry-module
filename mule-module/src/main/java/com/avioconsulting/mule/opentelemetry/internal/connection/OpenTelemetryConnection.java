@@ -3,7 +3,6 @@ package com.avioconsulting.mule.opentelemetry.internal.connection;
 import com.avioconsulting.mule.opentelemetry.api.AppIdentifier;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigProvider;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsProvider;
-import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
@@ -11,6 +10,7 @@ import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.api.traces.TransactionContext;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfigWrapper;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
+import com.avioconsulting.mule.opentelemetry.internal.processor.util.TraceComponentManager;
 import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
 import com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
@@ -340,17 +340,19 @@ public class OpenTelemetryConnection implements TraceContextHandler,
       parentLocation = parentLocationMemoizer.apply(traceComponent.getLocation(), traceComponent);
       if (parentLocation != null) {
         // Create parent span for the first processor in the chain /0
-        TraceComponent parentTrace = TraceComponent.of(parentLocation)
-            .withLocation(parentLocation)
-            .withTags(new HashMap<>())
-            .withTransactionId(traceComponent.getTransactionId())
-            .withSpanName(parentLocation)
-            .withSpanKind(SpanKind.INTERNAL)
-            .withEventContextId(traceComponent.getEventContextId())
-            .withStartTime(traceComponent.getStartTime());
-        copyBatchTags(traceComponent, parentTrace);
-        SpanMeta parentSpan = addRouteSpan(parentTrace, traceComponent, parentLocation,
-            getLocationParent(parentLocation));
+        SpanMeta parentSpan;
+        try (TraceComponent parentTrace = TraceComponentManager.getInstance()
+            .createTraceComponent(traceComponent.getTransactionId(), parentLocation)) {
+          parentTrace
+              .withLocation(parentLocation)
+              .withSpanName(parentLocation)
+              .withSpanKind(SpanKind.INTERNAL)
+              .withEventContextId(traceComponent.getEventContextId())
+              .withStartTime(traceComponent.getStartTime());
+          copyBatchTags(traceComponent, parentTrace);
+          parentSpan = addRouteSpan(parentTrace, traceComponent, parentLocation,
+              getLocationParent(parentLocation));
+        }
         spanBuilder.setParent(parentSpan.getContext());
       }
     }

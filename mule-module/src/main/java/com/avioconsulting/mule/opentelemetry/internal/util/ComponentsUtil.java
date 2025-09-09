@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.internal.util;
 
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
+import com.avioconsulting.mule.opentelemetry.internal.processor.util.TraceComponentManager;
 import io.opentelemetry.api.trace.SpanKind;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
@@ -191,15 +192,15 @@ public class ComponentsUtil {
    */
   public static TraceComponent getSubFlowTraceComponent(ComponentLocation subFlowComp,
       TraceComponent traceComponent) {
-    TraceComponent subFlowTrace = TraceComponent.of(subFlowComp)
-        .withTransactionId(traceComponent.getTransactionId())
+    TraceComponent subFlowTrace = TraceComponentManager.getInstance()
+        .createTraceComponent(traceComponent.getTransactionId(), subFlowComp)
         .withSpanName(subFlowComp.getLocation())
         .withSpanKind(SpanKind.INTERNAL)
-        .withTags(new HashMap<>())
         .withStatsCode(traceComponent.getStatusCode())
         .withStartTime(traceComponent.getStartTime())
         .withContext(traceComponent.getContext())
-        .withEventContextId(traceComponent.getEventContextId());
+        .withEventContextId(traceComponent.getEventContextId())
+        .withEndTime(traceComponent.getEndTime());
     subFlowTrace.getTags().put(MULE_APP_SCOPE_SUBFLOW_NAME.getKey(),
         subFlowComp.getLocation());
     copyBatchTags(traceComponent, subFlowTrace);

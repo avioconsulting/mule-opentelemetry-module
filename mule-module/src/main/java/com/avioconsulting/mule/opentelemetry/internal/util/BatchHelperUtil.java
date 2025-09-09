@@ -118,8 +118,10 @@ public class BatchHelperUtil {
   }
 
   public static void copyBatchTags(TraceComponent source, TraceComponent target) {
-    source.getTags().entrySet().stream().filter(e -> e.getKey().startsWith("mule.batch.job")).forEach(
-        e -> target.getTags().put(e.getKey(), e.getValue()));
+    if (!BatchHelperUtil.isBatchSupportDisabled()) {
+      source.getTags().entrySet().stream().filter(e -> e.getKey().startsWith("mule.batch.job")).forEach(
+          e -> target.getTags().put(e.getKey(), e.getValue()));
+    }
   }
 
   public static void enableBatchSupport() {

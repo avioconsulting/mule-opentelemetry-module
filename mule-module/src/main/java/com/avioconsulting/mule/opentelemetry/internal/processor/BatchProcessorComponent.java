@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.api.ee.batch.BatchJob;
+import com.avioconsulting.mule.opentelemetry.internal.processor.util.TraceComponentManager;
 import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
@@ -48,10 +49,11 @@ public class BatchProcessorComponent extends AbstractProcessorComponent {
   public TraceComponent getStartTraceComponent(Component component, Event event) {
     TraceComponent startTraceComponent = super.getStartTraceComponent(component, event);
     String jobName = addJobTags(startTraceComponent, component);
-    return TraceComponent.of(BATCH_JOB_TAG, startTraceComponent.getComponentLocation())
+    return TraceComponentManager.getInstance()
+        .createTraceComponent(startTraceComponent.getTransactionId(), BATCH_JOB_TAG,
+            startTraceComponent.getComponentLocation())
         .withSpanName(BATCH_JOB_TAG)
         .withTags(startTraceComponent.getTags())
-        .withTransactionId(startTraceComponent.getTransactionId())
         .withEventContextId(startTraceComponent.getEventContextId())
         .withSpanKind(getSpanKind())
         .withContext(startTraceComponent.getContext());
@@ -96,8 +98,9 @@ public class BatchProcessorComponent extends AbstractProcessorComponent {
           batchJobInstanceId.getValue().toString());
     }
     addJobTags(endTraceComponent, notification.getComponent());
-    return TraceComponent.of(BATCH_JOB_TAG, endTraceComponent.getComponentLocation())
-        .withTransactionId(endTraceComponent.getTransactionId())
+    return TraceComponentManager.getInstance()
+        .createTraceComponent(endTraceComponent.getTransactionId(), BATCH_JOB_TAG,
+            endTraceComponent.getComponentLocation())
         .withTags(endTraceComponent.getTags())
         .withStatsCode(endTraceComponent.getStatusCode())
         .withContext(endTraceComponent.getContext())

@@ -19,7 +19,7 @@ import java.util.function.Function;
 
 public class AttributesKeyCache {
 
-  private static final Map<String, AttributeKey<?>> attributeKeyMap = new HashMap<>();
+  private static final Map<String, AttributeKey<?>> attributeKeyMap = new HashMap<>(175, 0.75f);
 
   public AttributesKeyCache() {
   }

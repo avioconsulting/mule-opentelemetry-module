@@ -82,12 +82,6 @@ public class ComponentRegistryService {
       // initialize the cache for cache system properties
       getGlobalConfigOtelSystemProperties.apply(wrapper.getConfigRef());
     }
-    if (LOGGER.isTraceEnabled()) {
-      LOGGER.trace("Initialized component wrapper for {} - {}", component.getLocation().getLocation(), wrapper);
-      LOGGER.trace("Existing cache keys: " + componentWrapperRegistry.keySet());
-      LOGGER.trace("Cache contains key {} : {}", component.getLocation().getLocation(),
-          componentWrapperRegistry.containsKey(component.getLocation().getLocation()));
-    }
     return wrapper;
   }
 
@@ -98,17 +92,6 @@ public class ComponentRegistryService {
   public Map<String, String> getGlobalConfigOtelSystemProperties(String configName) {
     return getGlobalConfigOtelSystemProperties.apply(configName);
   }
-  //
-  // public ComponentWrapper getComponentWrapper(String location) {
-  // return componentWrapperRegistry.computeIfAbsent(location,
-  // c -> {
-  // if (LOGGER.isTraceEnabled()) {
-  // LOGGER.trace("Delayed Initialization of component wrapper for {}", location);
-  // }
-  // return
-  // getComponentWrapper(componentLocatorService.findComponentByLocation(location));
-  // });
-  // }
 
   public ComponentWrapper getComponentWrapper(Component component) {
     if (LOGGER.isTraceEnabled()) {

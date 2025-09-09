@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
+import com.avioconsulting.mule.opentelemetry.internal.processor.util.TraceComponentManager;
 import com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil;
 import org.junit.Before;
 import org.mule.runtime.api.component.ComponentIdentifier;
@@ -52,6 +53,7 @@ public abstract class AbstractInternalTest {
   public void setupTests() {
     OpenTelemetryConnection._resetForTest();
     BatchHelperUtil._resetForTesting();
+    TraceComponentManager.resetForTest();
   }
 
   protected Event getEvent() {

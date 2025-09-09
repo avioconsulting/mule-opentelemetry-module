@@ -6,9 +6,7 @@ import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryCo
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.api.trace.Span;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
@@ -42,6 +40,16 @@ import static org.mockito.Mockito.when;
 public class MuleNotificationProcessorContextExtractorTest extends AbstractProcessorComponentTest {
 
   private ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+
+  @BeforeClass
+  public static void beforeClass() {
+    System.setProperty("mule.otel.pooling.tracecomponent.enabled", "false");
+  }
+
+  @AfterClass
+  public static void afterClass() {
+    System.clearProperty("mule.otel.pooling.tracecomponent.enabled");
+  }
 
   @Before
   public void setup() {

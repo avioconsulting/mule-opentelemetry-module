@@ -3,7 +3,7 @@ package com.avioconsulting.mule.opentelemetry;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporterProvider;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
-import com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore;
+import com.avioconsulting.mule.opentelemetry.internal.processor.util.TraceComponentManager;
 import com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil;
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
 import org.apache.http.HttpEntity;
@@ -18,7 +18,6 @@ import org.awaitility.Awaitility;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.mule.functional.junit4.MuleArtifactFunctionalTestCase;
 import org.mule.runtime.core.api.event.CoreEvent;
@@ -42,7 +41,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ArtifactClassLoaderRunnerConfig(exportPluginClasses = { OpenTelemetryConnection.class,
-    DelegatedLoggingSpanTestExporterProvider.class, BatchHelperUtil.class }, applicationSharedRuntimeLibs = {
+    DelegatedLoggingSpanTestExporterProvider.class, BatchHelperUtil.class,
+    TraceComponentManager.class }, applicationSharedRuntimeLibs = {
         "org.apache.derby:derby", "com.avioconsulting.mule:mule-opentelemetry-batch-legacy-adapter",
         "com.avioconsulting.mule:mule-opentelemetry-module-api" })
 public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {

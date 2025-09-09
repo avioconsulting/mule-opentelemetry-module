@@ -10,7 +10,7 @@
     <!-- Avoid maven warning about different parent than module parent -->
   </parent>
   <artifactId>mule-opentelemetry-module</artifactId>
-  <version>2.10.1-INT-DEBUG-9.3-SNAPSHOT</version>
+  <version>2.10.1-INT-DEBUG-11-SNAPSHOT</version>
   <packaging>mule-extension</packaging>
 
   <name>${project.groupId}:${project.artifactId}</name>

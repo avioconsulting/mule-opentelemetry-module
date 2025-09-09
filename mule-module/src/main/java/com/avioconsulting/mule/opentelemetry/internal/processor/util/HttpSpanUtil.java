@@ -44,7 +44,7 @@ public class HttpSpanUtil {
    * Generates HTTP Span name
    * 
    * @param tags
-   *            {@link Map} of Span tags with HTTP Method entry
+   *            {@link Map} createTraceComponent Span tags with HTTP Method entry
    * @param route
    *            {@link String} HTTP Route path
    * @return String span name

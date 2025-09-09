@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
+import com.avioconsulting.mule.opentelemetry.internal.processor.util.TraceComponentManager;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.propagation.TextMapGetter;
 import org.mule.runtime.api.component.Component;
@@ -33,6 +34,7 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
 
   protected ExpressionManager expressionManager;
   protected ComponentRegistryService componentRegistryService;
+  protected TraceComponentManager traceComponentManager = TraceComponentManager.getInstance();
 
   public ProcessorComponent withComponentRegistryService(ComponentRegistryService componentRegistryService) {
     this.componentRegistryService = componentRegistryService;
@@ -80,10 +82,9 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
   }
 
   protected TraceComponent getTraceComponentBuilderFor(EnrichedServerNotification notification) {
-    TraceComponent traceComponent = TraceComponent.of(notification.getResourceIdentifier(),
-        notification.getComponent().getLocation())
-        .withTransactionId(getTransactionId(notification))
-        .withTags(new HashMap<>())
+    TraceComponent traceComponent = TraceComponentManager.getInstance()
+        .createTraceComponent(getTransactionId(notification), notification.getResourceIdentifier(),
+            notification.getComponent().getLocation())
         .withErrorMessage(
             notification.getEvent().getError().map(Error::getDescription).orElse(null));
     addBatchTags(traceComponent, notification.getEvent());
@@ -94,9 +95,9 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
     return getEventTransactionId(notification.getEvent());
   }
 
-  protected Map<String, String> getProcessorCommonTags(Component component) {
+  protected void addProcessorCommonTags(Component component, Map<String, String> collector) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
-    return new HashMap<>(componentWrapper.staticParametersAsReadOnlyMap());
+    collector.putAll(componentWrapper.staticParametersAsReadOnlyMap());
   }
 
   protected ComponentIdentifier getSourceIdentifier(EnrichedServerNotification notification) {
@@ -145,15 +146,18 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
    */
   public TraceComponent getStartTraceComponent(Component component, Event event) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
-    Map<String, String> tags = getProcessorCommonTags(component);
+    TraceComponent traceComponent = TraceComponentManager.getInstance()
+        .createTraceComponent(getEventTransactionId(event), component)
+        .withSpanName(componentWrapper.getDefaultSpanName())
+        .withSpanKind(getSpanKind())
+        .withEventContextId(event.getContext().getId());
+
+    // Get the already allocated tags map and populate it
+    Map<String, String> tags = traceComponent.getTags();
+    addProcessorCommonTags(component, tags);
     tags.put(MULE_CORRELATION_ID.getKey(), event.getCorrelationId());
     addAttributes(component, event.getMessage().getAttributes(), tags);
-    TraceComponent traceComponent = TraceComponent.of(component)
-        .withSpanName(componentWrapper.getDefaultSpanName())
-        .withTags(tags)
-        .withSpanKind(getSpanKind())
-        .withTransactionId(getEventTransactionId(event))
-        .withEventContextId(event.getContext().getId());
+
     addBatchTags(traceComponent, event);
     return traceComponent;
   }

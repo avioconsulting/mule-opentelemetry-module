@@ -176,9 +176,10 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     HttpRequestAttributes attributes = attributesTypedValue.getValue();
     Map<String, String> tags = new HashMap<>();
     attributesToTags(attributes, tags);
-    return TraceComponent.of(notification.getResourceIdentifier(), notification.getComponent().getLocation())
+    return traceComponentManager
+        .createTraceComponent(getTransactionId(notification), notification.getResourceIdentifier(),
+            notification.getComponent().getLocation())
         .withTags(tags)
-        .withTransactionId(getTransactionId(notification))
         .withSpanName(HttpSpanUtil.spanName(tags, attributes.getListenerPath()))
         .withContext(traceContextHandler.getTraceContext(attributes.getHeaders(), ContextMapGetter.INSTANCE));
   }

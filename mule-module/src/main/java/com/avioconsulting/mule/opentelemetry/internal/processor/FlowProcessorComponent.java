@@ -5,6 +5,7 @@ import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
+import com.avioconsulting.mule.opentelemetry.internal.processor.util.TraceComponentManager;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Context;
@@ -43,16 +44,18 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
 
   @Override
   public TraceComponent getStartTraceComponent(EnrichedServerNotification notification) {
-    TraceComponent traceComponent = TraceComponent.of(notification.getResourceIdentifier(),
+    TraceComponent traceComponent = TraceComponentManager.getInstance().createTraceComponent(
+        getTransactionId(notification),
+        notification.getResourceIdentifier(),
         notification.getComponent().getLocation());
 
-    Map<String, String> tags = getProcessorCommonTags(notification.getComponent());
+    Map<String, String> tags = traceComponent.getTags();
+    addProcessorCommonTags(notification.getComponent(), tags);
     tags.put(MULE_APP_FLOW_NAME.getKey(), notification.getResourceIdentifier());
     tags.put(MULE_SERVER_ID.getKey(), notification.getServerId());
     tags.put(MULE_CORRELATION_ID.getKey(), notification.getEvent().getCorrelationId());
 
     traceComponent.withTags(tags)
-        .withTransactionId(getTransactionId(notification))
         .withSpanName(notification.getResourceIdentifier())
         .withLocation(notification.getResourceIdentifier());
     addBatchTags(traceComponent, notification.getEvent());
@@ -91,16 +94,17 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
         .getProcessorComponentFor(sourceIdentifier, expressionManager,
             componentRegistryService);
     if (processorComponentFor != null) {
-      TraceComponent sourceTrace = processorComponentFor.getSourceStartTraceComponent(notification,
-          traceContextHandler);
-      if (sourceTrace != null) {
-        SpanKind sourceKind = sourceTrace.getSpanKind() != null ? sourceTrace.getSpanKind()
-            : SpanKind.SERVER;
-        startTraceComponent.getTags().putAll(sourceTrace.getTags());
-        startTraceComponent.withSpanKind(sourceKind)
-            .withSpanName(sourceTrace.getSpanName())
-            .withTransactionId(sourceTrace.getTransactionId())
-            .withContext(sourceTrace.getContext());
+      try (TraceComponent sourceTrace = processorComponentFor.getSourceStartTraceComponent(notification,
+          traceContextHandler)) {
+        if (sourceTrace != null) {
+          SpanKind sourceKind = sourceTrace.getSpanKind() != null ? sourceTrace.getSpanKind()
+              : SpanKind.SERVER;
+          startTraceComponent.getTags().putAll(sourceTrace.getTags());
+          startTraceComponent.withSpanKind(sourceKind)
+              .withSpanName(sourceTrace.getSpanName())
+              .withTransactionId(sourceTrace.getTransactionId())
+              .withContext(sourceTrace.getContext());
+        }
       }
     }
     return startTraceComponent;
@@ -125,11 +129,12 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
         .getProcessorComponentFor(sourceIdentifier, expressionManager,
             componentRegistryService);
     if (processorComponent != null) {
-      TraceComponent sourceTrace = processorComponent.getSourceEndTraceComponent(notification,
-          traceContextHandler);
-      if (sourceTrace != null) {
-        traceComponent.getTags().putAll(sourceTrace.getTags());
-        traceComponent.withStatsCode(sourceTrace.getStatusCode());
+      try (TraceComponent sourceTrace = processorComponent.getSourceEndTraceComponent(notification,
+          traceContextHandler)) {
+        if (sourceTrace != null) {
+          traceComponent.getTags().putAll(sourceTrace.getTags());
+          traceComponent.withStatsCode(sourceTrace.getStatusCode());
+        }
       }
     }
     return traceComponent;

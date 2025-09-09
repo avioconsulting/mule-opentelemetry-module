@@ -252,7 +252,7 @@ public class InterceptorProcessorConfig {
       throw new RuntimeException("Failed to load interceptor components", e);
     }
     if (LOGGER.isInfoEnabled()) {
-      LOGGER.info("Final list of Context Intercepted components: {}", propagationRequiredComponents);
+      LOGGER.debug("Final list of Context Intercepted components: {}", propagationRequiredComponents);
     }
   }
 

@@ -13,7 +13,7 @@ import java.util.Map;
 import static com.avioconsulting.mule.opentelemetry.internal.util.StringUtil.UNDERSCORE;
 import static com.avioconsulting.mule.opentelemetry.internal.util.StringUtil.UNDERSCORE_CHAR;
 
-public class TraceComponent implements ComponentEventContext {
+public class TraceComponent implements ComponentEventContext, AutoCloseable, Clearable {
   private Map<String, String> tags;
   private String name;
   private String transactionId;
@@ -35,7 +35,7 @@ public class TraceComponent implements ComponentEventContext {
   private long siblings = -1;
   private String eventContextPrimaryId;
 
-  private TraceComponent(String name) {
+  protected TraceComponent(String name) {
     this.name = name;
   }
 
@@ -127,7 +127,11 @@ public class TraceComponent implements ComponentEventContext {
 
   public TraceComponent withLocation(String val) {
     location = val;
-    if (getEventContextId() != null && val != null && contextScopedLocation == null) {
+    if (val == null) {
+      contextScopedLocation = null;
+      return this;
+    }
+    if (getEventContextId() != null && contextScopedLocation == null) {
       contextScopedLocation = getEventContextId() + "/" + val;
     }
     return this;
@@ -165,15 +169,19 @@ public class TraceComponent implements ComponentEventContext {
 
   public TraceComponent withEventContextId(String eventContextId) {
     this.eventContextId = eventContextId;
-    if (eventContextId != null && getLocation() != null && contextScopedLocation == null) {
+    if (eventContextId == null) {
+      contextScopedLocation = null;
+      eventContextPrimaryId = null;
+      contextNestingLevel = 0;
+      return this;
+    }
+    if (getLocation() != null && contextScopedLocation == null) {
       contextScopedLocation = eventContextId + "/" + getLocation();
     }
-    if (eventContextId != null) {
-      eventContextPrimaryId = eventContextId.contains(UNDERSCORE)
-          ? eventContextId.substring(0, eventContextId.indexOf(UNDERSCORE))
-          : eventContextId;
-      contextNestingLevel = StringUtil.countParts(eventContextId, UNDERSCORE_CHAR);
-    }
+    eventContextPrimaryId = eventContextId.contains(UNDERSCORE)
+        ? eventContextId.substring(0, eventContextId.indexOf(UNDERSCORE))
+        : eventContextId;
+    contextNestingLevel = StringUtil.countParts(eventContextId, UNDERSCORE_CHAR);
     return this;
   }
 
@@ -207,6 +215,31 @@ public class TraceComponent implements ComponentEventContext {
     return contextNestingLevel;
   }
 
+  /**
+   * Clears all fields for returning to pool.
+   */
+  public void clear() {
+    // Clear all fields to their default values
+    this.setName(null)
+        .withTransactionId(null)
+        .withSpanName(null)
+        .withLocation(null)
+        .withContext(null)
+        .withSpanKind(null)
+        .withErrorMessage(null)
+        .withStatsCode(null)
+        .withStartTime(null)
+        .withEndTime(null)
+        .withEventContextId(null)
+        .withComponentLocation(null)
+        .withSiblings(-1);
+
+    // Clear the embedded tags map
+    if (tags != null) {
+      tags.clear();
+    }
+  }
+
   @Override
   public String toString() {
     return "TraceComponent{" +
@@ -224,5 +257,10 @@ public class TraceComponent implements ComponentEventContext {
         ", eventContextId='" + eventContextId + '\'' +
         ", componentLocation=" + componentLocation +
         '}';
+  }
+
+  @Override
+  public void close() {
+    // the default application does nothing
   }
 }
