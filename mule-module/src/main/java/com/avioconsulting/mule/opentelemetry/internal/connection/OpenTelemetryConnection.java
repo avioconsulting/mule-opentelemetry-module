@@ -99,7 +99,10 @@ public class OpenTelemetryConnection implements TraceContextHandler,
       // Disable the resource providers that are handled by
       // MuleAppHostResourceProvider
       configMap.put("otel.java.disabled.resource.providers",
-          "io.opentelemetry.instrumentation.resources.HostResourceProvider,io.opentelemetry.instrumentation.resources.ContainerResourceProvider");
+          "io.opentelemetry.instrumentation.resources.HostResourceProvider," +
+              "io.opentelemetry.instrumentation.resources.ContainerResourceProvider," +
+              "io.opentelemetry.instrumentation.resources.ProcessResourceProvider");
+      configureLogParameters(configMap);
       builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
       if (logger.isDebugEnabled()) {
         logger.debug("Creating OpenTelemetryConnection with properties: [{}]", configMap);
@@ -145,6 +148,13 @@ public class OpenTelemetryConnection implements TraceContextHandler,
   // For testing purpose only
   public void withOpenTelemetry(OpenTelemetry openTelemetry) {
     this.openTelemetry = openTelemetry;
+  }
+
+  private void configureLogParameters(Map<String, String> configMap) {
+    configMap.put("otel.blrp.max.queue.size", "4096");
+    configMap.put("otel.blrp.max.export.batch.size", "2048");
+    configMap.put("otel.blrp.schedule.delay", "2000");
+    configMap.put("otel.blrp.export.timeout", "15000");
   }
 
   private void installOpenTelemetryLogger() {

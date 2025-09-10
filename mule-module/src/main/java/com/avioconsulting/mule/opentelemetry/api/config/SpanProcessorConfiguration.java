@@ -19,28 +19,28 @@ public class SpanProcessorConfiguration implements OtelConfigMapProvider {
   @Parameter
   @Placement(order = 10, tab = "Tracer Settings")
   @DisplayName("Max Queue Size")
-  @Optional(defaultValue = "2048")
+  @Optional(defaultValue = "4096")
   @Summary("The maximum number of spans in the waiting queue. Any new spans are dropped once the queue is full.")
   private long maxQueueSize;
 
   @Parameter
   @Placement(order = 20, tab = "Tracer Settings")
   @DisplayName("Max Batch Export Size")
-  @Optional(defaultValue = "512")
+  @Optional(defaultValue = "1024")
   @Summary("The maximum number of spans to export in a single batch. This must be smaller or equal to Max Queue Size.")
   private long maxBatchExportSize;
 
   @Parameter
   @Placement(order = 30, tab = "Tracer Settings")
   @DisplayName("Batch Export Delay Interval")
-  @Optional(defaultValue = "5000")
+  @Optional(defaultValue = "1500")
   @Summary("The delay interval in milliseconds between two consecutive batch exports.")
   private long batchExportDelayInterval;
 
   @Parameter
   @Placement(order = 40, tab = "Tracer Settings")
   @DisplayName("Batch Export Timeout")
-  @Optional(defaultValue = "30000")
+  @Optional(defaultValue = "10000")
   @Summary("The Maximum number of milliseconds the exporter will wait for a batch to export before cancelling the export.")
   private long exportTimeout;
 
