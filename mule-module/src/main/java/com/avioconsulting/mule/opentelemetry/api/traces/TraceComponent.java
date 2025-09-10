@@ -18,9 +18,12 @@ import static com.avioconsulting.mule.opentelemetry.internal.util.StringUtil.UND
 import static com.avioconsulting.mule.opentelemetry.internal.util.StringUtil.UNDERSCORE_CHAR;
 
 /**
- * Represents a traceable component in an application, capturing metadata such as tags, context,
- * and span information. This class implements various interfaces for extensibility and manages
- * operations related to trace tags, component event context, and lifecycle control.
+ * Represents a traceable component in an application, capturing metadata such
+ * as tags, context,
+ * and span information. This class implements various interfaces for
+ * extensibility and manages
+ * operations related to trace tags, component event context, and lifecycle
+ * control.
  */
 public class TraceComponent implements ComponentEventContext, AutoCloseable, Clearable, Taggable<String, String> {
   private final Map<String, String> tags;
@@ -113,12 +116,16 @@ public class TraceComponent implements ComponentEventContext, AutoCloseable, Cle
 
   /**
    * Retrieves a map of tags associated with the current trace component.
-   * This method is deprecated and should not be used for accessing or manipulating tags.
+   * This method is deprecated and should not be used for accessing or
+   * manipulating tags.
    * Use {@link TraceComponent#getReadOnlyTags()} for read-only access to tags.
    * For tag manipulation, use the individual methods on {@link TraceComponent}.
-   * This has been deprecated to prevent memory leaks of internal {@link Map} instance.
+   * This has been deprecated to prevent memory leaks of internal {@link Map}
+   * instance.
+   * 
    * @return a map of tags as key-value pairs, if this method were implemented.
-   *         However, this method will throw an {@link UnsupportedOperationException}.
+   *         However, this method will throw an
+   *         {@link UnsupportedOperationException}.
    */
   @Deprecated
   public Map<String, String> getTags() {
@@ -130,6 +137,7 @@ public class TraceComponent implements ComponentEventContext, AutoCloseable, Cle
    * Retrieves a read-only view of the tags associated with this trace component.
    * The returned map is unmodifiable to ensure that the tags cannot be altered.
    * Should be used during testing only.
+   * 
    * @return an unmodifiable map containing the tags as key-value pairs
    */
   public Map<String, String> getReadOnlyTags() {
