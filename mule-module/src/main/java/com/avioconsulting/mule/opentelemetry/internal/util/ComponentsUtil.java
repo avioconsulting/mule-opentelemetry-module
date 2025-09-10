@@ -148,8 +148,8 @@ public class ComponentsUtil {
   }
 
   public static boolean isFlowTrace(TraceComponent traceComponent) {
-    return traceComponent != null && traceComponent.getTags() != null
-        && "flow".equalsIgnoreCase(traceComponent.getTags().get(MULE_APP_PROCESSOR_NAME.getKey()));
+    return traceComponent != null && traceComponent.hasTags()
+        && "flow".equalsIgnoreCase(traceComponent.getTag(MULE_APP_PROCESSOR_NAME.getKey()));
   }
 
   public static boolean isFirstProcessor(ComponentLocation location) {
@@ -201,7 +201,7 @@ public class ComponentsUtil {
         .withContext(traceComponent.getContext())
         .withEventContextId(traceComponent.getEventContextId())
         .withEndTime(traceComponent.getEndTime());
-    subFlowTrace.getTags().put(MULE_APP_SCOPE_SUBFLOW_NAME.getKey(),
+    subFlowTrace.addTag(MULE_APP_SCOPE_SUBFLOW_NAME.getKey(),
         subFlowComp.getLocation());
     copyBatchTags(traceComponent, subFlowTrace);
     return subFlowTrace;
@@ -209,7 +209,7 @@ public class ComponentsUtil {
 
   /**
    * Resolves the target flow name using given #expressionManager and updates it
-   * in {@link TraceComponent#getTags()}.
+   * in tags
    * Then it looks up the component location for the resolved flow using given
    * {@link ComponentRegistryService}.
    * 
@@ -226,12 +226,12 @@ public class ComponentsUtil {
   public static ComponentLocation resolveFlowName(ExpressionManager expressionManager,
       TraceComponent traceComponent, Supplier<BindingContext> context,
       ComponentRegistryService componentRegistryService) {
-    String targetFlowName = traceComponent.getTags().get(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey());
+    String targetFlowName = traceComponent.getTag(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey());
     if (expressionManager
         .isExpression(targetFlowName)) {
       targetFlowName = expressionManager
           .evaluate(targetFlowName, context.get()).getValue().toString();
-      traceComponent.getTags().put(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(), targetFlowName);
+      traceComponent.addTag(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(), targetFlowName);
     }
     ComponentLocation componentLocation = componentRegistryService.findComponentLocation(targetFlowName);
     if (componentLocation == null) {

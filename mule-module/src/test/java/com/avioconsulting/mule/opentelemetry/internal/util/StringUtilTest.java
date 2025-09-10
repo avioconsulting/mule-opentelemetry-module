@@ -23,24 +23,4 @@ public class StringUtilTest {
     Assertions.assertThat(countParts).isEqualTo(splitLength);
   }
 
-  @Test
-  public void loggerTest() {
-    LOGGER.info("Test info message");
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Test debug message");
-    }
-    Map temp = mock(Map.class);
-    LOGGER.debug("Test debug with parameters message - {}", getValue(temp));
-    Mockito.verify(temp, Mockito.times(1)).get("test");
-    reset(temp);
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Test debug with parameters message - {}", getValue(temp));
-    }
-    Mockito.verify(temp, Mockito.times(0)).get("test");
-  }
-
-  public String getValue(Map<String, String> temp) {
-    LOGGER.info("Message from getValue method");
-    return temp.get("test");
-  }
 }

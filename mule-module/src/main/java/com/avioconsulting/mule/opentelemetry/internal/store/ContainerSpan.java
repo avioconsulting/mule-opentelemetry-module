@@ -40,7 +40,7 @@ public class ContainerSpan implements Serializable {
     this.span = span;
     this.transactionId = traceComponent.getTransactionId();
     this.rootContext = span.storeInContext(Context.current());
-    setTags(traceComponent.getTags());
+    traceComponent.copyTagsTo(tags);
     setRootSpanName(traceComponent.getSpanName());
     tagsToAttributes(traceComponent, span);
     rootProcessorSpan = new ProcessorSpan(span, traceComponent.getLocation(),
@@ -108,8 +108,8 @@ public class ContainerSpan implements Serializable {
     }
     Span span = spanBuilder.startSpan();
     ProcessorSpan ps = new ProcessorSpan(span, traceComponent.getLocation(), transactionId,
-        traceComponent.getStartTime(), this.containerName, traceComponent.getSiblings())
-            .setTags(traceComponent.getTags());
+        traceComponent.getStartTime(), this.containerName, traceComponent.getSiblings());
+    traceComponent.copyTagsTo(ps.getTags());
     ps.setParentSpan(parentSpan);
     if (LOGGER.isTraceEnabled()) {
       LOGGER.trace("Adding span for {}:{} - {}", traceComponent.contextScopedLocation(),

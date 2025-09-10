@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor.util;
 
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,7 @@ public class TraceComponentPool {
   private static final Logger LOGGER = LoggerFactory.getLogger(TraceComponentPool.class);
 
   // Pool configuration
-  private static final int MAX_POOL_SIZE = 200;
+  private static final int MAX_POOL_SIZE = PropertiesUtil.getInt("mule.otel.pooling.tracecomponent.maxsize", 1000);
 
   // Pools
   private final Queue<PooledTraceComponent> componentPool = new ConcurrentLinkedQueue<>();
@@ -52,8 +53,8 @@ public class TraceComponentPool {
       componentsReused.incrementAndGet();
       pooled.reset(transactionId, name);
       if (LOGGER.isTraceEnabled()) {
-        LOGGER.trace("Reused TraceComponent from pool (pool size: {}) - {}", currentPoolSize.get(),
-            pooled.getId() + " - " + pooled.getName());
+        LOGGER.trace("Reused TraceComponent from pool (pool size: {}) - {} - {}", currentPoolSize.get(),
+            pooled.getId() + " - " + pooled.getName(), pooled);
       }
       return pooled.withBorrowedAt(System.currentTimeMillis());
     }
@@ -63,7 +64,9 @@ public class TraceComponentPool {
     if (LOGGER.isTraceEnabled()) {
       LOGGER.trace("Created new TraceComponent (total created: {})", componentsCreated.get());
     }
-    return new PooledTraceComponent(transactionId, name, onClose).withBorrowedAt(System.currentTimeMillis());
+    TraceComponent traceComponent = new PooledTraceComponent(transactionId, name, onClose).withBorrowedAt(
+        System.currentTimeMillis());
+    return traceComponent;
   }
 
   /**
@@ -76,10 +79,10 @@ public class TraceComponentPool {
    * @return a TraceComponent instance
    */
   public TraceComponent acquire(String transactionId, String name, ComponentLocation location) {
-    TraceComponent component = acquire(transactionId, name);
-    return component
+    TraceComponent component = acquire(transactionId, name)
         .withLocation(location.getLocation())
         .withComponentLocation(location);
+    return component;
   }
 
   /**
@@ -95,8 +98,8 @@ public class TraceComponentPool {
 
     PooledTraceComponent pooled = (PooledTraceComponent) component;
     if (LOGGER.isTraceEnabled()) {
-      LOGGER.trace("Returning TraceComponent to pool (pool size: {}): {}", currentPoolSize.get(),
-          pooled.getId() + " - " + pooled.getName());
+      LOGGER.trace("Returning TraceComponent to pool (pool size: {}): {} - {}", currentPoolSize.get(),
+          pooled.getId() + " - " + pooled.getName(), pooled);
     }
     // Clear the component and its tags for reuse
     pooled.clear();
@@ -108,7 +111,7 @@ public class TraceComponentPool {
       componentsReturned.incrementAndGet();
 
       if (LOGGER.isTraceEnabled()) {
-        LOGGER.trace("Returned TraceComponent to pool (pool size: {})", currentPoolSize.get());
+        LOGGER.trace("Returned TraceComponent to pool (pool size: {}) - {}", currentPoolSize.get(), pooled);
       }
     }
   }

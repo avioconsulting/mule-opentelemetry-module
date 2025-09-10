@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor.util;
 
+import com.avioconsulting.mule.opentelemetry.api.traces.Taggable;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.FunctionMemoizer;
 import io.opentelemetry.semconv.HttpAttributes;
@@ -35,8 +36,8 @@ public class HttpSpanUtil {
    *            {@link Map} containing span tags
    * @return String HTTP Method name
    */
-  public static String method(Map<String, String> tags) {
-    return Objects.requireNonNull(tags.get(HttpAttributes.HTTP_REQUEST_METHOD.getKey()),
+  public static String method(Taggable<String, String> tags) {
+    return Objects.requireNonNull(tags.getTag(HttpAttributes.HTTP_REQUEST_METHOD.getKey()),
         "HTTP Method must not be null");
   }
 
@@ -49,7 +50,7 @@ public class HttpSpanUtil {
    *            {@link String} HTTP Route path
    * @return String span name
    */
-  public static String spanName(Map<String, String> tags, String route) {
+  public static String spanName(Taggable<String, String> tags, String route) {
     return spanName(method(tags), route);
   }
 
@@ -88,8 +89,8 @@ public class HttpSpanUtil {
    *            Map containing MULE_APP_FLOW_NAME
    * @return Normalized path (e.g., "/accounts/{accountId}")
    */
-  public static String apiKitRoutePath(Map<String, String> tags) {
-    String flowName = tags.get(MULE_APP_FLOW_NAME.getKey());
+  public static String apiKitRoutePath(Taggable<String, String> tags) {
+    String flowName = tags.getTag(MULE_APP_FLOW_NAME.getKey());
     return apiKitRoutePathExtractorMemoizer.apply(flowName);
   }
 

@@ -441,7 +441,7 @@ public class MuleNotificationProcessor {
       traceComponent
           .withSpanName(BATCH_ON_COMPLETE_TAG)
           .withEndTime(Instant.ofEpochMilli(batchNotification.getTimestamp()));
-      traceComponent.getTags().put(MULE_BATCH_JOB_INSTANCE_ID.toString(), jobInstance.getId());
+      traceComponent.addTag(MULE_BATCH_JOB_INSTANCE_ID.toString(), jobInstance.getId());
       openTelemetryConnection.endProcessorSpan(traceComponent,
           BatchError.of(batchNotification.getException()));
       if (BatchJobInstanceStatus.FAILED_PROCESS_RECORDS.equals(batchNotification.getJobInstance().getStatus())) {
@@ -480,9 +480,9 @@ public class MuleNotificationProcessor {
           .withEventContextId(
               record.getVariable(TransactionStore.OTEL_BATCH_STEP_RECORD_CONTEXT_ID).getValue()
                   .toString());
-      traceComponent.getTags().put(MULE_BATCH_JOB_INSTANCE_ID.getKey(), jobInstance.getId());
-      traceComponent.getTags().put(MULE_BATCH_JOB_NAME.getKey(), jobInstance.getOwnerJobName());
-      traceComponent.getTags().put(MULE_BATCH_JOB_STEP_NAME.getKey(), batchStep.getName());
+      traceComponent.addTag(MULE_BATCH_JOB_INSTANCE_ID.getKey(), jobInstance.getId());
+      traceComponent.addTag(MULE_BATCH_JOB_NAME.getKey(), jobInstance.getOwnerJobName());
+      traceComponent.addTag(MULE_BATCH_JOB_STEP_NAME.getKey(), batchStep.getName());
 
       openTelemetryConnection.endProcessorSpan(traceComponent,
           BatchError.of(record.getExceptionForStep(record.getCurrentStepId())));
@@ -497,9 +497,9 @@ public class MuleNotificationProcessor {
       traceComponent
           .withSpanName(batchStep.getName())
           .withEndTime(Instant.ofEpochMilli(batchNotification.getTimestamp()));
-      traceComponent.getTags().put(MULE_BATCH_JOB_INSTANCE_ID.getKey(), jobInstance.getId());
-      traceComponent.getTags().put(MULE_BATCH_JOB_NAME.getKey(), jobInstance.getOwnerJobName());
-      traceComponent.getTags().put(MULE_BATCH_JOB_STEP_NAME.getKey(), batchStep.getName());
+      traceComponent.addTag(MULE_BATCH_JOB_INSTANCE_ID.getKey(), jobInstance.getId());
+      traceComponent.addTag(MULE_BATCH_JOB_NAME.getKey(), jobInstance.getOwnerJobName());
+      traceComponent.addTag(MULE_BATCH_JOB_STEP_NAME.getKey(), batchStep.getName());
 
       openTelemetryConnection.endProcessorSpan(traceComponent, null);
     }

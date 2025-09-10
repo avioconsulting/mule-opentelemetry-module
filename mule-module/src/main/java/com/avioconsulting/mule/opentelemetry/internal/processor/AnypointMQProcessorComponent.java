@@ -50,7 +50,7 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
   @Override
   public TraceComponent getStartTraceComponent(Component component, Event event) {
     TraceComponent startTraceComponent = super.getStartTraceComponent(component, event);
-    if ("consume".equalsIgnoreCase(startTraceComponent.getTags().get(MULE_APP_PROCESSOR_NAME.getKey()))) {
+    if ("consume".equalsIgnoreCase(startTraceComponent.getTag(MULE_APP_PROCESSOR_NAME.getKey()))) {
       // TODO: Handling a different Parent Span than flow containing Consume
       // It may be possible that message was published by a different server flow
       // representing
@@ -59,23 +59,23 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
       // Should we add the message span context to Span link?
       startTraceComponent = startTraceComponent.withSpanKind(SpanKind.CONSUMER)
           .withSpanName(
-              formattedSpanName(startTraceComponent.getTags().get(MESSAGING_DESTINATION_NAME.getKey()),
+              formattedSpanName(startTraceComponent.getTag(MESSAGING_DESTINATION_NAME.getKey()),
                   MessagingOperationTypeIncubatingValues.RECEIVE));
     }
     return startTraceComponent;
   }
 
   @Override
-  protected <A> void addAttributes(Component component, TypedValue<A> attributes, Map<String, String> collector) {
+  protected <A> void addAttributes(Component component, TypedValue<A> attributes, TraceComponent collector) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
     Map<String, String> connectionParams = componentWrapper.getConfigConnectionParameters();
 
-    collector.put(MessagingIncubatingAttributes.MESSAGING_CLIENT_ID.getKey(), connectionParams.get("clientId"));
+    collector.addTag(MessagingIncubatingAttributes.MESSAGING_CLIENT_ID.getKey(), connectionParams.get("clientId"));
     if (attributes != null && attributes.getValue() instanceof AnypointMQMessageAttributes) {
       AnypointMQMessageAttributes attrs = (AnypointMQMessageAttributes) attributes.getValue();
-      collector.put(MESSAGING_MESSAGE_ID.getKey(), attrs.getMessageId());
+      collector.addTag(MESSAGING_MESSAGE_ID.getKey(), attrs.getMessageId());
     }
-    collector.put(MESSAGING_SYSTEM.getKey(), "anypointmq");
+    collector.addTag(MESSAGING_SYSTEM.getKey(), "anypointmq");
 
     addTagIfPresent(componentWrapper.getParameters(), "destination", collector,
         MESSAGING_DESTINATION_NAME.getKey());
@@ -94,8 +94,8 @@ public class AnypointMQProcessorComponent extends AbstractProcessorComponent {
       sourceComponent = notification.getComponent();
     }
     TraceComponent traceComponent = getTraceComponentBuilderFor(notification);
-    addAttributes(sourceComponent, attributesTypedValue, traceComponent.getTags());
-    traceComponent.getTags().put(MESSAGING_OPERATION_NAME.getKey(), PROCESS);
+    addAttributes(sourceComponent, attributesTypedValue, traceComponent);
+    traceComponent.addTag(MESSAGING_OPERATION_NAME.getKey(), PROCESS);
     return traceComponent
         .withSpanName(formattedSpanName(attributes.getDestination(), PROCESS))
         .withStatsCode(StatusCode.OK)

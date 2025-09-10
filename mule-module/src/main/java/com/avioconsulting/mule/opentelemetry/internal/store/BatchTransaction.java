@@ -49,7 +49,7 @@ public class BatchTransaction extends AbstractTransaction {
       Span rootSpan, TraceComponent batchTraceComponent, Function<String, SpanBuilder> spanBuilderFunction,
       ComponentRegistryService componentRegistryService) {
     super(jobInstanceId, traceId, batchJobName, batchTraceComponent.getStartTime());
-    this.batchTags.putAll(batchTraceComponent.getTags());
+    batchTraceComponent.copyTagsTo(this.batchTags);
     this.rootSpan = rootSpan;
     this.rootContext = rootSpan.storeInContext(Context.current());
     this.spanBuilderFunction = spanBuilderFunction;
@@ -69,7 +69,7 @@ public class BatchTransaction extends AbstractTransaction {
    * @link TraceComponent with tags containing MULE_BATCH_JOB_STEPS
    */
   private void extractStepLocations(TraceComponent batchTraceComponent) {
-    String jobSteps = batchTraceComponent.getTags().get(MULE_BATCH_JOB_STEPS.getKey());
+    String jobSteps = batchTraceComponent.getTag(MULE_BATCH_JOB_STEPS.getKey());
     if (jobSteps != null) {
       StringTokenizer tokenizer = new StringTokenizer(jobSteps, ",");
       while (tokenizer.hasMoreTokens()) {
@@ -118,13 +118,9 @@ public class BatchTransaction extends AbstractTransaction {
             .withLocation(location)
             .withEventContextId(processorTrace.getEventContextId())
             .withStartTime(processorTrace.getStartTime());
-        processorTrace.getTags().forEach((k, v) -> {
-          if (!k.startsWith("mule.app.processor")) {
-            stepTraceComponent.getTags().put(k, v);
-          }
-        });
+        processorTrace.copyTagsTo(stepTraceComponent, key -> key.startsWith("mule.app.processor"));
         if (stepName != null) {
-          stepTraceComponent.getTags().put(MULE_BATCH_JOB_STEP_NAME.getKey(), stepName);
+          stepTraceComponent.addTag(MULE_BATCH_JOB_STEP_NAME.getKey(), stepName);
         }
         SpanBuilder spanBuilder = spanBuilderFunction.apply(name)
             .setParent(rootContext);
@@ -144,7 +140,7 @@ public class BatchTransaction extends AbstractTransaction {
 
   public SpanMeta addProcessorSpan(String containerPath, TraceComponent traceComponent, SpanBuilder spanBuilder) {
     SpanMeta spanMeta = null;
-    String stepName = traceComponent.getTags().get(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
+    String stepName = traceComponent.getTag(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
     if (isBatchOnComplete(containerPath, componentRegistryService)) {
       stepName = BATCH_ON_COMPLETE_TAG;
     }
@@ -193,9 +189,9 @@ public class BatchTransaction extends AbstractTransaction {
               .withEventContextId(traceComponent.getEventContextId())
               .withSiblings(traceComponent.getSiblings());
           copyBatchTags(traceComponent, aggrTraceComponent);
-          aggrTraceComponent.getTags().put(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
+          aggrTraceComponent.addTag(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
               "batch");
-          aggrTraceComponent.getTags().put(MULE_APP_PROCESSOR_NAME.getKey(),
+          aggrTraceComponent.addTag(MULE_APP_PROCESSOR_NAME.getKey(),
               "aggregator");
           aggrSpan = ContainerSpan.addProcessorSpan(
               containerPath.substring(0, containerPath.lastIndexOf("/")),
@@ -242,8 +238,8 @@ public class BatchTransaction extends AbstractTransaction {
               .withLocation(recordPath)
               .withStartTime(traceComponent.getStartTime())
               .withSpanName(BATCH_STEP_RECORD_TAG)
-              .withTags(traceComponent.getTags())
               .withEventContextId(traceComponent.getEventContextId());
+          traceComponent.copyTagsTo(recordTrace);
           SpanBuilder record = spanBuilderFunction.apply(recordTrace.getName());
 
           SpanMeta recordSpanMeta = stepSpan.addChildContainer(recordTrace,
@@ -263,11 +259,14 @@ public class BatchTransaction extends AbstractTransaction {
       return null;
     }
     ProcessorSpan processorSpan = stepProcessorSpans.get(containerName);
-    return processorSpan == null ? null : processorSpan.setTags(traceComponent.getTags());
+    if (processorSpan != null) {
+      traceComponent.copyTagsTo(processorSpan.getTags());
+    }
+    return processorSpan;
   }
 
   private ProcessorSpan getStepProcessorSpan(TraceComponent traceComponent) {
-    String containerName = traceComponent.getTags().get(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
+    String containerName = traceComponent.getTag(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
     return getStepProcessorSpan(traceComponent, containerName);
   }
 
@@ -277,7 +276,7 @@ public class BatchTransaction extends AbstractTransaction {
         || BATCH_ON_COMPLETE_TAG.equalsIgnoreCase(traceComponent.getName())) {
       return endContainerSpan(traceComponent, stepProcessorSpans.get(traceComponent.getSpanName()));
     } else {
-      String spanName = traceComponent.getTags().get(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
+      String spanName = traceComponent.getTag(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
       if (spanName == null) {
         String locationParent = getLocationParent(traceComponent.getLocation());
         if (isBatchOnComplete(locationParent, componentRegistryService)) {
@@ -302,7 +301,7 @@ public class BatchTransaction extends AbstractTransaction {
                   .withSpanKind(SpanKind.INTERNAL)
                   .withEventContextId(traceComponent.getEventContextId())
                   .withEndTime(traceComponent.getEndTime());
-              aggrTraceComponent.getTags().putAll(traceComponent.getTags());
+              traceComponent.copyTagsTo(aggrTraceComponent);
               ContainerSpan.endProcessorSpan(aggrTraceComponent, spanUpdater, endTime);
             }
           }
@@ -318,7 +317,7 @@ public class BatchTransaction extends AbstractTransaction {
       return null;
     ContainerSpan stepSpan = stepSpans.get(processorSpan.getLocation()).get();
     processorSpan.setEndTime(traceComponent.getEndTime());
-    processorSpan.getTags().putAll(traceComponent.getTags());
+    traceComponent.copyTagsTo(processorSpan.getTags());
     stepSpan.getSpan().end(traceComponent.getEndTime());
     return processorSpan;
   }

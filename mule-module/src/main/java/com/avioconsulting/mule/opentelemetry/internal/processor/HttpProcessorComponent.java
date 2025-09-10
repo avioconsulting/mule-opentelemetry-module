@@ -22,7 +22,6 @@ import org.mule.runtime.api.notification.EnrichedServerNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -104,16 +103,14 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     // If HTTP Requester generates an error (e.g. 404), then error message does
     // include the HTTP Response attributes.
     HttpResponseAttributes attributes = responseAttributes.getValue();
-    Map<String, String> tags = new HashMap<>();
-    tags.put(HTTP_RESPONSE_STATUS_CODE.getKey(), Integer.toString(attributes.getStatusCode()));
+    endTraceComponent.addTag(HTTP_RESPONSE_STATUS_CODE.getKey(),
+        Integer.toString(attributes.getStatusCode()));
     endTraceComponent.withStatsCode(getSpanStatus(false, attributes.getStatusCode()));
     if (attributes.getHeaders().containsKey("content-length")) {
-      tags.put(SemanticAttributes.HTTP_RESPONSE_HEADER_CONTENT_LENGTH.getKey(),
+      endTraceComponent.addTag(SemanticAttributes.HTTP_RESPONSE_HEADER_CONTENT_LENGTH.getKey(),
           attributes.getHeaders().get("content-length"));
     }
-    if (endTraceComponent.getTags() != null)
-      tags.putAll(endTraceComponent.getTags());
-    return endTraceComponent.withTags(tags);
+    return endTraceComponent;
   }
 
   private StatusCode getSpanStatus(boolean isServer, int statusCode) {
@@ -131,16 +128,16 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
   public TraceComponent getStartTraceComponent(Component component, Event event) {
     TraceComponent traceComponent = super.getStartTraceComponent(component, event);
     addAttributes(component,
-        event.getMessage().getAttributes(), traceComponent.getTags());
+        event.getMessage().getAttributes(), traceComponent);
 
     return traceComponent.setName(component.getLocation().getRootContainerName())
         .withLocation(component.getLocation().getLocation())
-        .withSpanName(traceComponent.getTags().get(HTTP_ROUTE.getKey()));
+        .withSpanName(traceComponent.getTag(HTTP_ROUTE.getKey()));
   }
 
   @Override
   protected <A> void addAttributes(Component component, TypedValue<A> attributes,
-      final Map<String, String> collector) {
+      final TraceComponent collector) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
     if (isRequester(component.getIdentifier())) {
       getRequesterTags(componentWrapper, collector);
@@ -150,13 +147,13 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     }
   }
 
-  private void getRequesterTags(ComponentWrapper componentWrapper, final Map<String, String> collector) {
+  private void getRequesterTags(ComponentWrapper componentWrapper, final TraceComponent collector) {
     String path = componentWrapper.getParameters().get("path");
     Map<String, String> connectionParameters = componentWrapper.getConfigConnectionParameters();
     if (!connectionParameters.isEmpty()) {
-      collector.put(URL_SCHEME.getKey(), connectionParameters.getOrDefault("protocol", "").toLowerCase());
-      collector.put(ServerAttributes.SERVER_ADDRESS.getKey(), connectionParameters.getOrDefault("host", ""));
-      collector.put(SERVER_PORT.getKey(), connectionParameters.getOrDefault("port", ""));
+      collector.addTag(URL_SCHEME.getKey(), connectionParameters.getOrDefault("protocol", "").toLowerCase());
+      collector.addTag(ServerAttributes.SERVER_ADDRESS.getKey(), connectionParameters.getOrDefault("host", ""));
+      collector.addTag(SERVER_PORT.getKey(), connectionParameters.getOrDefault("port", ""));
     }
     Map<String, String> configParameters = componentWrapper.getConfigParameters();
     if (!configParameters.isEmpty()) {
@@ -165,8 +162,8 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
         path = configParameters.get("basePath").concat(path).intern();
       }
     }
-    collector.put(HTTP_ROUTE.getKey(), path);
-    collector.put(HttpAttributes.HTTP_REQUEST_METHOD.getKey(), componentWrapper.getParameters().get("method"));
+    collector.addTag(HTTP_ROUTE.getKey(), path);
+    collector.addTag(HttpAttributes.HTTP_REQUEST_METHOD.getKey(), componentWrapper.getParameters().get("method"));
   }
 
   @Override
@@ -174,14 +171,13 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
       TraceContextHandler traceContextHandler) {
     TypedValue<HttpRequestAttributes> attributesTypedValue = notification.getEvent().getMessage().getAttributes();
     HttpRequestAttributes attributes = attributesTypedValue.getValue();
-    Map<String, String> tags = new HashMap<>();
-    attributesToTags(attributes, tags);
-    return traceComponentManager
+    TraceComponent traceComponent = traceComponentManager
         .createTraceComponent(getTransactionId(notification), notification.getResourceIdentifier(),
             notification.getComponent().getLocation())
-        .withTags(tags)
-        .withSpanName(HttpSpanUtil.spanName(tags, attributes.getListenerPath()))
         .withContext(traceContextHandler.getTraceContext(attributes.getHeaders(), ContextMapGetter.INSTANCE));
+    attributesToTags(attributes, traceComponent);
+    traceComponent.withSpanName(HttpSpanUtil.spanName(traceComponent, attributes.getListenerPath()));
+    return traceComponent;
   }
 
   @Override
@@ -207,7 +203,7 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
           statusCode = statusCode.substring(1, statusCode.length() - 1);
         }
         TraceComponent traceComponent = getTraceComponentBuilderFor(notification);
-        traceComponent.getTags().put(HTTP_RESPONSE_STATUS_CODE.getKey(), statusCode);
+        traceComponent.addTag(HTTP_RESPONSE_STATUS_CODE.getKey(), statusCode);
         traceComponent.withStatsCode(getSpanStatus(true, Integer.parseInt(statusCode)));
         return traceComponent;
       }
@@ -226,21 +222,20 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     return null;
   }
 
-  private Map<String, String> attributesToTags(HttpRequestAttributes attributes,
-      final Map<String, String> collector) {
+  private void attributesToTags(HttpRequestAttributes attributes,
+      final TraceComponent collector) {
     // TODO: Server span should have client.address
     // tags.put(SERVER_ADDRESS.getKey(), attributes.getHeaders().get("host"));
-    collector.put(UserAgentAttributes.USER_AGENT_ORIGINAL.getKey(), attributes.getHeaders().get("user-agent"));
-    collector.put(HTTP_REQUEST_METHOD.getKey(), attributes.getMethod());
-    collector.put(URL_SCHEME.getKey(), attributes.getScheme());
-    collector.put(HTTP_ROUTE.getKey(), attributes.getListenerPath());
-    collector.put(URL_PATH.getKey(), attributes.getRequestPath());
+    collector.addTag(UserAgentAttributes.USER_AGENT_ORIGINAL.getKey(), attributes.getHeaders().get("user-agent"));
+    collector.addTag(HTTP_REQUEST_METHOD.getKey(), attributes.getMethod());
+    collector.addTag(URL_SCHEME.getKey(), attributes.getScheme());
+    collector.addTag(HTTP_ROUTE.getKey(), attributes.getListenerPath());
+    collector.addTag(URL_PATH.getKey(), attributes.getRequestPath());
     if (attributes.getQueryString() != null) {
-      collector.put(URL_QUERY.getKey(), attributes.getQueryString());
+      collector.addTag(URL_QUERY.getKey(), attributes.getQueryString());
     }
     // TODO: Support additional request headers to be added in
     // http.request.header.<key>=<header-value> attribute.
-    return collector;
   }
 
 }

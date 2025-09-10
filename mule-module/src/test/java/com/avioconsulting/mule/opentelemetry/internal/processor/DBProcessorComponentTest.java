@@ -1,5 +1,6 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
@@ -61,17 +62,17 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
     dbProcessorComponent
         .withComponentRegistryService(componentRegistryService);
-    Map<String, String> attributes = new HashMap<>();
-    dbProcessorComponent.addAttributes(component, null, attributes);
+    TraceComponent tc = TraceComponent.of("test", new HashMap<>());
+    dbProcessorComponent.addAttributes(component, null, tc);
 
-    assertThat(attributes)
+    assertThat(tc.getReadOnlyTags())
         .containsEntry("db.system", expectedDbSysName)
         .containsEntry("db.operation.name", "select")
         .containsEntry("db.query.text", "select * from test where id = :id")
         .containsEntry("db.namespace", expectedDBNamespace)
         .containsEntry("inputParameters", "#[{id: 1}]");
     if (!dbNameKey.equalsIgnoreCase("dataSourceRef")) {
-      assertThat(attributes)
+      assertThat(tc.getReadOnlyTags())
           .containsEntry("server.address", "localhost")
           .containsEntry("server.port", "2004");
     }
@@ -95,10 +96,10 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
     dbProcessorComponent
         .withComponentRegistryService(componentRegistryService);
-    Map<String, String> attributes = new HashMap<>();
-    dbProcessorComponent.addAttributes(component, null, attributes);
+    TraceComponent tc = TraceComponent.of("test", new HashMap<>());
+    dbProcessorComponent.addAttributes(component, null, tc);
 
-    assertThat(attributes)
+    assertThat(tc.getReadOnlyTags())
         .containsEntry("db.system", "other_sql")
         .containsEntry("db.query.text", "select * from test")
         .containsEntry("db.operation.name", "select");

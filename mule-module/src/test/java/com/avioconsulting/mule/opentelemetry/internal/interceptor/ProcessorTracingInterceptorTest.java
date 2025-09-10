@@ -267,7 +267,7 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     ProcessorComponent processorComponent = mock(ProcessorComponent.class);
 
     // Trace component not found
-    TraceComponent traceComponent = TraceComponent.of("test").withLocation("test-location")
+    TraceComponent traceComponent = TraceComponent.of("test", Collections.emptyMap()).withLocation("test-location")
         .withEventContextId("test-event-id");
     when(processorComponent.getStartTraceComponent(any(), any())).thenReturn(traceComponent);
 

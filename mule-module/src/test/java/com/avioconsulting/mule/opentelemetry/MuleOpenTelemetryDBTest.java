@@ -71,20 +71,18 @@ public class MuleOpenTelemetryDBTest extends AbstractMuleArtifactTraceTest {
   @Parameters(method = "CRUD_Parameters")
   public void testValid_DB_CRUD_Tracing(String path, String docName, String statement) throws Exception {
     sendRequest(UUID.randomUUID().toString(), "/test/db/" + path, 200);
-    // TODO: This works but Exporter provider is in main package
-    // and requires plugin class exporting to make it visible in test.
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .isNotEmpty()
+        .hasSize(2)
         .anySatisfy(span -> assertDBSpan(span, docName, statement)));
   }
 
   @Test
   public void selectByValidId() throws Exception {
     sendRequest(UUID.randomUUID().toString(), "/test/db/select-by-id?userId=100", 200);
-    // TODO: This works but Exporter provider is in main package
-    // and requires plugin class exporting to make it visible in test.
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .isNotEmpty()
+        .hasSize(2)
         .anySatisfy(span -> assertDBSpan(span, "Select", "select * from testdb.users where userId=:userId"))
         .anySatisfy(span -> {
           assertThat(span.getAttributes())
@@ -96,8 +94,6 @@ public class MuleOpenTelemetryDBTest extends AbstractMuleArtifactTraceTest {
   @Ignore
   public void testStoredProcedure() throws Exception {
     CoreEvent coreEvent = runFlow("DB-invoke-SP");
-    // TODO: This works but Exporter provider is in main package
-    // and requires plugin class exporting to make it visible in test.
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .isNotEmpty()
         .anySatisfy(span -> assertDBSpan(span, "Select", "select * from testdb.users where userId=:userId"))
@@ -110,10 +106,9 @@ public class MuleOpenTelemetryDBTest extends AbstractMuleArtifactTraceTest {
   @Test
   public void selectByNullId() throws Exception {
     sendRequest(UUID.randomUUID().toString(), "/test/db/select-by-id?", 200);
-    // TODO: This works but Exporter provider is in main package
-    // and requires plugin class exporting to make it visible in test.
     await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
         .isNotEmpty()
+        .hasSize(2)
         .anySatisfy(span -> assertDBSpan(span, "Select", "select * from testdb.users where userId=:userId"))
         .anySatisfy(span -> {
           assertThat(span.getAttributes())

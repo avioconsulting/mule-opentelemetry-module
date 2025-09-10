@@ -384,13 +384,13 @@ public class OpenTelemetryConnection implements TraceContextHandler,
         span -> {
           if (error != null) {
             span.recordException(error.getCause());
-            traceComponent.getTags().put(ERROR_TYPE.getKey(),
+            traceComponent.addTag(ERROR_TYPE.getKey(),
                 error.getCause().getClass().getCanonicalName());
-            traceComponent.getTags().put(ERROR_MESSAGE.getKey(),
+            traceComponent.addTag(ERROR_MESSAGE.getKey(),
                 error.getDescription());
             if (error.getErrorType() != null
                 && !MULE_ANY.equals(error.getErrorType().toString())) {
-              traceComponent.getTags().put(ErrorAttributes.ERROR_TYPE.getKey(),
+              traceComponent.addTag(ErrorAttributes.ERROR_TYPE.getKey(),
                   error.getErrorType().toString());
             }
           }
@@ -406,28 +406,28 @@ public class OpenTelemetryConnection implements TraceContextHandler,
     if (!traceComponent.getName().equalsIgnoreCase(BATCH_JOB_TAG)) {
       return;
     }
-    String batchJobInstanceId = traceComponent.getTags().get(MULE_BATCH_JOB_INSTANCE_ID.getKey());
-    Map<String, String> tags = new HashMap<>(10);
-    tags.putAll(spanMeta.getTags());
-    tags.putAll(traceComponent.getTags());
-    TraceComponent batchComponent = TraceComponent
-        .of(traceComponent.getTags().get(MULE_BATCH_JOB_NAME.getKey()), traceComponent.getComponentLocation())
-        .withLocation(traceComponent.getLocation())
-        .withTags(tags)
-        .withTransactionId(batchJobInstanceId)
-        .withSpanName(traceComponent.getTags().get(MULE_BATCH_JOB_NAME.getKey()))
-        .withSpanKind(SpanKind.SERVER)
-        .withContext(spanMeta.getContext())
-        .withEventContextId(traceComponent.getEventContextId())
-        .withStartTime(traceComponent.getStartTime());
-    startTransaction(batchComponent);
-    if (BatchHelperUtil.isBatchSupportDisabled()) {
-      // The Batch Job transaction is just for representation since batch support is
-      // disabled
-      // End the transaction.
-      batchComponent.getTags().put(MULE_BATCH_TRACE_DISABLED.getKey(), "true");
-      batchComponent.withEndTime(traceComponent.getEndTime());
-      endTransaction(batchComponent, null);
+    String batchJobInstanceId = traceComponent.getTag(MULE_BATCH_JOB_INSTANCE_ID.getKey());
+    try (TraceComponent batchComponent = TraceComponentManager.getInstance()
+        .createTraceComponent(batchJobInstanceId, traceComponent.getTag(MULE_BATCH_JOB_NAME.getKey()),
+            traceComponent.getComponentLocation())) {
+      batchComponent.withLocation(traceComponent.getLocation())
+          .withTransactionId(batchJobInstanceId)
+          .withSpanName(traceComponent.getTag(MULE_BATCH_JOB_NAME.getKey()))
+          .withSpanKind(SpanKind.SERVER)
+          .withContext(spanMeta.getContext())
+          .withEventContextId(traceComponent.getEventContextId())
+          .withStartTime(traceComponent.getStartTime());
+      batchComponent.addAllTags(spanMeta.getTags());
+      traceComponent.copyTagsTo(batchComponent);
+      startTransaction(batchComponent);
+      if (BatchHelperUtil.isBatchSupportDisabled()) {
+        // The Batch Job transaction is just for representation since batch support is
+        // disabled
+        // End the transaction.
+        batchComponent.addTag(MULE_BATCH_TRACE_DISABLED.getKey(), "true");
+        batchComponent.withEndTime(traceComponent.getEndTime());
+        endTransaction(batchComponent, null);
+      }
     }
   }
 
@@ -439,8 +439,8 @@ public class OpenTelemetryConnection implements TraceContextHandler,
         .setParent(traceComponent.getContext())
         .setStartTimestamp(traceComponent.getStartTime());
     String configName;
-    if ((configName = traceComponent.getTags().get(MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey())) != null) {
-      traceComponent.getTags().putAll(componentRegistryService.getGlobalConfigOtelSystemProperties(configName));
+    if ((configName = traceComponent.getTag(MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey())) != null) {
+      traceComponent.addAllTags(componentRegistryService.getGlobalConfigOtelSystemProperties(configName));
     }
     getTransactionStore().startTransaction(
         traceComponent, traceComponent.getName(), spanBuilder);

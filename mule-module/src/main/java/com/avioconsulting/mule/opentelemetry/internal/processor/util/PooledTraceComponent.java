@@ -21,16 +21,15 @@ import java.util.function.Consumer;
 public class PooledTraceComponent extends TraceComponent implements Borrowable {
   private final Consumer<TraceComponent> onClose;
 
-  private static final int INITIAL_TAG_MAP_CAPACITY = 32; // Increased for 20-30 attributes
+  private static final int INITIAL_TAG_MAP_CAPACITY = 64;
 
   private final String id = UUID.randomUUID().toString();
   private long borrowedAt;
 
   PooledTraceComponent(String transactionId, String name, Consumer<TraceComponent> onClose) {
-    super(name);
+    super(name, new HashMap<>(INITIAL_TAG_MAP_CAPACITY));
     this.withTransactionId(transactionId);
     this.onClose = Objects.requireNonNull(onClose);
-    this.withTags(new HashMap<>(INITIAL_TAG_MAP_CAPACITY));
   }
 
   public String getId() {
@@ -41,7 +40,6 @@ public class PooledTraceComponent extends TraceComponent implements Borrowable {
    * Resets the component for reuse with a new name.
    */
   void reset(String transactionId, String name) {
-    clear();
     this.setName(name)
         .withTransactionId(transactionId)
         .withStartTime(Instant.now());

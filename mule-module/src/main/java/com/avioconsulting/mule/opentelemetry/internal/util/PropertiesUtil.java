@@ -62,6 +62,13 @@ public class PropertiesUtil {
     return Boolean.parseBoolean(property);
   }
 
+  public static int getInt(String name, int defaultValue) {
+    String property = getProperty(name);
+    if (property == null)
+      return defaultValue;
+    return Integer.parseInt(property);
+  }
+
   private static String toEnvName(String propertyName) {
     return propertyName
         .toUpperCase(Locale.ROOT)

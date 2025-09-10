@@ -24,6 +24,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.mock;
@@ -58,7 +59,8 @@ public class ProcessorTracingInterceptorTest extends AbstractJMHTest {
     SpanBuilder spanBuilder = tracer.spanBuilder("test-transaction")
         .setSpanKind(SpanKind.SERVER)
         .setStartTimestamp(startTimestamp);
-    TraceComponent traceComponent = TraceComponent.of("test-1").withTransactionId(TEST_1_TRANSACTION_ID)
+    TraceComponent traceComponent = TraceComponent.of("test-1", new HashMap<>())
+        .withTransactionId(TEST_1_TRANSACTION_ID)
         .withStartTime(startTimestamp)
         .withLocation(TEST_1_FLOW_FLOW_REF);
     connection.getTransactionStore().startTransaction(traceComponent, TEST_1_FLOW, spanBuilder);

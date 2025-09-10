@@ -62,7 +62,7 @@ public class InMemoryTransactionStore implements TransactionStore {
       }
       transaction.addChildTransaction(traceComponent, spanBuilder);
     } else {
-      boolean isBatchJob = traceComponent.getTags().containsKey(MULE_BATCH_JOB_NAME.getKey());
+      boolean isBatchJob = traceComponent.hasTagFor(MULE_BATCH_JOB_NAME.getKey());
       if (isBatchJob) {
         startBatchTransaction(traceComponent, rootName, spanBuilder, transactionId);
       } else {
@@ -191,8 +191,8 @@ public class InMemoryTransactionStore implements TransactionStore {
       if (LOGGER.isTraceEnabled()) {
         LOGGER.trace("No transaction meta found for {} ", traceComponent);
       }
-    } else if (traceComponent.getTags() != null && transactionMeta.getTags() != null) {
-      transactionMeta.getTags().putAll(traceComponent.getTags());
+    } else if (transactionMeta.getTags() != null) {
+      traceComponent.copyTagsTo(transactionMeta.getTags());
     }
     return transactionMeta;
   }

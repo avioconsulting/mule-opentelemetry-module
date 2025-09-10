@@ -49,13 +49,12 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
         notification.getResourceIdentifier(),
         notification.getComponent().getLocation());
 
-    Map<String, String> tags = traceComponent.getTags();
-    addProcessorCommonTags(notification.getComponent(), tags);
-    tags.put(MULE_APP_FLOW_NAME.getKey(), notification.getResourceIdentifier());
-    tags.put(MULE_SERVER_ID.getKey(), notification.getServerId());
-    tags.put(MULE_CORRELATION_ID.getKey(), notification.getEvent().getCorrelationId());
+    addProcessorCommonTags(notification.getComponent(), traceComponent);
+    traceComponent.addTag(MULE_APP_FLOW_NAME.getKey(), notification.getResourceIdentifier());
+    traceComponent.addTag(MULE_SERVER_ID.getKey(), notification.getServerId());
+    traceComponent.addTag(MULE_CORRELATION_ID.getKey(), notification.getEvent().getCorrelationId());
 
-    traceComponent.withTags(tags)
+    traceComponent
         .withSpanName(notification.getResourceIdentifier())
         .withLocation(notification.getResourceIdentifier());
     addBatchTags(traceComponent, notification.getEvent());
@@ -81,12 +80,12 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
       }
       return startTraceComponent;
     }
-    startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_NAME.getKey(), sourceIdentifier.getName());
-    startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_NAMESPACE.getKey(), sourceIdentifier.getNamespace());
+    startTraceComponent.addTag(MULE_APP_FLOW_SOURCE_NAME.getKey(), sourceIdentifier.getName());
+    startTraceComponent.addTag(MULE_APP_FLOW_SOURCE_NAMESPACE.getKey(), sourceIdentifier.getNamespace());
     ComponentWrapper sourceWrapper = componentRegistryService
         .getComponentWrapper(componentRegistryService.findComponentByLocation(
             notification.getEvent().getContext().getOriginatingLocation().getLocation()));
-    startTraceComponent.getTags().put(MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey(), sourceWrapper.getConfigRef());
+    startTraceComponent.addTag(MULE_APP_FLOW_SOURCE_CONFIG_REF.getKey(), sourceWrapper.getConfigRef());
     // Find if there is a processor component to handle flow source component.
     // If exists, allow it to process notification and build any additional tags to
     // include in a trace.
@@ -99,7 +98,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
         if (sourceTrace != null) {
           SpanKind sourceKind = sourceTrace.getSpanKind() != null ? sourceTrace.getSpanKind()
               : SpanKind.SERVER;
-          startTraceComponent.getTags().putAll(sourceTrace.getTags());
+          sourceTrace.copyTagsTo(startTraceComponent);
           startTraceComponent.withSpanKind(sourceKind)
               .withSpanName(sourceTrace.getSpanName())
               .withTransactionId(sourceTrace.getTransactionId())
@@ -132,7 +131,7 @@ public class FlowProcessorComponent extends AbstractProcessorComponent {
       try (TraceComponent sourceTrace = processorComponent.getSourceEndTraceComponent(notification,
           traceContextHandler)) {
         if (sourceTrace != null) {
-          traceComponent.getTags().putAll(sourceTrace.getTags());
+          sourceTrace.copyTagsTo(traceComponent);
           traceComponent.withStatsCode(sourceTrace.getStatusCode());
         }
       }

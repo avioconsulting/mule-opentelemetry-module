@@ -59,8 +59,8 @@ public class DBProcessorComponent extends AbstractProcessorComponent {
   @Override
   public TraceComponent getStartTraceComponent(Component component, Event event) {
     TraceComponent startTraceComponent = super.getStartTraceComponent(component, event);
-    if (startTraceComponent.getTags().containsKey("inputParameters")) {
-      String inputParametersExpression = startTraceComponent.getTags().remove("inputParameters");
+    if (startTraceComponent.hasTagFor("inputParameters")) {
+      String inputParametersExpression = startTraceComponent.removeTag("inputParameters");
       try {
         if (inputParametersExpression != null && expressionManager.isExpression(inputParametersExpression)) {
           TypedValue<?> parameters = expressionManager.evaluate(inputParametersExpression,
@@ -68,7 +68,7 @@ public class DBProcessorComponent extends AbstractProcessorComponent {
           if (parameters.getValue() instanceof Map) {
             Map<String, Object> value = (Map<String, Object>) parameters.getValue();
             value.forEach((k, v) -> {
-              startTraceComponent.getTags().put(
+              startTraceComponent.addTag(
                   DbIncubatingAttributes.DB_OPERATION_PARAMETER.getAttributeKey(k).getKey(),
                   v == null ? "null" : v.toString());
             });
@@ -89,27 +89,27 @@ public class DBProcessorComponent extends AbstractProcessorComponent {
       .memoize((configName, cw) -> getDbInfo(cw));
 
   @Override
-  protected <A> void addAttributes(Component component, TypedValue<A> attributes, Map<String, String> collector) {
+  protected <A> void addAttributes(Component component, TypedValue<A> attributes, TraceComponent collector) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
 
     DBInfo dbInfo = dbInfoBiFunctionMemoizer.apply(componentWrapper.getConfigRef(), componentWrapper);
 
-    collector.put(DB_SYSTEM.getKey(), dbInfo.getSystem());
+    collector.addTag(DB_SYSTEM.getKey(), dbInfo.getSystem());
     if (dbInfo.getDatasourceRef() != null) {
-      collector.put(DB_DATASOURCE.getKey(), dbInfo.getDatasourceRef());
+      collector.addTag(DB_DATASOURCE.getKey(), dbInfo.getDatasourceRef());
     }
     if (dbInfo.getNamespace() != null) {
-      collector.put(DB_NAMESPACE.getKey(), dbInfo.getNamespace());
+      collector.addTag(DB_NAMESPACE.getKey(), dbInfo.getNamespace());
     }
     if (dbInfo.getHost() != null) {
-      collector.put(SERVER_ADDRESS.getKey(), dbInfo.getHost());
+      collector.addTag(SERVER_ADDRESS.getKey(), dbInfo.getHost());
     }
     if (dbInfo.getPort() != null) {
-      collector.put(SERVER_PORT.getKey(), dbInfo.getPort());
+      collector.addTag(SERVER_PORT.getKey(), dbInfo.getPort());
     }
-    collector.put(DB_QUERY_TEXT.getKey(), componentWrapper.getParameter("sql"));
-    collector.put(DB_OPERATION_NAME.getKey(), component.getIdentifier().getName());
-    collector.put("inputParameters", componentWrapper.getParameter("inputParameters"));
+    collector.addTag(DB_QUERY_TEXT.getKey(), componentWrapper.getParameter("sql"));
+    collector.addTag(DB_OPERATION_NAME.getKey(), component.getIdentifier().getName());
+    collector.addTag("inputParameters", componentWrapper.getParameter("inputParameters"));
   }
 
   private DBInfo getDbInfo(ComponentWrapper componentWrapper) {

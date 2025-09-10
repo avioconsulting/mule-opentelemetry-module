@@ -76,7 +76,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
 
     assertThat(endTraceComponent).isNotNull()
         .extracting("errorMessage").isEqualTo("Something failed");
-    assertThat(endTraceComponent.getTags()).isEmpty();
+    assertThat(endTraceComponent.getReadOnlyTags()).isEmpty();
 
   }
 
@@ -100,7 +100,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
 
     assertThat(endTraceComponent).isNotNull()
         .extracting("errorMessage").isEqualTo("Something failed");
-    assertThat(endTraceComponent.getTags()).isEmpty();
+    assertThat(endTraceComponent.getReadOnlyTags()).isEmpty();
   }
 
   @Test
@@ -140,7 +140,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
     assertThat(endTraceComponent).isNotNull()
         .extracting("spanName", "location", "spanKind")
         .containsExactly("/test", componentLocation.getLocation(), SpanKind.CLIENT);
-    assertThat(endTraceComponent.getTags())
+    assertThat(endTraceComponent.getReadOnlyTags())
         .hasSize(7)
         .containsEntry("http.request.method", "GET")
         .containsEntry("mule.app.processor.configRef", "test-config")
@@ -195,7 +195,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
     assertThat(sourceTraceComponent)
         .isNotNull()
         .extracting("name", "spanName").containsExactly("test-flow", "GET /test");
-    assertThat(sourceTraceComponent.getTags())
+    assertThat(sourceTraceComponent.getReadOnlyTags())
         .hasSize(6)
         .containsEntry("http.request.method", "GET")
         .containsEntry("http.route", "/test")

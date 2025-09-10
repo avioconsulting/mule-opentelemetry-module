@@ -8,13 +8,22 @@ import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static com.avioconsulting.mule.opentelemetry.internal.util.StringUtil.UNDERSCORE;
 import static com.avioconsulting.mule.opentelemetry.internal.util.StringUtil.UNDERSCORE_CHAR;
 
-public class TraceComponent implements ComponentEventContext, AutoCloseable, Clearable {
-  private Map<String, String> tags;
+/**
+ * Represents a traceable component in an application, capturing metadata such as tags, context,
+ * and span information. This class implements various interfaces for extensibility and manages
+ * operations related to trace tags, component event context, and lifecycle control.
+ */
+public class TraceComponent implements ComponentEventContext, AutoCloseable, Clearable, Taggable<String, String> {
+  private final Map<String, String> tags;
   private String name;
   private String transactionId;
   private String spanName;
@@ -35,24 +44,65 @@ public class TraceComponent implements ComponentEventContext, AutoCloseable, Cle
   private long siblings = -1;
   private String eventContextPrimaryId;
 
-  protected TraceComponent(String name) {
+  protected TraceComponent(String name, Map<String, String> tags) {
     this.name = name;
+    this.tags = tags;
   }
 
+  public static TraceComponent of(String name, Map<String, String> tags) {
+    return new TraceComponent(name, tags);
+  }
+
+  /**
+   * Use {@link TraceComponent#of(String, Map)} to explicitly assign the tag
+   * {@link Map}
+   * 
+   * @param name
+   *            Trace component name
+   * @return
+   */
+  @Deprecated
   public static TraceComponent of(String name) {
-    return new TraceComponent(name);
+    return new TraceComponent(name, new HashMap<>());
   }
 
+  /**
+   * Use {@link TraceComponent#of(String, Map)} to explicitly assign the tag
+   * {@link Map}
+   *
+   * @param name
+   *            Trace component name
+   * @return
+   */
+  @Deprecated
   public static TraceComponent of(String name, ComponentLocation location) {
-    return of(name)
+    return of(name, new HashMap<>())
         .withLocation(location.getLocation())
         .withComponentLocation(location);
   }
 
+  /**
+   * Use {@link TraceComponent#of(String, Map)} to explicitly assign the tag
+   * {@link Map}
+   *
+   * @param component
+   *            Trace component name
+   * @return
+   */
+  @Deprecated
   public static TraceComponent of(Component component) {
     return of(component.getLocation());
   }
 
+  /**
+   * Use {@link TraceComponent#of(String, Map)} to explicitly assign the tag
+   * {@link Map}
+   *
+   * @param location
+   *            Trace component name
+   * @return
+   */
+  @Deprecated
   public static TraceComponent of(ComponentLocation location) {
     return of(location.getLocation(), location);
   }
@@ -61,8 +111,29 @@ public class TraceComponent implements ComponentEventContext, AutoCloseable, Cle
     return spanKind;
   }
 
+  /**
+   * Retrieves a map of tags associated with the current trace component.
+   * This method is deprecated and should not be used for accessing or manipulating tags.
+   * Use {@link TraceComponent#getReadOnlyTags()} for read-only access to tags.
+   * For tag manipulation, use the individual methods on {@link TraceComponent}.
+   * This has been deprecated to prevent memory leaks of internal {@link Map} instance.
+   * @return a map of tags as key-value pairs, if this method were implemented.
+   *         However, this method will throw an {@link UnsupportedOperationException}.
+   */
+  @Deprecated
   public Map<String, String> getTags() {
-    return tags;
+    throw new UnsupportedOperationException(
+        "Use TraceComponent.getReadOnlyTags() for read-only access to tags instead. For manipulating tags, use individual methods on TraceComponent");
+  }
+
+  /**
+   * Retrieves a read-only view of the tags associated with this trace component.
+   * The returned map is unmodifiable to ensure that the tags cannot be altered.
+   * Should be used during testing only.
+   * @return an unmodifiable map containing the tags as key-value pairs
+   */
+  public Map<String, String> getReadOnlyTags() {
+    return Collections.unmodifiableMap(tags);
   }
 
   public TraceComponent setName(String name) {
@@ -111,8 +182,7 @@ public class TraceComponent implements ComponentEventContext, AutoCloseable, Cle
   }
 
   public TraceComponent withTags(Map<String, String> val) {
-    tags = val;
-    return this;
+    throw new UnsupportedOperationException("Use TraceComponent.of(String, Map<String,String>) instead");
   }
 
   public TraceComponent withTransactionId(String val) {
@@ -213,6 +283,83 @@ public class TraceComponent implements ComponentEventContext, AutoCloseable, Cle
 
   public int contextNestingLevel() {
     return contextNestingLevel;
+  }
+
+  public void addTag(String key, String value) {
+    if (tags != null) {
+      tags.put(key, value);
+    }
+  }
+
+  public String getTag(String key) {
+    if (tags != null) {
+      return tags.get(key);
+    }
+    return null;
+  }
+
+  public void addAllTags(Map<String, String> source) {
+    if (tags != null) {
+      this.tags.putAll(source);
+    }
+  }
+
+  public String removeTag(String key) {
+    if (tags != null) {
+      return tags.remove(key);
+    }
+    return null;
+  }
+
+  public void copyTagsTo(Map<String, String> target) {
+    if (tags != null && target != null) {
+      target.putAll(tags);
+    }
+  }
+
+  @Override
+  public void copyTagsTo(Taggable<String, String> target) {
+    if (!(target instanceof TraceComponent))
+      return;
+    if (tags != null && ((TraceComponent) target).tags != null) {
+      ((TraceComponent) target).tags.putAll(tags);
+    }
+  }
+
+  @Override
+  public void copyTagsTo(Taggable<String, String> target, Predicate<String> keyFilter) {
+    if (!(target instanceof TraceComponent))
+      return;
+    TraceComponent other = ((TraceComponent) target);
+    if (tags != null && other.tags != null) {
+      tags.forEach((key, value) -> {
+        if (keyFilter.test(key)) {
+          other.tags.put(key, value);
+        }
+      });
+    }
+  }
+
+  @Override
+  public boolean hasTagFor(String key) {
+    return tags != null && tags.containsKey(key);
+  }
+
+  @Override
+  public boolean hasTags() {
+    return tags != null && !tags.isEmpty();
+  }
+
+  @Override
+  public boolean containsTag(String key, String value) {
+    return tags != null && tags.containsKey(key) && tags.get(key).equals(value);
+  }
+
+  @Override
+  public void forEachTagEntry(Consumer<Map.Entry<String, String>> consumer) {
+    if (tags.isEmpty())
+      return;
+    tags.entrySet().forEach(consumer);
   }
 
   /**

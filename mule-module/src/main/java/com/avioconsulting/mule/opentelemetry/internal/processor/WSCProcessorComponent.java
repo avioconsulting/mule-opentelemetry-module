@@ -7,7 +7,6 @@ import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,14 +34,14 @@ public class WSCProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  protected <A> void addAttributes(Component component, TypedValue<A> attributes, Map<String, String> collector) {
+  protected <A> void addAttributes(Component component, TypedValue<A> attributes, TraceComponent collector) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
-    collector.put(WSC_CONSUMER_OPERATION.getKey(), componentWrapper.getParameter("operation"));
+    collector.addTag(WSC_CONSUMER_OPERATION.getKey(), componentWrapper.getParameter("operation"));
     Map<String, String> configConnectionParameters = componentWrapper.getConfigConnectionParameters();
-    collector.put(WSC_CONFIG_SERVICE.getKey(), configConnectionParameters.get("service"));
-    collector.put(WSC_CONFIG_PORT.getKey(), configConnectionParameters.get("port"));
+    collector.addTag(WSC_CONFIG_SERVICE.getKey(), configConnectionParameters.get("service"));
+    collector.addTag(WSC_CONFIG_PORT.getKey(), configConnectionParameters.get("port"));
     if (configConnectionParameters.containsKey("address")) {
-      collector.put(WSC_CONFIG_ADDRESS.getKey(), configConnectionParameters.get("address"));
+      collector.addTag(WSC_CONFIG_ADDRESS.getKey(), configConnectionParameters.get("address"));
     }
   }
 

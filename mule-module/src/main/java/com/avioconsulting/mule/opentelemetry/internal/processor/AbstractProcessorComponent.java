@@ -95,9 +95,9 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
     return getEventTransactionId(notification.getEvent());
   }
 
-  protected void addProcessorCommonTags(Component component, Map<String, String> collector) {
+  protected void addProcessorCommonTags(Component component, TraceComponent collector) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
-    collector.putAll(componentWrapper.staticParametersAsReadOnlyMap());
+    collector.addAllTags(componentWrapper.staticParametersAsReadOnlyMap());
   }
 
   protected ComponentIdentifier getSourceIdentifier(EnrichedServerNotification notification) {
@@ -125,7 +125,7 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
    * @param <A>
    */
   protected <A> void addAttributes(Component component, TypedValue<A> attributes,
-      final Map<String, String> collector) {
+      final TraceComponent collector) {
     // nothing to do in the abstract
   }
 
@@ -152,20 +152,18 @@ public abstract class AbstractProcessorComponent implements ProcessorComponent {
         .withSpanKind(getSpanKind())
         .withEventContextId(event.getContext().getId());
 
-    // Get the already allocated tags map and populate it
-    Map<String, String> tags = traceComponent.getTags();
-    addProcessorCommonTags(component, tags);
-    tags.put(MULE_CORRELATION_ID.getKey(), event.getCorrelationId());
-    addAttributes(component, event.getMessage().getAttributes(), tags);
+    addProcessorCommonTags(component, traceComponent);
+    traceComponent.addTag(MULE_CORRELATION_ID.getKey(), event.getCorrelationId());
+    addAttributes(component, event.getMessage().getAttributes(), traceComponent);
 
     addBatchTags(traceComponent, event);
     return traceComponent;
   }
 
-  protected void addTagIfPresent(Map<String, String> sourceMap, String sourceKey, Map<String, String> targetMap,
+  protected void addTagIfPresent(Map<String, String> sourceMap, String sourceKey, TraceComponent targetMap,
       String targetKey) {
     if (sourceMap.containsKey(sourceKey))
-      targetMap.put(targetKey, sourceMap.get(sourceKey));
+      targetMap.addTag(targetKey, sourceMap.get(sourceKey));
   }
 
   protected Component getSourceComponent(EnrichedServerNotification notification) {

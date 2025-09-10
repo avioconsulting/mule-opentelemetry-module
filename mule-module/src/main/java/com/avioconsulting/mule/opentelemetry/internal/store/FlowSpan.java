@@ -58,7 +58,7 @@ public class FlowSpan extends ContainerSpan {
     if (apikitConfigName != null && ComponentsUtil.isFlowTrace(traceComponent)
         && traceComponent.getName().endsWith(":" + apikitConfigName)) {
       if (getRootSpanName().endsWith("/*")) { // Wildcard listener for HTTP APIKit Router
-        String apiKitRoutePath = apiKitRoutePath(traceComponent.getTags());
+        String apiKitRoutePath = apiKitRoutePath(traceComponent);
         String spanName = getRootSpanName().replace("/*", apiKitRoutePath);
         setRootSpanName(spanName);
         getSpan().updateName(spanName);
@@ -73,9 +73,9 @@ public class FlowSpan extends ContainerSpan {
   private void extractAPIKitConfigName(TraceComponent traceComponent) {
     if (apikitConfigName == null
         && "apikit"
-            .equals(traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_NAMESPACE.getKey()))
-        && "router".equals(traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_NAME.getKey()))) {
-      apikitConfigName = traceComponent.getTags().get(SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF.getKey());
+            .equals(traceComponent.getTag(SemanticAttributes.MULE_APP_PROCESSOR_NAMESPACE.getKey()))
+        && "router".equals(traceComponent.getTag(SemanticAttributes.MULE_APP_PROCESSOR_NAME.getKey()))) {
+      apikitConfigName = traceComponent.getTag(SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF.getKey());
     }
   }
 

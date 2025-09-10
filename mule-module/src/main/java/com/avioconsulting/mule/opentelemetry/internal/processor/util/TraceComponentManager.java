@@ -106,7 +106,7 @@ public class TraceComponentManager {
     if (usePooling) {
       component = pool.acquire(transactionId, name);
     } else {
-      component = TraceComponent.of(name).withTransactionId(transactionId).withTags(new HashMap<>(32));
+      component = TraceComponent.of(name, new HashMap<>(32)).withTransactionId(transactionId);
     }
     trackComponent(component);
     return component;
@@ -128,8 +128,8 @@ public class TraceComponentManager {
     if (usePooling) {
       component = pool.acquire(transactionId, name, location);
     } else {
-      component = TraceComponent.of(name).withTransactionId(transactionId).withLocation(location.getLocation())
-          .withTags(new HashMap<>(32));
+      component = TraceComponent.of(name, new HashMap<>(32)).withTransactionId(transactionId)
+          .withLocation(location.getLocation());
     }
     trackComponent(component);
     return component;
@@ -206,7 +206,7 @@ public class TraceComponentManager {
     // handleComponentClose
     if (component instanceof PooledTraceComponent) {
       try {
-        ((PooledTraceComponent) component).close();
+        component.close();
       } catch (Exception e) {
         LOGGER.warn("Error closing PooledTraceComponent", e);
       }

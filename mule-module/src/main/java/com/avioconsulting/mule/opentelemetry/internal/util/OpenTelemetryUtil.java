@@ -133,14 +133,14 @@ public class OpenTelemetryUtil {
           traceComponent.withSpanName(value);
         }
       }
-      for (Map.Entry<String, String> e : traceComponent.getTags().entrySet()) {
-        if (expressionManager.isExpression(e.getValue())) {
-          String value = resolveExpression(e.getValue(), expressionManager, event);
-          if (value != null) {
-            e.setValue(value);
+      traceComponent.forEachTagEntry(entry -> {
+        if (expressionManager.isExpression(entry.getValue())) {
+          try {
+            entry.setValue(resolveExpression(entry.getValue(), expressionManager, event));
+          } catch (Exception ignored) {
           }
         }
-      }
+      });
     } catch (Exception ignored) {
     }
   }
@@ -178,24 +178,22 @@ public class OpenTelemetryUtil {
   }
 
   public static void tagsToAttributes(TraceComponent traceComponent, SpanBuilder spanBuilder) {
-    if (traceComponent.getTags() == null || traceComponent.getTags().isEmpty()) {
+    if (!traceComponent.hasTags()) {
       return;
     }
-    traceComponent.getTags()
-        .forEach((k, v) -> {
-          AttributeKey attributeKey = attributesKeyCache.getAttributeKey(k);
-          spanBuilder.setAttribute(attributeKey, attributesKeyCache.convertValue(attributeKey, v));
-        });
+    traceComponent.forEachTagEntry(entry -> {
+      AttributeKey attributeKey = attributesKeyCache.getAttributeKey(entry.getKey());
+      spanBuilder.setAttribute(attributeKey, attributesKeyCache.convertValue(attributeKey, entry.getValue()));
+    });
   }
 
   public static void tagsToAttributes(TraceComponent traceComponent, Span span) {
-    if (traceComponent.getTags() == null || traceComponent.getTags().isEmpty()) {
+    if (!traceComponent.hasTags()) {
       return;
     }
-    traceComponent.getTags()
-        .forEach((k, v) -> {
-          AttributeKey attributeKey = attributesKeyCache.getAttributeKey(k);
-          span.setAttribute(attributeKey, attributesKeyCache.convertValue(attributeKey, v));
-        });
+    traceComponent.forEachTagEntry(entry -> {
+      AttributeKey attributeKey = attributesKeyCache.getAttributeKey(entry.getKey());
+      span.setAttribute(attributeKey, attributesKeyCache.convertValue(attributeKey, entry.getValue()));
+    });
   }
 }

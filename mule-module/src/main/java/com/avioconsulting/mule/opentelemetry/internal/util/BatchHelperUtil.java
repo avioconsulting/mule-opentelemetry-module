@@ -61,11 +61,11 @@ public class BatchHelperUtil {
   }
 
   public static boolean hasBatchJobInstanceId(TraceComponent traceComponent) {
-    return traceComponent.getTags().containsKey(MULE_BATCH_JOB_INSTANCE_ID.getKey());
+    return traceComponent.hasTagFor(MULE_BATCH_JOB_INSTANCE_ID.getKey());
   }
 
   public static String getBatchJobInstanceId(TraceComponent traceComponent) {
-    return traceComponent.getTags().get(MULE_BATCH_JOB_INSTANCE_ID.getKey());
+    return traceComponent.getTag(MULE_BATCH_JOB_INSTANCE_ID.getKey());
   }
 
   public static String getBatchJobInstanceId(Event event) {
@@ -86,13 +86,13 @@ public class BatchHelperUtil {
   }
 
   public static boolean hasBatchStep(TraceComponent traceComponent) {
-    return traceComponent.getTags().containsKey(MULE_BATCH_JOB_STEP_NAME.getKey());
+    return traceComponent.hasTagFor(MULE_BATCH_JOB_STEP_NAME.getKey());
   }
 
   public static void addBatchTags(TraceComponent traceComponent, Event event) {
     String batchJobId = getBatchJobInstanceId(event);
     if (!isBatchSupportDisabled() && batchJobId != null) {
-      traceComponent.getTags().put(MULE_BATCH_JOB_INSTANCE_ID.getKey(), batchJobId);
+      traceComponent.addTag(MULE_BATCH_JOB_INSTANCE_ID.getKey(), batchJobId);
       if (event.getVariables().containsKey("_mule_batch_INTERNAL_record")
           && event.getVariables().get("_mule_batch_INTERNAL_record") != null
           && event.getVariables().get("_mule_batch_INTERNAL_record").getValue() != null) {
@@ -100,7 +100,7 @@ public class BatchHelperUtil {
         // current record
         Record record = getBatchUtil()
             .toRecord(event.getVariables().get("_mule_batch_INTERNAL_record").getValue());
-        traceComponent.getTags().put(MULE_BATCH_JOB_STEP_NAME.getKey(), record.getCurrentStepId());
+        traceComponent.addTag(MULE_BATCH_JOB_STEP_NAME.getKey(), record.getCurrentStepId());
       } else if (event.getVariables().containsKey("records")
           && event.getVariables().get("records") != null
           && event.getVariables().get("records").getValue() != null) {
@@ -109,8 +109,8 @@ public class BatchHelperUtil {
         List records = (List) event.getVariables().get("records").getValue();
         if (!records.isEmpty()) {
           Record record = getBatchUtil().toRecord(records.get(0));
-          traceComponent.getTags().put(MULE_BATCH_JOB_STEP_NAME.getKey(), record.getCurrentStepId());
-          traceComponent.getTags().put(MULE_BATCH_JOB_STEP_AGGREGATOR_RECORD_COUNT.getKey(),
+          traceComponent.addTag(MULE_BATCH_JOB_STEP_NAME.getKey(), record.getCurrentStepId());
+          traceComponent.addTag(MULE_BATCH_JOB_STEP_AGGREGATOR_RECORD_COUNT.getKey(),
               String.valueOf(records.size()));
         }
       }
@@ -119,8 +119,7 @@ public class BatchHelperUtil {
 
   public static void copyBatchTags(TraceComponent source, TraceComponent target) {
     if (!BatchHelperUtil.isBatchSupportDisabled()) {
-      source.getTags().entrySet().stream().filter(e -> e.getKey().startsWith("mule.batch.job")).forEach(
-          e -> target.getTags().put(e.getKey(), e.getValue()));
+      source.copyTagsTo(target, key -> key.startsWith("mule.batch.job"));
     }
   }
 
