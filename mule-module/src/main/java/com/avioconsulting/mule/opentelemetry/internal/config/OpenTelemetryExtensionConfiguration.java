@@ -195,18 +195,22 @@ public class OpenTelemetryExtensionConfiguration
 
   @Override
   public void start() throws MuleException {
-    logger.info("Initiating otel config - '{}'", getConfigName());
+    if (logger.isInfoEnabled()) {
+      logger.info("Initiating otel config - '{}'", getConfigName());
+    }
     appIdentifier = AppIdentifier.fromEnvironment(expressionManager);
     openTelemetryConnection = OpenTelemetryConnection
         .getInstance(new OpenTelemetryConfigWrapper(this));
     openTelemetryConnection
-        .setConfigurationComponentLocator(muleNotificationProcessor.getConfigurationComponentLocator());
+        .setComponentRegistryService(muleNotificationProcessor.getComponentRegistryService());
     getTraceLevelConfiguration().initMuleComponentsMap();
     muleNotificationProcessor.init(openTelemetryConnection,
         getTraceLevelConfiguration());
 
     if (isTurnOffTracing()) {
-      logger.info("Tracing has been turned off. No listener will be registered.");
+      if (logger.isInfoEnabled()) {
+        logger.info("Tracing has been turned off. No listener will be registered.");
+      }
     } else {
       notificationListenerRegistry.registerListener(
           new MuleMessageProcessorNotificationListener(muleNotificationProcessor));
@@ -218,7 +222,9 @@ public class OpenTelemetryExtensionConfiguration
     }
 
     if (isTurnOffMetrics()) {
-      logger.info("Metrics has been turned off. No listener will be registered.");
+      if (logger.isInfoEnabled()) {
+        logger.info("Metrics has been turned off. No listener will be registered.");
+      }
     } else {
       notificationListenerRegistry.registerListener(
           new MetricEventNotificationListener(muleNotificationProcessor),
@@ -235,17 +241,23 @@ public class OpenTelemetryExtensionConfiguration
         com.avioconsulting.mule.opentelemetry.api.ee.batch.notifications.OtelBatchNotificationListener.class,
         listeners);
     if (listeners.isEmpty()) {
-      logger.warn(
-          "No modules were registered for batch instrumentation. Batch jobs (if present) will not be instrumented.");
+      if (logger.isWarnEnabled()) {
+        logger.warn(
+            "No modules were registered for batch instrumentation. Batch jobs (if present) will not be instrumented.");
+      }
     } else {
       if (listeners.size() > 1) {
-        logger.warn(
-            "Multiple listeners registered for Batch Notifications. This indicate misconfiguration and may impact performance.");
+        if (logger.isWarnEnabled()) {
+          logger.warn(
+              "Multiple listeners registered for Batch Notifications. This indicate misconfiguration and may impact performance.");
+        }
       }
       OtelBatchNotificationListener otelBatchNotificationListener = new OtelBatchNotificationListener(
           muleNotificationProcessor);
       listeners.forEach(listener -> {
-        logger.info("Batch Notification listener registered: {}", listener.getClass().getSimpleName());
+        if (logger.isInfoEnabled()) {
+          logger.info("Batch Notification listener registered: {}", listener.getClass().getSimpleName());
+        }
         listener.register(otelBatchNotificationListener::onNotification, notificationListenerRegistry);
         BatchHelperUtil.init(listener.getBatchUtil());
         BatchHelperUtil.enableBatchSupport();

@@ -70,8 +70,10 @@ public class ProcessorTracingContextInterceptor implements ProcessorInterceptor 
     // Intentionally empty, the method exists to force runtime to refresh previously
     // resolved parameters
     // with any modifications done by ProcessorTracingInterceptor#before method
-    LOGGER.trace("Intercepted by around method '{}' at '{}'",
-        location.getComponentIdentifier().getIdentifier().toString(), location.getLocation());
+    if (LOGGER.isTraceEnabled()) {
+      LOGGER.trace("Intercepted by around method '{}' at '{}'",
+          location.getComponentIdentifier().getIdentifier().toString(), location.getLocation());
+    }
     return action.proceed();
   }
 

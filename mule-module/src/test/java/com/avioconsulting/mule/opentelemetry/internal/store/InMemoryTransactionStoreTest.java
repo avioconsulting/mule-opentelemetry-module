@@ -58,12 +58,12 @@ public class InMemoryTransactionStoreTest {
     SpanBuilder spanBuilder = tracer.spanBuilder("test-transaction")
         .setSpanKind(SpanKind.SERVER)
         .setStartTimestamp(startTimestamp);
-    TraceComponent traceComponent = TraceComponent.of("test-1")
+    TraceComponent traceComponent = TraceComponent.of("test-1", new HashMap<>())
         .withTransactionId("test-1")
         .withSpanName("GET /api/*")
         .withStartTime(startTimestamp)
         .withLocation(TEST_1_FLOW_FLOW_REF)
-        .withTags(new HashMap<>());
+        .withEventContextId("test-1-context-id");
     connection.getTransactionStore().startTransaction(traceComponent, TEST_1_FLOW, spanBuilder);
     connection.getTransactionStore().addProcessorSpan(TEST_1_FLOW, traceComponent,
         tracer.spanBuilder(TEST_1_FLOW_FLOW_REF).setSpanKind(SpanKind.INTERNAL));
@@ -71,16 +71,15 @@ public class InMemoryTransactionStoreTest {
 
   @Test
   public void endTransaction_return_new_tags_in_meta() {
-    TraceComponent endTraceComponent = TraceComponent.of(TEST_1_FLOW).withTransactionId("test-1")
+    TraceComponent endTraceComponent = TraceComponent.of(TEST_1_FLOW, new HashMap<>()).withTransactionId("test-1")
         .withStartTime(Instant.now().minusSeconds(10))
         .withLocation(TEST_1_FLOW_FLOW_REF)
         .withEventContextId("test-1-context-id")
-        .withEndTime(Instant.now())
-        .withTags(new HashMap<>());
+        .withEndTime(Instant.now());
 
-    endTraceComponent.getTags().put(SemanticAttributes.MULE_APP_PROCESSOR_NAMESPACE.getKey(), "mule");
-    endTraceComponent.getTags().put(SemanticAttributes.MULE_APP_PROCESSOR_NAME.getKey(), "flow");
-    endTraceComponent.getTags().put("TEST_TAG_KEY", "test-tag-value");
+    endTraceComponent.addTag(SemanticAttributes.MULE_APP_PROCESSOR_NAMESPACE.getKey(), "mule");
+    endTraceComponent.addTag(SemanticAttributes.MULE_APP_PROCESSOR_NAME.getKey(), "flow");
+    endTraceComponent.addTag("TEST_TAG_KEY", "test-tag-value");
 
     TransactionMeta transactionMeta = connection.getTransactionStore().endTransaction(endTraceComponent, (span -> {
     }));
@@ -91,17 +90,16 @@ public class InMemoryTransactionStoreTest {
 
   private void processAPIKitRouterComponent() {
     String name = "router:router";
-    TraceComponent apikitFlow = TraceComponent.of(name)
+    TraceComponent apikitFlow = TraceComponent.of(name, new HashMap<>())
         .withTransactionId("test-1")
         .withSpanName(name)
         .withStartTime(Instant.now().minusSeconds(10))
         .withLocation(TEST_1_FLOW + "processors/0")
         .withEventContextId("test-1-context-id")
-        .withEndTime(Instant.now())
-        .withTags(new HashMap<>());
-    apikitFlow.getTags().put(SemanticAttributes.MULE_APP_PROCESSOR_NAMESPACE.getKey(), "apikit");
-    apikitFlow.getTags().put(SemanticAttributes.MULE_APP_PROCESSOR_NAME.getKey(), "router");
-    apikitFlow.getTags().put(SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF.getKey(), "order-exp-config");
+        .withEndTime(Instant.now());
+    apikitFlow.addTag(SemanticAttributes.MULE_APP_PROCESSOR_NAMESPACE.getKey(), "apikit");
+    apikitFlow.addTag(SemanticAttributes.MULE_APP_PROCESSOR_NAME.getKey(), "router");
+    apikitFlow.addTag(SemanticAttributes.MULE_APP_PROCESSOR_CONFIG_REF.getKey(), "order-exp-config");
     SpanBuilder spanBuilder = tracer.spanBuilder(apikitFlow.getSpanName())
         .setSpanKind(SpanKind.INTERNAL)
         .setStartTimestamp(apikitFlow.getStartTime());
@@ -115,17 +113,16 @@ public class InMemoryTransactionStoreTest {
 
     // Process an APIKit Flow span to trigger http route renaming
     String name = "get:\\orders\\(orderId):order-exp-config";
-    TraceComponent apikitFlow = TraceComponent.of(name)
+    TraceComponent apikitFlow = TraceComponent.of(name, new HashMap<>())
         .withTransactionId("test-1")
         .withSpanName(name)
         .withStartTime(Instant.now().minusSeconds(10))
         .withLocation(name)
         .withEventContextId("test-1-context-id")
-        .withEndTime(Instant.now())
-        .withTags(new HashMap<>());
-    apikitFlow.getTags().put(SemanticAttributes.MULE_APP_PROCESSOR_NAMESPACE.getKey(), "mule");
-    apikitFlow.getTags().put(SemanticAttributes.MULE_APP_PROCESSOR_NAME.getKey(), "flow");
-    apikitFlow.getTags().put(SemanticAttributes.MULE_APP_FLOW_NAME.getKey(), name);
+        .withEndTime(Instant.now());
+    apikitFlow.addTag(SemanticAttributes.MULE_APP_PROCESSOR_NAMESPACE.getKey(), "mule");
+    apikitFlow.addTag(SemanticAttributes.MULE_APP_PROCESSOR_NAME.getKey(), "flow");
+    apikitFlow.addTag(SemanticAttributes.MULE_APP_FLOW_NAME.getKey(), name);
     SpanBuilder spanBuilder = tracer.spanBuilder(apikitFlow.getSpanName())
         .setSpanKind(SpanKind.INTERNAL)
         .setStartTimestamp(apikitFlow.getStartTime());
@@ -136,12 +133,11 @@ public class InMemoryTransactionStoreTest {
     // End transaction method returns the transaction meta, so end the root
     // transaction to verify tags.
 
-    TraceComponent traceComponent = TraceComponent.of(TEST_1_FLOW)
+    TraceComponent traceComponent = TraceComponent.of(TEST_1_FLOW, new HashMap<>())
         .withTransactionId("test-1")
         .withSpanName("GET /api/*")
         .withEndTime(Instant.now())
-        .withLocation(TEST_1_FLOW_FLOW_REF)
-        .withTags(new HashMap<>());
+        .withLocation(TEST_1_FLOW_FLOW_REF);
     TransactionMeta transactionMeta = connection.getTransactionStore().endTransaction(traceComponent, span -> {
     });
     assertThat(transactionMeta).isNotNull()

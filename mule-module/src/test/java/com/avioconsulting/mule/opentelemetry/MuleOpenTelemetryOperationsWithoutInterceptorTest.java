@@ -61,16 +61,11 @@ public class MuleOpenTelemetryOperationsWithoutInterceptorTest extends AbstractM
         .as("Variables should not have interceptor innjected context")
         .doesNotContainKey("OTEL_TRACE_CONTEXT");
 
-    TypedValue<Map<String, String>> otel_context_from_operation = (TypedValue<Map<String, String>>) coreEvent
+    TypedValue<Map<String, Object>> otel_context_from_operation = (TypedValue<Map<String, Object>>) coreEvent
         .getVariables().get("OTEL_CONTEXT");
     assertThat(otel_context_from_operation.getValue())
-        .containsKeys("traceId", "spanId", "spanIdLong", "traceparent", "traceIdLongLowPart",
+        .containsKeys("traceId", "spanId", "traceparent",
             "TRACE_TRANSACTION_ID");
-    assertThat(otel_context_from_operation.getValue())
-        .hasEntrySatisfying("spanIdLong", (value) -> assertThat(Long.parseUnsignedLong(value)).isNotEqualTo(0));
-    assertThat(otel_context_from_operation.getValue())
-        .hasEntrySatisfying("traceIdLongLowPart",
-            (value) -> assertThat(Long.parseUnsignedLong(value)).isNotEqualTo(0));
   }
 
 }

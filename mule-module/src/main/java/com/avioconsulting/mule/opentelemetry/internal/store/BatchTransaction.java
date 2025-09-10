@@ -4,12 +4,13 @@ import com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
+import com.avioconsulting.mule.opentelemetry.internal.processor.util.TraceComponentManager;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +27,7 @@ import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.BATCH_AGGREGATOR;
 import static com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil.copyBatchTags;
+import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.tagsToAttributes;
 
 public class BatchTransaction extends AbstractTransaction {
 
@@ -37,27 +39,24 @@ public class BatchTransaction extends AbstractTransaction {
   private final Span rootSpan;
   private final Function<String, SpanBuilder> spanBuilderFunction;
 
-  /**
-   * Batch transaction requires lookup of batch components.
-   * {@link ConfigurationComponentLocator} helps to find these component
-   * locations.
-   */
-  private final ConfigurationComponentLocator componentLocator;
+  private final ComponentRegistryService componentRegistryService;
   private boolean rootSpanEnded = false;
-  private final TraceComponent batchTraceComponent;
+  private final Map<String, String> batchTags = new HashMap<>();
   private final Map<String, String> stepLocationNames = new HashMap<>();
-  private Context rootContext;
+  private final Context rootContext;
 
   public BatchTransaction(String jobInstanceId, String traceId, String batchJobName,
       Span rootSpan, TraceComponent batchTraceComponent, Function<String, SpanBuilder> spanBuilderFunction,
-      ConfigurationComponentLocator componentLocator) {
+      ComponentRegistryService componentRegistryService) {
     super(jobInstanceId, traceId, batchJobName, batchTraceComponent.getStartTime());
-    this.batchTraceComponent = batchTraceComponent;
+    batchTraceComponent.copyTagsTo(this.batchTags);
     this.rootSpan = rootSpan;
     this.rootContext = rootSpan.storeInContext(Context.current());
     this.spanBuilderFunction = spanBuilderFunction;
-    this.componentLocator = componentLocator;
+    this.componentRegistryService = componentRegistryService;
+    tagsToAttributes(batchTraceComponent, rootSpan);
     extractStepLocations(batchTraceComponent);
+    setTransactionContext();
   }
 
   /**
@@ -66,10 +65,11 @@ public class BatchTransaction extends AbstractTransaction {
    * This helps to know where steps are located.
    * 
    * @param batchTraceComponent
-   * @{@link TraceComponent} with tags containing MULE_BATCH_JOB_STEPS
+   *            {@link TraceComponent} representing batch
+   * @link TraceComponent with tags containing MULE_BATCH_JOB_STEPS
    */
   private void extractStepLocations(TraceComponent batchTraceComponent) {
-    String jobSteps = batchTraceComponent.getTags().get(MULE_BATCH_JOB_STEPS.getKey());
+    String jobSteps = batchTraceComponent.getTag(MULE_BATCH_JOB_STEPS.getKey());
     if (jobSteps != null) {
       StringTokenizer tokenizer = new StringTokenizer(jobSteps, ",");
       while (tokenizer.hasMoreTokens()) {
@@ -102,7 +102,7 @@ public class BatchTransaction extends AbstractTransaction {
         s -> new AtomicReference<>());
     String name = BATCH_STEP_TAG;
     String spanName = stepName;
-    if (ComponentsUtil.isBatchOnComplete(location, componentLocator)) {
+    if (ComponentsUtil.isBatchOnComplete(location, componentRegistryService)) {
       name = BATCH_ON_COMPLETE_TAG;
       spanName = BATCH_ON_COMPLETE_TAG;
     } else {
@@ -110,32 +110,29 @@ public class BatchTransaction extends AbstractTransaction {
     }
     ContainerSpan ContainerSpan = containerSpanRef.get();
     if (ContainerSpan == null) {
-      TraceComponent stepTraceComponent = TraceComponent.of(name)
-          .withSpanName(spanName)
-          .withTags(new HashMap<>())
-          .withTransactionId(processorTrace.getTransactionId())
-          .withSpanKind(SpanKind.INTERNAL)
-          .withLocation(location)
-          .withEventContextId(processorTrace.getEventContextId())
-          .withStartTime(processorTrace.getStartTime());
-      processorTrace.getTags().forEach((k, v) -> {
-        if (!k.startsWith("mule.app.processor")) {
-          stepTraceComponent.getTags().put(k, v);
+      try (TraceComponent stepTraceComponent = TraceComponentManager.getInstance()
+          .createTraceComponent(processorTrace.getTransactionId(), name)) {
+        stepTraceComponent
+            .withSpanName(spanName)
+            .withSpanKind(SpanKind.INTERNAL)
+            .withLocation(location)
+            .withEventContextId(processorTrace.getEventContextId())
+            .withStartTime(processorTrace.getStartTime());
+        processorTrace.copyTagsTo(stepTraceComponent, key -> key.startsWith("mule.app.processor"));
+        if (stepName != null) {
+          stepTraceComponent.addTag(MULE_BATCH_JOB_STEP_NAME.getKey(), stepName);
         }
-      });
-      if (stepName != null) {
-        stepTraceComponent.getTags().put(MULE_BATCH_JOB_STEP_NAME.getKey(), stepName);
-      }
-      SpanBuilder spanBuilder = spanBuilderFunction.apply(name)
-          .setParent(rootContext);
-      ContainerSpan newContainerSpan = new ContainerSpan(location, spanBuilder.startSpan(),
-          stepTraceComponent);
-      if (containerSpanRef.compareAndSet(null, newContainerSpan)) {
-        // This only executes if the update succeeds. If another thread updates the
-        // reference, this will be skipped.
-        stepProcessorSpans.putIfAbsent(stepTraceComponent.getSpanName(),
-            newContainerSpan.getRootProcessorSpan());
-        ContainerSpan = newContainerSpan;
+        SpanBuilder spanBuilder = spanBuilderFunction.apply(name)
+            .setParent(rootContext);
+        ContainerSpan newContainerSpan = new ContainerSpan(location, spanBuilder.startSpan(),
+            stepTraceComponent);
+        if (containerSpanRef.compareAndSet(null, newContainerSpan)) {
+          // This only executes if the update succeeds. If another thread updates the
+          // reference, this will be skipped.
+          stepProcessorSpans.putIfAbsent(stepTraceComponent.getSpanName(),
+              newContainerSpan.getRootProcessorSpan());
+          ContainerSpan = newContainerSpan;
+        }
       }
     }
     return ContainerSpan;
@@ -143,8 +140,8 @@ public class BatchTransaction extends AbstractTransaction {
 
   public SpanMeta addProcessorSpan(String containerPath, TraceComponent traceComponent, SpanBuilder spanBuilder) {
     SpanMeta spanMeta = null;
-    String stepName = traceComponent.getTags().get(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
-    if (isBatchOnComplete(containerPath, componentLocator)) {
+    String stepName = traceComponent.getTag(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
+    if (isBatchOnComplete(containerPath, componentRegistryService)) {
       stepName = BATCH_ON_COMPLETE_TAG;
     }
     ProcessorSpan containerProcessorSpan = getStepProcessorSpan(traceComponent, stepName);
@@ -175,32 +172,32 @@ public class BatchTransaction extends AbstractTransaction {
       ContainerSpan ContainerSpan,
       ProcessorSpan containerProcessorSpan) {
     SpanMeta aggrSpan = null;
-    TraceComponent aggrTraceComponent = null;
     if (containerPath.endsWith("/aggregator")) {
       if (null == ContainerSpan.findSpan(traceComponent.contextScopedPath(containerPath))) {
         SpanBuilder aggrSpanBuilder = spanBuilderFunction.apply(BATCH_AGGREGATOR)
             .setParent(containerProcessorSpan.getContext())
             .setSpanKind(SpanKind.INTERNAL)
             .setStartTimestamp(traceComponent.getStartTime());
-        aggrTraceComponent = TraceComponent.of(BATCH_AGGREGATOR)
-            .withLocation(containerPath)
-            .withSpanName(BATCH_AGGREGATOR)
-            .withTags(new HashMap<>())
-            .withContext(containerProcessorSpan.getContext())
-            .withTransactionId(traceComponent.getTransactionId())
-            .withSpanKind(SpanKind.INTERNAL)
-            .withStartTime(traceComponent.getStartTime())
-            .withEventContextId(traceComponent.getEventContextId())
-            .withSiblings(traceComponent.getSiblings());
-        copyBatchTags(traceComponent, aggrTraceComponent);
-        aggrTraceComponent.getTags().put(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
-            "batch");
-        aggrTraceComponent.getTags().put(MULE_APP_PROCESSOR_NAME.getKey(),
-            "aggregator");
-        aggrSpan = ContainerSpan.addProcessorSpan(
-            containerPath.substring(0, containerPath.lastIndexOf("/")),
-            aggrTraceComponent,
-            aggrSpanBuilder);
+        try (TraceComponent aggrTraceComponent = TraceComponentManager.getInstance()
+            .createTraceComponent(traceComponent.getTransactionId(), BATCH_AGGREGATOR)) {
+          aggrTraceComponent
+              .withLocation(containerPath)
+              .withSpanName(BATCH_AGGREGATOR)
+              .withContext(containerProcessorSpan.getContext())
+              .withSpanKind(SpanKind.INTERNAL)
+              .withStartTime(traceComponent.getStartTime())
+              .withEventContextId(traceComponent.getEventContextId())
+              .withSiblings(traceComponent.getSiblings());
+          copyBatchTags(traceComponent, aggrTraceComponent);
+          aggrTraceComponent.addTag(MULE_APP_PROCESSOR_NAMESPACE.getKey(),
+              "batch");
+          aggrTraceComponent.addTag(MULE_APP_PROCESSOR_NAME.getKey(),
+              "aggregator");
+          aggrSpan = ContainerSpan.addProcessorSpan(
+              containerPath.substring(0, containerPath.lastIndexOf("/")),
+              aggrTraceComponent,
+              aggrSpanBuilder);
+        }
       }
     }
     return aggrSpan;
@@ -208,7 +205,7 @@ public class BatchTransaction extends AbstractTransaction {
 
   /**
    * Creates a new span when target is processor 0 in the step, otherwise
-   * adds a new span under existing record parent.
+   * adds a new span under the existing record parent.
    *
    * When processing on-complete block, adds spans to the parent block.
    * 
@@ -228,26 +225,28 @@ public class BatchTransaction extends AbstractTransaction {
       SpanBuilder spanBuilder,
       ContainerSpan stepSpan, ProcessorSpan processorSpan) {
     SpanMeta spanMeta;
-    if (isBatchOnComplete(containerPath, componentLocator)) {
+    if (isBatchOnComplete(containerPath, componentRegistryService)) {
       // String onCompletePath = containerPath + "/on-complete";
       spanMeta = stepSpan.addProcessorSpan(containerPath, traceComponent, spanBuilder);
     } else {
       String recordPath = containerPath + "/record";
       if (traceComponent.getLocation().equalsIgnoreCase(containerPath + "/processors/0")) {
         // Create a record span
-        TraceComponent recordTrace = TraceComponent.of(BATCH_STEP_RECORD_TAG)
-            .withLocation(recordPath)
-            .withTransactionId(traceComponent.getTransactionId())
-            .withStartTime(traceComponent.getStartTime())
-            .withSpanName(BATCH_STEP_RECORD_TAG)
-            .withTags(traceComponent.getTags())
-            .withEventContextId(traceComponent.getEventContextId());
-        SpanBuilder record = spanBuilderFunction.apply(recordTrace.getName());
+        try (TraceComponent recordTrace = TraceComponentManager.getInstance()
+            .createTraceComponent(traceComponent.getTransactionId(), BATCH_STEP_RECORD_TAG)) {
+          recordTrace
+              .withLocation(recordPath)
+              .withStartTime(traceComponent.getStartTime())
+              .withSpanName(BATCH_STEP_RECORD_TAG)
+              .withEventContextId(traceComponent.getEventContextId());
+          traceComponent.copyTagsTo(recordTrace);
+          SpanBuilder record = spanBuilderFunction.apply(recordTrace.getName());
 
-        SpanMeta recordSpanMeta = stepSpan.addChildContainer(recordTrace,
-            record.setParent(processorSpan.getContext()));
-        spanMeta = stepSpan.addProcessorSpan(recordTrace.getLocation(), traceComponent,
-            spanBuilder.setParent(recordSpanMeta.getContext()));
+          SpanMeta recordSpanMeta = stepSpan.addChildContainer(recordTrace,
+              record.setParent(processorSpan.getContext()));
+          spanMeta = stepSpan.addProcessorSpan(recordTrace.getLocation(), traceComponent,
+              spanBuilder.setParent(recordSpanMeta.getContext()));
+        }
       } else {
         spanMeta = stepSpan.addProcessorSpan(recordPath, traceComponent, spanBuilder);
       }
@@ -260,11 +259,14 @@ public class BatchTransaction extends AbstractTransaction {
       return null;
     }
     ProcessorSpan processorSpan = stepProcessorSpans.get(containerName);
-    return processorSpan == null ? null : processorSpan.setTags(traceComponent.getTags());
+    if (processorSpan != null) {
+      traceComponent.copyTagsTo(processorSpan.getTags());
+    }
+    return processorSpan;
   }
 
   private ProcessorSpan getStepProcessorSpan(TraceComponent traceComponent) {
-    String containerName = traceComponent.getTags().get(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
+    String containerName = traceComponent.getTag(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
     return getStepProcessorSpan(traceComponent, containerName);
   }
 
@@ -274,10 +276,10 @@ public class BatchTransaction extends AbstractTransaction {
         || BATCH_ON_COMPLETE_TAG.equalsIgnoreCase(traceComponent.getName())) {
       return endContainerSpan(traceComponent, stepProcessorSpans.get(traceComponent.getSpanName()));
     } else {
-      String spanName = traceComponent.getTags().get(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
+      String spanName = traceComponent.getTag(SemanticAttributes.MULE_BATCH_JOB_STEP_NAME.getKey());
       if (spanName == null) {
         String locationParent = getLocationParent(traceComponent.getLocation());
-        if (isBatchOnComplete(locationParent, componentLocator)) {
+        if (isBatchOnComplete(locationParent, componentRegistryService)) {
           spanName = BATCH_ON_COMPLETE_TAG;
         }
       }
@@ -291,16 +293,17 @@ public class BatchTransaction extends AbstractTransaction {
           ProcessorSpan aggrSpan = ContainerSpan
               .findSpan(traceComponent.contextScopedPath(aggregatorLocation));
           if (aggrSpan.getSiblings() == 0) {
-            TraceComponent aggrTraceComponent = TraceComponent.of(BATCH_AGGREGATOR)
-                .withLocation(aggregatorLocation)
-                .withSpanName(BATCH_AGGREGATOR)
-                .withTags(new HashMap<>())
-                .withTransactionId(traceComponent.getTransactionId())
-                .withSpanKind(SpanKind.INTERNAL)
-                .withEventContextId(traceComponent.getEventContextId())
-                .withEndTime(traceComponent.getEndTime());
-            aggrTraceComponent.getTags().putAll(traceComponent.getTags());
-            ContainerSpan.endProcessorSpan(aggrTraceComponent, spanUpdater, endTime);
+            try (TraceComponent aggrTraceComponent = TraceComponentManager.getInstance()
+                .createTraceComponent(traceComponent.getTransactionId(), BATCH_AGGREGATOR)) {
+              aggrTraceComponent
+                  .withLocation(aggregatorLocation)
+                  .withSpanName(BATCH_AGGREGATOR)
+                  .withSpanKind(SpanKind.INTERNAL)
+                  .withEventContextId(traceComponent.getEventContextId())
+                  .withEndTime(traceComponent.getEndTime());
+              traceComponent.copyTagsTo(aggrTraceComponent);
+              ContainerSpan.endProcessorSpan(aggrTraceComponent, spanUpdater, endTime);
+            }
           }
         }
         return spanMeta;
@@ -314,7 +317,7 @@ public class BatchTransaction extends AbstractTransaction {
       return null;
     ContainerSpan stepSpan = stepSpans.get(processorSpan.getLocation()).get();
     processorSpan.setEndTime(traceComponent.getEndTime());
-    processorSpan.getTags().putAll(traceComponent.getTags());
+    traceComponent.copyTagsTo(processorSpan.getTags());
     stepSpan.getSpan().end(traceComponent.getEndTime());
     return processorSpan;
   }
@@ -370,6 +373,6 @@ public class BatchTransaction extends AbstractTransaction {
 
   @Override
   public Map<String, String> getTags() {
-    return batchTraceComponent.getTags();
+    return batchTags;
   }
 }

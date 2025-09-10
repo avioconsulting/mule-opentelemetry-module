@@ -17,6 +17,7 @@ import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -45,7 +46,7 @@ public class InMemoryTransactionStoreTest extends AbstractJMHTest {
     SpanBuilder spanBuilder = tracer.spanBuilder("test-transaction")
         .setSpanKind(SpanKind.SERVER)
         .setStartTimestamp(startTimestamp);
-    TraceComponent traceComponent = TraceComponent.of("test-1").withTransactionId("test-1")
+    TraceComponent traceComponent = TraceComponent.of("test-1", new HashMap<>()).withTransactionId("test-1")
         .withStartTime(startTimestamp)
         .withLocation(TEST_1_FLOW_FLOW_REF);
     connection.getTransactionStore().startTransaction(traceComponent, TEST_1_FLOW, spanBuilder);
@@ -68,13 +69,13 @@ public class InMemoryTransactionStoreTest extends AbstractJMHTest {
 
   @Benchmark
   public void getTraceContext(Blackhole blackhole) {
-    Map<String, String> transactionContext = connection.getTraceContext("test-1");
+    Map<String, Object> transactionContext = connection.getTraceContext("test-1");
     blackhole.consume(transactionContext);
   }
 
   @Benchmark
   public void getTraceContextComponent(Blackhole blackhole) {
-    Map<String, String> transactionContext = connection.getTraceContext("test-1",
+    Map<String, Object> transactionContext = connection.getTraceContext("test-1",
         COMPONENT_LOCATION.getLocation());
     blackhole.consume(transactionContext);
   }

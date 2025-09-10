@@ -6,6 +6,8 @@ import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.HashMap;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(JUnitParamsRunner.class)
@@ -13,7 +15,7 @@ public class TraceComponentTest {
 
   @Test
   public void testContextNestingLevel() {
-    TraceComponent traceComponent = TraceComponent.of("Test")
+    TraceComponent traceComponent = TraceComponent.of("Test", new HashMap<>())
         .withEventContextId("58660cf1-e735-11ee-bd25-ca89f39a1b64_493033029_784814100_894835844_515059234");
 
     assertThat(traceComponent.contextNestingLevel())
@@ -22,7 +24,7 @@ public class TraceComponentTest {
 
   @Test
   public void testGetEventContextPrimaryId() {
-    TraceComponent traceComponent = TraceComponent.of("Test")
+    TraceComponent traceComponent = TraceComponent.of("Test", new HashMap<>())
         .withEventContextId("58660cf1-e735-11ee-bd25-ca89f39a1b64_493033029_784814100_894835844_515059234");
 
     assertThat(traceComponent.getEventContextPrimaryId())
@@ -31,7 +33,7 @@ public class TraceComponentTest {
 
   @Test
   public void testContextScopedPath() {
-    TraceComponent traceComponent = TraceComponent.of("Test")
+    TraceComponent traceComponent = TraceComponent.of("Test", new HashMap<>())
         .withEventContextId("58660cf1-e735-11ee-bd25-ca89f39a1b64_493033029_784814100_894835844_515059234");
 
     assertThat(traceComponent.contextScopedPath("test-location-path"))
@@ -41,7 +43,7 @@ public class TraceComponentTest {
 
   @Test
   public void testPrevContextScopedPath() {
-    TraceComponent traceComponent = TraceComponent.of("Test")
+    TraceComponent traceComponent = TraceComponent.of("Test", new HashMap<>())
         .withEventContextId("58660cf1-e735-11ee-bd25-ca89f39a1b64_493033029_784814100_894835844_515059234");
 
     assertThat(traceComponent.prevContextScopedPath("test-location-path"))
@@ -59,9 +61,9 @@ public class TraceComponentTest {
       "4,58660cf1-e735-11ee-bd25-ca89f39a1b64/test-location-path",
   })
   public void testContextScopedPathWithLevel(int level, String expectedPath) throws Exception {
-    TraceComponent traceComponent = TraceComponent.of("Test")
+    TraceComponent traceComponent = TraceComponent.of("Test", new HashMap<>())
         .withEventContextId("58660cf1-e735-11ee-bd25-ca89f39a1b64_493033029_784814100_894835844_515059234");
-    assertThat(traceComponent.contextCopedPath("test-location-path", level))
+    assertThat(traceComponent.contextScopedPath("test-location-path", level))
         .isEqualTo(expectedPath);
   }
 

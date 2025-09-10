@@ -5,10 +5,12 @@ import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtens
 import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.extension.api.annotation.Alias;
+import org.mule.runtime.extension.api.annotation.metadata.OutputResolver;
 import org.mule.runtime.extension.api.annotation.param.Config;
 import org.mule.runtime.extension.api.annotation.param.Optional;
 import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Summary;
+import org.mule.runtime.extension.api.metadata.NullMetadataResolver;
 import org.mule.runtime.extension.api.runtime.parameter.CorrelationInfo;
 import org.mule.runtime.extension.api.runtime.parameter.ParameterResolver;
 import org.mule.sdk.api.annotation.deprecated.Deprecated;
@@ -36,10 +38,13 @@ public class OpenTelemetryOperations {
   @DisplayName("Get Trace Context")
   @Alias("get-trace-context")
   @Deprecated(message = "Use Get Current Trace Context instead. When OTEL_TRACE_CONTEXT does not pre-exist, there is no way for users to get current transaction id.", since = "2.3.0", toRemoveIn = "3.0.0")
-  public Map<String, String> getTraceContext(@Config OpenTelemetryExtensionConfiguration config,
+  @OutputResolver(output = TraceContextOutputResolver.class)
+  public Map<String, Object> getTraceContext(@Config OpenTelemetryExtensionConfiguration config,
       @DisplayName("Trace Transaction Id") @Optional(defaultValue = "#[vars.OTEL_TRACE_CONTEXT.TRACE_TRANSACTION_ID]") ParameterResolver<String> traceTransactionId,
       CorrelationInfo correlationInfo) {
-    LOGGER.warn("get-trace-context has been deprecated. Use get-current-trace-context instead");
+    if (LOGGER.isWarnEnabled()) {
+      LOGGER.warn("get-trace-context has been deprecated. Use get-current-trace-context instead");
+    }
     return config.getOpenTelemetryConnection().getTraceContext(traceTransactionId.resolve());
   }
 
@@ -56,7 +61,8 @@ public class OpenTelemetryOperations {
   @DisplayName("Get Current Trace Context")
   @Alias("get-current-trace-context")
   @Summary("Gets the current trace context")
-  public Map<String, String> getCurrentTraceContext(
+  @OutputResolver(output = TraceContextOutputResolver.class)
+  public Map<String, Object> getCurrentTraceContext(
       @Config OpenTelemetryExtensionConfiguration config,
       CorrelationInfo correlationInfo, ComponentLocation location) {
     String eventTransactionId = OpenTelemetryUtil.getEventTransactionId(correlationInfo.getEventId());
@@ -89,7 +95,9 @@ public class OpenTelemetryOperations {
       @DisplayName("Trace Transaction Id") @Optional(defaultValue = "#[vars.OTEL_TRACE_CONTEXT.TRACE_TRANSACTION_ID]") ParameterResolver<String> traceTransactionId,
       Map<String, String> tags,
       CorrelationInfo correlationInfo) {
-    LOGGER.warn("add-custom-tags has been deprecated. Use add-transaction-tags instead.");
+    if (LOGGER.isWarnEnabled()) {
+      LOGGER.warn("add-custom-tags has been deprecated. Use add-transaction-tags instead.");
+    }
     config.getOpenTelemetryConnection().getTransactionStore().addTransactionTags(traceTransactionId.resolve(),
         "custom",
         tags);

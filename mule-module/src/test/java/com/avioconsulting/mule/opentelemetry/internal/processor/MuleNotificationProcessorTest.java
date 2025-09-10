@@ -4,6 +4,7 @@ import com.avioconsulting.mule.opentelemetry.api.config.MuleComponent;
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import org.assertj.core.api.Assertions;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -24,14 +25,15 @@ import static org.mockito.Mockito.*;
 
 public class MuleNotificationProcessorTest extends AbstractProcessorComponentTest {
 
-  private ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
+  ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
 
   @Test
   public void handleProcessorStartEvent_withDisabledProcessorSpans() {
 
     MessageProcessorNotification notification = getMessageProcessorNotification();
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(
+        componentRegistryService);
     notificationProcessor.init(connection, new TraceLevelConfiguration(false, Collections.emptyList()));
     notificationProcessor.handleProcessorStartEvent(notification);
     verify(connection).isTurnOffTracing();
@@ -44,7 +46,8 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
 
     MessageProcessorNotification notification = getMessageProcessorNotification();
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(
+        componentRegistryService);
 
     List<MuleComponent> skippedProcessors = new ArrayList<>();
     skippedProcessors.add(new MuleComponent("mule", "logger"));
@@ -60,7 +63,8 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
   public void handleProcessorStartEvent_withSkipProcessorSpansByNamespace() {
     MessageProcessorNotification notification = getMessageProcessorNotification();
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(
+        componentRegistryService);
 
     List<MuleComponent> skippedProcessors = new ArrayList<>();
     skippedProcessors.add(new MuleComponent("mule", "*"));
@@ -85,7 +89,8 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
     MessageProcessorNotification notification = MessageProcessorNotification.createFrom(event, componentLocation,
         component, exception, MessageProcessorNotification.MESSAGE_PROCESSOR_POST_INVOKE);
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(
+        componentRegistryService);
     notificationProcessor.init(connection, new TraceLevelConfiguration(false, Collections.emptyList()));
     notificationProcessor.handleProcessorEndEvent(notification);
     verify(connection).isTurnOffTracing();
@@ -103,7 +108,8 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
     Component component = getComponent(componentLocation, Collections.emptyMap(), "mule", "remove-variable");
 
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(
+        componentRegistryService);
 
     TraceLevelConfiguration traceLevelConfiguration = new TraceLevelConfiguration(false, Collections.emptyList(),
         Collections.emptyList());
@@ -112,6 +118,9 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
     ProcessorComponent processorComponent = notificationProcessor.getProcessorComponent(component.getIdentifier());
     Assertions.assertThat(processorComponent).as("Processor without the additional list to create span").isNull();
 
+    // New notification processor to clear any cached values
+    notificationProcessor = new MuleNotificationProcessor(
+        componentRegistryService);
     List<MuleComponent> additionalSpans = new ArrayList<>();
     additionalSpans.add(new MuleComponent("mule", "remove-variable"));
     traceLevelConfiguration = new TraceLevelConfiguration(false, Collections.emptyList(), additionalSpans);
@@ -129,7 +138,8 @@ public class MuleNotificationProcessorTest extends AbstractProcessorComponentTes
     OpenTelemetryConnection connection = mock(OpenTelemetryConnection.class);
     when(connection.getExpressionManager()).thenReturn(null); // cause NPE
 
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(
+        componentRegistryService);
     notificationProcessor.init(connection, new TraceLevelConfiguration(true, Collections.emptyList()));
 
     Throwable any = Assertions.catchThrowable(

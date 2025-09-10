@@ -18,7 +18,7 @@ public class ProcessorSpan implements SpanMeta {
   private Instant endTime;
   private final String flowName;
   private Context context;
-  private Map<String, String> tags = new HashMap<>();
+  private final Map<String, String> tags = new HashMap<>();
   private ProcessorSpan parentSpan;
   private final AtomicLong siblingCount = new AtomicLong();
 
@@ -105,7 +105,7 @@ public class ProcessorSpan implements SpanMeta {
   }
 
   public ProcessorSpan setTags(Map<String, String> tags) {
-    this.tags = tags;
+    this.tags.putAll(tags);
     return this;
   }
 

@@ -1,9 +1,12 @@
 package com.avioconsulting.mule.opentelemetry.internal.util;
 
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 public class PropertiesUtil {
   public static final String MULE_OTEL_USE_APIKIT_SPAN_NAMES = "mule.otel.use.apikit.span.names";
+  public static final String MULE_OTEL_ENABLE_DYNAMIC_CONTEXT_DETECTION = "mule.otel.enable.dynamic.context.detection";
+  private static boolean enableDynamicContextDetection;
 
   /**
    * Should APIKit Flow names be used to name http root spans? Default true.
@@ -22,6 +25,17 @@ public class PropertiesUtil {
     if (useAPIKitSpanNames != null) {
       PropertiesUtil.useAPIKitSpanNames = Boolean.parseBoolean(useAPIKitSpanNames);
     }
+    enableDynamicContextDetection = Boolean
+        .parseBoolean(getProperty(MULE_OTEL_ENABLE_DYNAMIC_CONTEXT_DETECTION, "false"));
+  }
+
+  /**
+   * Determines whether dynamic context detection is enabled.
+   *
+   * @return true if dynamic context detection is enabled, false otherwise.
+   */
+  public static boolean isDynamicContextDetectionEnabled() {
+    return enableDynamicContextDetection;
   }
 
   public static String getProperty(String name) {
@@ -48,9 +62,18 @@ public class PropertiesUtil {
     return Boolean.parseBoolean(property);
   }
 
+  public static int getInt(String name, int defaultValue) {
+    String property = getProperty(name);
+    if (property == null)
+      return defaultValue;
+    return Integer.parseInt(property);
+  }
+
   private static String toEnvName(String propertyName) {
-    return propertyName.toUpperCase(Locale.ROOT).replaceAll("\\.", "_")
-        .replaceAll("-", "_");
+    return propertyName
+        .toUpperCase(Locale.ROOT)
+        .replace('.', '_')
+        .replace('-', '_');
   }
 
   public static boolean isCloudHubV1() {

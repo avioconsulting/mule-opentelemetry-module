@@ -1,9 +1,11 @@
 package com.avioconsulting.mule.opentelemetry.internal.store;
 
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.api.traces.TransactionContext;
 import io.opentelemetry.api.trace.Span;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public abstract class AbstractTransaction implements Transaction {
@@ -12,6 +14,7 @@ public abstract class AbstractTransaction implements Transaction {
   private final String traceId;
   private final Instant startTime;
   private Instant endTime;
+  private TransactionContext transactionContext;
 
   public AbstractTransaction(String transactionId, String traceId, String rootSpanName,
       Instant startTime) {
@@ -59,6 +62,17 @@ public abstract class AbstractTransaction implements Transaction {
 
   private void setEndTime(Instant endTime) {
     this.endTime = endTime;
+  }
+
+  protected void setTransactionContext() {
+    Objects.requireNonNull(getTransactionSpan(),
+        "Transaction root span cannot be null for creating transaction context");
+    transactionContext = TransactionContext.of(getTransactionSpan(), this);
+  }
+
+  @Override
+  public TransactionContext getTransactionContext() {
+    return transactionContext;
   }
 
   /**

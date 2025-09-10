@@ -12,11 +12,11 @@ import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryCo
 import com.avioconsulting.mule.opentelemetry.internal.interceptor.ProcessorTracingInterceptor;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.interception.InterceptionEvent;
 import org.mule.runtime.dsl.api.component.config.DefaultComponentLocation;
 import org.openjdk.jmh.annotations.*;
@@ -24,6 +24,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.mock;
@@ -58,18 +59,19 @@ public class ProcessorTracingInterceptorTest extends AbstractJMHTest {
     SpanBuilder spanBuilder = tracer.spanBuilder("test-transaction")
         .setSpanKind(SpanKind.SERVER)
         .setStartTimestamp(startTimestamp);
-    TraceComponent traceComponent = TraceComponent.of("test-1").withTransactionId(TEST_1_TRANSACTION_ID)
+    TraceComponent traceComponent = TraceComponent.of("test-1", new HashMap<>())
+        .withTransactionId(TEST_1_TRANSACTION_ID)
         .withStartTime(startTimestamp)
         .withLocation(TEST_1_FLOW_FLOW_REF);
     connection.getTransactionStore().startTransaction(traceComponent, TEST_1_FLOW, spanBuilder);
 
     connection.getTransactionStore().addProcessorSpan(TEST_1_FLOW, traceComponent,
         tracer.spanBuilder(TEST_1_FLOW_FLOW_REF).setSpanKind(SpanKind.INTERNAL));
-    ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
     MuleNotificationProcessor muleNotificationProcessor = new MuleNotificationProcessor(
-        configurationComponentLocator);
+        componentRegistryService);
     muleNotificationProcessor.init(connection, new TraceLevelConfiguration(true, Collections.emptyList()));
-    interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor, configurationComponentLocator);
+    interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
     event = new TestInterceptionEvent(TEST_1_TRANSACTION_ID);
   }
 

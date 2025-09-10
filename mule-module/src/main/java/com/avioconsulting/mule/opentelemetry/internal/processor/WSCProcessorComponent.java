@@ -7,7 +7,6 @@ import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,22 +34,15 @@ public class WSCProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  protected String getDefaultSpanName(Map<String, String> tags) {
-    return tags.get("mule.wsc.config.service") + ":" + tags.get("mule.wsc.consumer.operation");
-  }
-
-  @Override
-  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    ComponentWrapper componentWrapper = new ComponentWrapper(component, configurationComponentLocator);
-    Map<String, String> tags = new HashMap<>();
-    tags.put(WSC_CONSUMER_OPERATION.getKey(), componentWrapper.getParameter("operation"));
+  protected <A> void addAttributes(Component component, TypedValue<A> attributes, TraceComponent collector) {
+    ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
+    collector.addTag(WSC_CONSUMER_OPERATION.getKey(), componentWrapper.getParameter("operation"));
     Map<String, String> configConnectionParameters = componentWrapper.getConfigConnectionParameters();
-    tags.put(WSC_CONFIG_SERVICE.getKey(), configConnectionParameters.get("service"));
-    tags.put(WSC_CONFIG_PORT.getKey(), configConnectionParameters.get("port"));
+    collector.addTag(WSC_CONFIG_SERVICE.getKey(), configConnectionParameters.get("service"));
+    collector.addTag(WSC_CONFIG_PORT.getKey(), configConnectionParameters.get("port"));
     if (configConnectionParameters.containsKey("address")) {
-      tags.put(WSC_CONFIG_ADDRESS.getKey(), configConnectionParameters.get("address"));
+      collector.addTag(WSC_CONFIG_ADDRESS.getKey(), configConnectionParameters.get("address"));
     }
-    return tags;
   }
 
   @Override

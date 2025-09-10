@@ -3,8 +3,8 @@ package com.avioconsulting.mule.opentelemetry.internal.store;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionMeta;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import io.opentelemetry.api.trace.SpanBuilder;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.message.Error;
 
 public interface TransactionProcessor {
@@ -18,5 +18,5 @@ public interface TransactionProcessor {
 
   SpanBuilder spanBuilder(String name);
 
-  ConfigurationComponentLocator getConfigurationComponentLocator();
+  ComponentRegistryService getComponentRegistryService();
 }

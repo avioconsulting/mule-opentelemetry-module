@@ -2,6 +2,8 @@ package com.avioconsulting.mule.opentelemetry.api.traces;
 
 import java.util.Optional;
 
+import static com.avioconsulting.mule.opentelemetry.internal.util.StringUtil.UNDERSCORE;
+
 /**
  * Event context associated with the component.
  *
@@ -30,9 +32,7 @@ public interface ComponentEventContext {
    * 
    * @return String
    */
-  default String getEventContextPrimaryId() {
-    return getEventContextId().substring(0, getEventContextId().indexOf("_"));
-  }
+  String getEventContextPrimaryId();
 
   /**
    * Number of levels in event context id.
@@ -43,9 +43,7 @@ public interface ComponentEventContext {
    * 
    * @return int
    */
-  default int contextNestingLevel() {
-    return getEventContextId().split("_").length;
-  }
+  int contextNestingLevel();
 
   /**
    * Prefix the given path with event context id
@@ -66,7 +64,7 @@ public interface ComponentEventContext {
    *
    * For example, given a context event id
    * `58660cf1-e735-11ee-bd25-ca89f39a1b64_493033029_784814100_894835844_515059234`
-   * and path `test-location-path`, if prevLevel = 2, the last two identity has
+   * and path `test-location-path`, if prevLevel = 2, the last two identity
    * scopes `_894835844_515059234` will be dropped
    * and value
    * `58660cf1-e735-11ee-bd25-ca89f39a1b64_493033029_784814100/test-location-path`
@@ -78,17 +76,29 @@ public interface ComponentEventContext {
    *            int levels to remove
    * @return String
    */
-  default String contextCopedPath(String path, int prevLevel) {
+  default String contextScopedPath(String path, int prevLevel) {
     String eventContextId = getEventContextId();
-    for (int i = 0; i < prevLevel; i++) {
-      eventContextId = eventContextId.substring(0, eventContextId.lastIndexOf("_"));
+    if (prevLevel <= 0) {
+      return contextScopedLocationFor(eventContextId, path);
     }
-    return eventContextId + "/" + path;
+
+    // Search from the end - more efficient for this use case
+    int cutPos = eventContextId.length();
+    int remaining = prevLevel;
+
+    while (cutPos > 0 && remaining > 0) {
+      cutPos--;
+      if (eventContextId.charAt(cutPos) == '_') {
+        remaining--;
+      }
+    }
+
+    return contextScopedLocationFor(eventContextId.substring(0, cutPos), path);
   }
 
   default Optional<String> prevContextScopedPath(String path) {
-    return Optional.ofNullable(getEventContextId().contains("_")
-        ? getEventContextId().substring(0, getEventContextId().lastIndexOf("_")) + "/" + path
+    return Optional.ofNullable(getEventContextId().contains(UNDERSCORE)
+        ? getEventContextId().substring(0, getEventContextId().lastIndexOf(UNDERSCORE)) + "/" + path
         : null);
   }
 
@@ -98,9 +108,7 @@ public interface ComponentEventContext {
    * 
    * @return String
    */
-  default String contextScopedLocation() {
-    return contextScopedLocationFor(getEventContextId(), getLocation());
-  }
+  String contextScopedLocation();
 
   static String contextScopedLocationFor(String eventContextId, String location) {
     return eventContextId + "/" + location;

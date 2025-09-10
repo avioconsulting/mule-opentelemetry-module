@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.api.ee.batch.BatchJob;
+import com.avioconsulting.mule.opentelemetry.internal.processor.util.TraceComponentManager;
 import com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
@@ -48,13 +49,9 @@ public class BatchProcessorComponent extends AbstractProcessorComponent {
   public TraceComponent getStartTraceComponent(Component component, Event event) {
     TraceComponent startTraceComponent = super.getStartTraceComponent(component, event);
     String jobName = addJobTags(startTraceComponent, component);
-    return TraceComponent.of(BATCH_JOB_TAG, startTraceComponent.getComponentLocation())
+    return startTraceComponent.setName(BATCH_JOB_TAG)
         .withSpanName(BATCH_JOB_TAG)
-        .withTags(startTraceComponent.getTags())
-        .withTransactionId(startTraceComponent.getTransactionId())
-        .withEventContextId(startTraceComponent.getEventContextId())
-        .withSpanKind(getSpanKind())
-        .withContext(startTraceComponent.getContext());
+        .withSpanKind(getSpanKind());
   }
 
   private String addJobTags(TraceComponent traceComponent, Component component) {
@@ -67,13 +64,13 @@ public class BatchProcessorComponent extends AbstractProcessorComponent {
               String location = step.getComponent().getLocation().getLocation();
               return stepName + "|" + location;
             }).collect(Collectors.joining(","));
-        traceComponent.getTags().put(MULE_BATCH_JOB_STEPS.getKey(), steps);
+        traceComponent.addTag(MULE_BATCH_JOB_STEPS.getKey(), steps);
       }
     } catch (Exception ignore) {
     }
-    ComponentWrapper wrapper = new ComponentWrapper(component, configurationComponentLocator);
+    ComponentWrapper wrapper = componentRegistryService.getComponentWrapper(component);
     String jobName = wrapper.getParameter("jobName");
-    traceComponent.getTags().put(MULE_BATCH_JOB_NAME.getKey(), jobName);
+    traceComponent.addTag(MULE_BATCH_JOB_NAME.getKey(), jobName);
     return jobName;
   }
 
@@ -92,16 +89,11 @@ public class BatchProcessorComponent extends AbstractProcessorComponent {
     TypedValue<?> batchJobInstanceId = null;
     if ((batchJobInstanceId = notification.getEvent().getVariables().get("batchJobInstanceId")) != null
         && batchJobInstanceId.getValue() != null) {
-      endTraceComponent.getTags().put(MULE_BATCH_JOB_INSTANCE_ID.getKey(),
+      endTraceComponent.addTag(MULE_BATCH_JOB_INSTANCE_ID.getKey(),
           batchJobInstanceId.getValue().toString());
     }
     addJobTags(endTraceComponent, notification.getComponent());
-    return TraceComponent.of(BATCH_JOB_TAG, endTraceComponent.getComponentLocation())
-        .withTransactionId(endTraceComponent.getTransactionId())
-        .withTags(endTraceComponent.getTags())
-        .withStatsCode(endTraceComponent.getStatusCode())
-        .withContext(endTraceComponent.getContext())
-        .withSpanKind(getSpanKind())
-        .withErrorMessage(endTraceComponent.getErrorMessage());
+    return endTraceComponent.setName(BATCH_JOB_TAG)
+        .withSpanKind(getSpanKind());
   }
 }

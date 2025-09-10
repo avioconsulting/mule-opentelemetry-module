@@ -1,5 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.processor;
 
+import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import junitparams.JUnitParamsRunner;
 import junitparams.Parameters;
 import org.junit.Test;
@@ -29,9 +31,6 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
       "data-source-connection, other_sql, dataSourceRef, testDb" })
   public void testDBProcessorTagExtraction(String connectionType, String expectedDbSysName, String dbNameKey,
       String expectedDBNamespace) {
-
-    ConfigurationComponentLocator componentLocator = mock(ConfigurationComponentLocator.class);
-
     // Generic DB System
     ComponentIdentifier identifier = getMockedIdentifier("db", connectionType);
     ComponentLocation configComponentLocation = getComponentLocation();
@@ -47,10 +46,9 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     connectionConfig.put("driverClassName", "testDriverClassName");
     Component configComponent = getComponent(configComponentLocation, connectionConfig, "db", "config");
     when(configComponent.getIdentifier()).thenReturn(identifier);
-    when(componentLocator.find(any(Location.class))).thenReturn(Optional.of(configComponent));
 
-    DBProcessorComponent dbProcessorComponent = new DBProcessorComponent();
-    dbProcessorComponent.withConfigurationComponentLocator(componentLocator);
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+
     ComponentLocation componentLocation = getComponentLocation();
     Map<String, String> config = new HashMap<>();
     config.put("sql", "select * from test where id = :id");
@@ -58,16 +56,23 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
     config.put("inputParameters", "#[{id: 1}]");
     Component component = getComponent(componentLocation, config, "db", "select");
 
-    Map<String, String> attributes = dbProcessorComponent.getAttributes(component, null);
+    DBProcessorComponent dbProcessorComponent = new DBProcessorComponent();
+    when(componentRegistryService.findComponentByLocation(anyString())).thenReturn(configComponent);
+    ComponentWrapper wrapper = new ComponentWrapper(component, componentRegistryService);
+    when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
+    dbProcessorComponent
+        .withComponentRegistryService(componentRegistryService);
+    TraceComponent tc = TraceComponent.of("test", new HashMap<>());
+    dbProcessorComponent.addAttributes(component, null, tc);
 
-    assertThat(attributes)
+    assertThat(tc.getReadOnlyTags())
         .containsEntry("db.system", expectedDbSysName)
         .containsEntry("db.operation.name", "select")
         .containsEntry("db.query.text", "select * from test where id = :id")
         .containsEntry("db.namespace", expectedDBNamespace)
         .containsEntry("inputParameters", "#[{id: 1}]");
     if (!dbNameKey.equalsIgnoreCase("dataSourceRef")) {
-      assertThat(attributes)
+      assertThat(tc.getReadOnlyTags())
           .containsEntry("server.address", "localhost")
           .containsEntry("server.port", "2004");
     }
@@ -75,22 +80,26 @@ public class DBProcessorComponentTest extends AbstractProcessorComponentTest {
 
   @Test
   public void testDBProcessorTagExtraction_WhenNoParameters() {
-
     ConfigurationComponentLocator componentLocator = mock(ConfigurationComponentLocator.class);
     // Cannot find a connection config element using locator
     when(componentLocator.find(any(Location.class))).thenReturn(Optional.empty());
 
-    DBProcessorComponent dbProcessorComponent = new DBProcessorComponent();
-    dbProcessorComponent.withConfigurationComponentLocator(componentLocator);
     ComponentLocation componentLocation = getComponentLocation();
     Map<String, String> config = new HashMap<>();
     config.put("sql", "select * from test");
     config.put("config-ref", "Database_Config");
     Component component = getComponent(componentLocation, config, "db", "select");
 
-    Map<String, String> attributes = dbProcessorComponent.getAttributes(component, null);
+    DBProcessorComponent dbProcessorComponent = new DBProcessorComponent();
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+    ComponentWrapper wrapper = new ComponentWrapper(component, componentRegistryService);
+    when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
+    dbProcessorComponent
+        .withComponentRegistryService(componentRegistryService);
+    TraceComponent tc = TraceComponent.of("test", new HashMap<>());
+    dbProcessorComponent.addAttributes(component, null, tc);
 
-    assertThat(attributes)
+    assertThat(tc.getReadOnlyTags())
         .containsEntry("db.system", "other_sql")
         .containsEntry("db.query.text", "select * from test")
         .containsEntry("db.operation.name", "select");

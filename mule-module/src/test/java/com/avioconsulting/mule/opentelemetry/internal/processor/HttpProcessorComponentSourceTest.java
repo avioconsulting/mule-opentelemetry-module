@@ -96,7 +96,7 @@ public class HttpProcessorComponentSourceTest extends AbstractProcessorComponent
     assertThat(sourceTraceComponent)
         .isNotNull()
         .extracting("name", "spanName", "statusCode").containsExactly("test-flow", null, spanStatusCode);
-    assertThat(sourceTraceComponent.getTags())
+    assertThat(sourceTraceComponent.getReadOnlyTags())
         .containsEntry("http.response.status_code", httpStatus);
   }
 

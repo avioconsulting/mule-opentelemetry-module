@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.test.util.TestInterceptionEvent;
 import io.opentelemetry.api.trace.SpanKind;
 import org.junit.Test;
@@ -14,7 +15,6 @@ import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.event.Event;
-import org.mule.runtime.api.event.EventContext;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.Message;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
@@ -76,7 +76,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
 
     assertThat(endTraceComponent).isNotNull()
         .extracting("errorMessage").isEqualTo("Something failed");
-    assertThat(endTraceComponent.getTags()).isEmpty();
+    assertThat(endTraceComponent.getReadOnlyTags()).isEmpty();
 
   }
 
@@ -100,7 +100,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
 
     assertThat(endTraceComponent).isNotNull()
         .extracting("errorMessage").isEqualTo("Something failed");
-    assertThat(endTraceComponent.getTags()).isEmpty();
+    assertThat(endTraceComponent.getReadOnlyTags()).isEmpty();
   }
 
   @Test
@@ -130,14 +130,17 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
 
     ConfigurationComponentLocator componentLocator = mock(ConfigurationComponentLocator.class);
     when(componentLocator.find(any(Location.class))).thenReturn(Optional.empty());
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+    ComponentWrapper wrapper = new ComponentWrapper(component, componentRegistryService);
+    when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
     ProcessorComponent httpProcessorComponent = new HttpProcessorComponent()
-        .withConfigurationComponentLocator(componentLocator);
+        .withComponentRegistryService(componentRegistryService);
     TraceComponent endTraceComponent = httpProcessorComponent.getStartTraceComponent(notification);
 
     assertThat(endTraceComponent).isNotNull()
         .extracting("spanName", "location", "spanKind")
         .containsExactly("/test", componentLocation.getLocation(), SpanKind.CLIENT);
-    assertThat(endTraceComponent.getTags())
+    assertThat(endTraceComponent.getReadOnlyTags())
         .hasSize(7)
         .containsEntry("http.request.method", "GET")
         .containsEntry("mule.app.processor.configRef", "test-config")
@@ -192,7 +195,7 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
     assertThat(sourceTraceComponent)
         .isNotNull()
         .extracting("name", "spanName").containsExactly("test-flow", "GET /test");
-    assertThat(sourceTraceComponent.getTags())
+    assertThat(sourceTraceComponent.getReadOnlyTags())
         .hasSize(6)
         .containsEntry("http.request.method", "GET")
         .containsEntry("http.route", "/test")

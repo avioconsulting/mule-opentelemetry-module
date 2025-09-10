@@ -3,14 +3,15 @@ package com.avioconsulting.mule.opentelemetry.internal.processor;
 import com.avioconsulting.mule.opentelemetry.api.config.TraceLevelConfiguration;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
+import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.api.trace.Span;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.el.BindingContext;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.event.EventContext;
@@ -33,14 +34,32 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
 public class MuleNotificationProcessorContextExtractorTest extends AbstractProcessorComponentTest {
 
-  private ConfigurationComponentLocator configurationComponentLocator = mock(ConfigurationComponentLocator.class);
+  private ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+
+  @BeforeClass
+  public static void beforeClass() {
+    System.setProperty("mule.otel.pooling.tracecomponent.enabled", "false");
+  }
+
+  @AfterClass
+  public static void afterClass() {
+    System.clearProperty("mule.otel.pooling.tracecomponent.enabled");
+  }
+
+  @Before
+  public void setup() {
+    System.setProperty(PropertiesUtil.MULE_OTEL_ENABLE_DYNAMIC_CONTEXT_DETECTION, "true");
+  }
+
+  @After
+  public void tearDown() {
+    System.clearProperty(PropertiesUtil.MULE_OTEL_ENABLE_DYNAMIC_CONTEXT_DETECTION);
+  }
 
   @Parameterized.Parameter(value = 0)
   public static String expressionText;
@@ -85,8 +104,9 @@ public class MuleNotificationProcessorContextExtractorTest extends AbstractProce
 
     ArgumentCaptor<TraceComponent> captor = ArgumentCaptor.forClass(TraceComponent.class);
     doNothing().when(connection).startTransaction(captor.capture());
-
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+    ComponentWrapper wrapper = new ComponentWrapper(component, componentRegistryService);
+    when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(componentRegistryService);
     notificationProcessor.init(connection, new TraceLevelConfiguration(false, Collections.emptyList()));
     notificationProcessor.handleFlowStartEvent(pipelineMessageNotification);
 
@@ -134,8 +154,10 @@ public class MuleNotificationProcessorContextExtractorTest extends AbstractProce
 
     ArgumentCaptor<TraceComponent> captor = ArgumentCaptor.forClass(TraceComponent.class);
     doNothing().when(connection).startTransaction(captor.capture());
-
-    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(configurationComponentLocator);
+    ComponentWrapper wrapper = new ComponentWrapper(component, componentRegistryService);
+    when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
+    MuleNotificationProcessor notificationProcessor = new MuleNotificationProcessor(
+        componentRegistryService);
     notificationProcessor.init(connection, new TraceLevelConfiguration(false, Collections.emptyList()));
     notificationProcessor.handleFlowStartEvent(pipelineMessageNotification);
 

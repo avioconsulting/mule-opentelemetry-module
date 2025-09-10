@@ -11,13 +11,17 @@ import com.avioconsulting.mule.opentelemetry.api.ee.batch.notifications.OtelBatc
 import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryConnection;
 import com.avioconsulting.mule.opentelemetry.internal.interceptor.InterceptorProcessorConfig;
 import com.avioconsulting.mule.opentelemetry.internal.notifications.BatchError;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
+import com.avioconsulting.mule.opentelemetry.internal.processor.util.TraceComponentManager;
 import com.avioconsulting.mule.opentelemetry.internal.util.ComponentsUtil;
+import com.avioconsulting.mule.opentelemetry.internal.util.memoizers.FunctionMemoizer;
+import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import io.opentelemetry.context.Context;
 import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.event.Event;
+import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.AsyncMessageNotification;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
@@ -33,7 +37,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -60,8 +63,7 @@ public class MuleNotificationProcessor {
   private boolean spanAllProcessors;
   private TraceLevelConfiguration traceLevelConfiguration;
   private OpenTelemetryConnection openTelemetryConnection;
-
-  ConfigurationComponentLocator configurationComponentLocator;
+  private final TraceComponentManager traceComponentManager = TraceComponentManager.getInstance();
   private ProcessorComponentService processorComponentService;
   private final ProcessorComponent flowProcessorComponent;
   private final InterceptorProcessorConfig interceptorProcessorConfig;
@@ -75,16 +77,27 @@ public class MuleNotificationProcessor {
    * not have a specific processor like {@link HttpProcessorComponent}.
    */
   private final ProcessorComponent genericProcessorComponent;
+  private final ComponentRegistryService componentRegistryService;
 
   @Inject
-  public MuleNotificationProcessor(ConfigurationComponentLocator configurationComponentLocator) {
-    this.configurationComponentLocator = configurationComponentLocator;
+  public MuleNotificationProcessor(ComponentRegistryService componentRegistryService) {
     flowProcessorComponent = new FlowProcessorComponent()
-        .withConfigurationComponentLocator(configurationComponentLocator);
+        .withComponentRegistryService(componentRegistryService);
     genericProcessorComponent = new GenericProcessorComponent()
-        .withConfigurationComponentLocator(configurationComponentLocator);
+        .withComponentRegistryService(componentRegistryService);
     interceptorProcessorConfig = new InterceptorProcessorConfig()
-        .setComponentLocator(configurationComponentLocator);
+        .setComponentRegistryService(componentRegistryService);
+    this.componentRegistryService = componentRegistryService;
+  }
+
+  // Visible for testing purpose
+  MuleNotificationProcessor setProcessorComponentService(ProcessorComponentService processorComponentService) {
+    this.processorComponentService = processorComponentService;
+    return this;
+  }
+
+  public ComponentRegistryService getComponentRegistryService() {
+    return componentRegistryService;
   }
 
   public InterceptorProcessorConfig getInterceptorProcessorConfig() {
@@ -103,10 +116,6 @@ public class MuleNotificationProcessor {
     return connectionSupplier;
   }
 
-  public ConfigurationComponentLocator getConfigurationComponentLocator() {
-    return configurationComponentLocator;
-  }
-
   public void init(OpenTelemetryConnection connection,
       TraceLevelConfiguration traceLevelConfiguration) {
     this.openTelemetryConnection = connection;
@@ -117,6 +126,7 @@ public class MuleNotificationProcessor {
         .setTurnOffTracing(openTelemetryConnection.isTurnOffTracing())
         .updateTraceConfiguration(traceLevelConfiguration);
 
+    componentRegistryService.initializeComponentWrapperRegistry();
     processorComponentService = ProcessorComponentService.getInstance();
   }
 
@@ -129,9 +139,11 @@ public class MuleNotificationProcessor {
     }
     if (interceptorProcessorConfig.shouldIntercept(notification.getComponent().getLocation(),
         notification.getEvent())) {
-      logger.trace(
-          "Component {} will be processed by interceptor, skipping notification processing to create span",
-          location);
+      if (logger.isTraceEnabled()) {
+        logger.trace(
+            "Component {} will be processed by interceptor, skipping notification processing to create span",
+            location);
+      }
       return;
     }
     processComponentStartSpan(notification);
@@ -158,78 +170,64 @@ public class MuleNotificationProcessor {
     try {
       ProcessorComponent processorComponent = getProcessorComponent(notification.getComponent().getIdentifier());
       if (processorComponent != null) {
-        logger.trace("Handling '{}:{}' processor start event context id {} correlation id {} ",
-            notification.getResourceIdentifier(), notification.getComponent().getIdentifier(),
-            notification.getEvent().getContext().getId(),
-            notification.getEvent().getCorrelationId());
-        TraceComponent traceComponent = processorComponent.getStartTraceComponent(notification)
-            .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()))
-            .withEventContextId(notification.getEvent().getContext().getId())
-            .withComponentLocation(notification.getComponent().getLocation());
-        addBatchTags(traceComponent, notification.getEvent());
-        resolveExpressions(traceComponent, openTelemetryConnection.getExpressionManager(),
-            notification.getEvent());
-        long siblings = configurationComponentLocator.findAllLocations().stream()
-            .filter(c -> c.getLocation()
-                .startsWith(ComponentsUtil.getLocationParent(
-                    notification.getComponent().getLocation().getLocation()) + "/"))
-            .count();
-        traceComponent.withSiblings(siblings);
-        openTelemetryConnection.addProcessorSpan(traceComponent,
-            ComponentsUtil.getLocationParent(notification.getComponent().getLocation().getLocation()));
-        processFlowRef(traceComponent, notification.getEvent());
+        if (logger.isTraceEnabled()) {
+          logger.trace("Handling '{}:{}' processor start event context id {} correlation id {} ",
+              notification.getResourceIdentifier(), notification.getComponent().getIdentifier(),
+              notification.getEvent().getContext().getId(),
+              notification.getEvent().getCorrelationId());
+        }
+        try (TraceComponent traceComponent = processorComponent.getStartTraceComponent(notification)) {
+          traceComponent.withStartTime(Instant.ofEpochMilli(notification.getTimestamp()))
+              .withEventContextId(notification.getEvent().getContext().getId())
+              .withComponentLocation(notification.getComponent().getLocation());
+          addBatchTags(traceComponent, notification.getEvent());
+          resolveExpressions(traceComponent, openTelemetryConnection.getExpressionManager(),
+              notification.getEvent());
+          long siblings = componentRegistryService.findSiblingCount(
+              notification.getComponent().getLocation().getLocation());
+          traceComponent.withSiblings(siblings);
+          openTelemetryConnection.addProcessorSpan(traceComponent,
+              ComponentsUtil.getLocationParent(notification.getComponent().getLocation().getLocation()));
+          processFlowRef(traceComponent, notification.getEvent());
+        }
       }
     } catch (Exception ex) {
-      logger.trace(
-          "Failed to intercept processor {} at {}, span may not be captured for this processor. Error - {}",
-          notification.getComponent().getIdentifier().toString(),
-          notification.getComponent().getLocation().getLocation(),
-          ex.getLocalizedMessage(), ex);
+      if (logger.isTraceEnabled()) {
+        logger.trace(
+            "Failed to intercept processor {} at {}, span may not be captured for this processor. Error - {}",
+            notification.getComponent().getIdentifier().toString(),
+            notification.getComponent().getLocation().getLocation(),
+            ex.getLocalizedMessage(), ex);
+      }
     }
   }
 
   private void processFlowRef(TraceComponent traceComponent, Event event) {
     if (isFlowRef(traceComponent.getComponentLocation())) {
-      Optional<ComponentLocation> subFlowLocation = resolveFlowName(
-          getOpenTelemetryConnection().getExpressionManager(), traceComponent, event.asBindingContext(),
-          configurationComponentLocator);
-      if (subFlowLocation.isPresent()) {
-        TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation.get(), traceComponent);
-        getOpenTelemetryConnection().addProcessorSpan(subflowTrace,
-            traceComponent.getComponentLocation().getLocation());
+      ComponentLocation subFlowLocation = resolveFlowName(
+          getOpenTelemetryConnection().getExpressionManager(), traceComponent, event::asBindingContext,
+          componentRegistryService);
+      if (subFlowLocation != null) {
+        try (TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation, traceComponent)) {
+          getOpenTelemetryConnection().addProcessorSpan(subflowTrace,
+              traceComponent.getComponentLocation().getLocation());
+        }
       }
     }
   }
 
-  /**
-   * <pre>
-   * Finds a {@link ProcessorComponent} for {@link org.mule.runtime.api.component.Component} that caused {@link MessageProcessorNotification} event.
-   *
-   * If `spanAllProcessors` is set to <code>true</code> but the target component is marked to ignore spans, no processor will be returned.
-   *
-   * If a specific processor isn't found and `spanAllProcessors` is <code>true</code> then {@link GenericProcessorComponent} will be returned to process target component.
-   *
-   * </pre>
-   * 
-   * @param notification
-   *            {@link MessageProcessorNotification} instance containing the
-   *            target {@link org.mule.runtime.api.component.Component}.
-   * @return Optional<ProcessorComponent> that can process this notification
-   */
-  ProcessorComponent getProcessorComponent(MessageProcessorNotification notification) {
-    ComponentIdentifier identifier = notification.getComponent().getIdentifier();
-    return getProcessorComponent(identifier);
-  }
+  private final FunctionMemoizer<ComponentIdentifier, ProcessorComponent> resolveProcessorComponent = FunctionMemoizer
+      .memoize(this::resolveProcessorComponent, true);
 
-  public ProcessorComponent getProcessorComponent(ComponentIdentifier identifier) {
+  public ProcessorComponent resolveProcessorComponent(ComponentIdentifier identifier) {
     boolean ignored = multiMapContains(identifier.getNamespace(), identifier.getName(), "*",
         traceLevelConfiguration.getIgnoreMuleComponentsMap());
     if (spanAllProcessors && ignored)
       return null;
 
     ProcessorComponent processorComponent = processorComponentService
-        .getProcessorComponentFor(identifier, configurationComponentLocator,
-            openTelemetryConnection.getExpressionManager());
+        .getProcessorComponentFor(identifier,
+            openTelemetryConnection.getExpressionManager(), componentRegistryService);
 
     if (processorComponent == null && (spanAllProcessors
         || multiMapContains(identifier.getNamespace(), identifier.getName(), "*",
@@ -244,51 +242,56 @@ public class MuleNotificationProcessor {
     return values.contains(value) || values.contains(alternate);
   }
 
+  public ProcessorComponent getProcessorComponent(ComponentIdentifier identifier) {
+    return resolveProcessorComponent.apply(identifier);
+  }
+
   public void handleProcessorEndEvent(EnrichedServerNotification notification) {
     String location = notification.getComponent().getLocation().getLocation();
     try {
       ProcessorComponent processorComponent = getProcessorComponent(notification.getComponent().getIdentifier());
       if (processorComponent != null) {
-        logger.trace("Handling '{}:{}' processor end event context id {} correlation id {} ",
-            notification.getResourceIdentifier(), notification.getComponent().getIdentifier(),
-            notification.getEvent().getContext().getId(),
-            notification.getEvent().getCorrelationId());
-        TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification)
-            .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()))
-            .withEventContextId(notification.getEvent().getContext().getId());
-        addBatchTags(traceComponent, notification.getEvent());
-        SpanMeta spanMeta = openTelemetryConnection.endProcessorSpan(traceComponent,
-            notification.getEvent().getError().orElse(null));
+        if (logger.isTraceEnabled()) {
+          logger.trace("Handling '{}:{}' processor end event context id {} correlation id {} ",
+              notification.getResourceIdentifier(), notification.getComponent().getIdentifier(),
+              notification.getEvent().getContext().getId(),
+              notification.getEvent().getCorrelationId());
+        }
+        SpanMeta spanMeta;
+        Error error = notification.getEvent().getError().orElse(null);
+        try (TraceComponent traceComponent = processorComponent.getEndTraceComponent(notification)) {
+          traceComponent
+              .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()))
+              .withEventContextId(notification.getEvent().getContext().getId());
+          addBatchTags(traceComponent, notification.getEvent());
+          spanMeta = openTelemetryConnection.endProcessorSpan(traceComponent,
+              error);
 
-        if (isFlowRef(notification.getComponent().getLocation())) {
-          String targetFlowName = traceComponent.getTags().get("mule.app.processor.flowRef.name");
-          if (openTelemetryConnection.getExpressionManager().isExpression(targetFlowName)) {
-            logger.trace("Resolving expression '{}'", targetFlowName);
-            targetFlowName = openTelemetryConnection.getExpressionManager()
-                .evaluate(targetFlowName, notification.getEvent().asBindingContext()).getValue()
-                .toString();
-            logger.trace("Resolved to value '{}'", targetFlowName);
+          if (isFlowRef(notification.getComponent().getLocation())) {
+            ComponentLocation subFlowLocation = resolveFlowName(
+                openTelemetryConnection.getExpressionManager(), traceComponent,
+                () -> notification.getEvent().asBindingContext(),
+                componentRegistryService);
+            if (subFlowLocation != null) {
+              SpanMeta subFlowSpanMeta;
+              try (TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowLocation,
+                  traceComponent)) {
+                subFlowSpanMeta = openTelemetryConnection.endProcessorSpan(subflowTrace,
+                    error);
+              }
+              if (subFlowSpanMeta != null) {
+                openTelemetryConnection.getMetricsProviders().captureProcessorMetrics(
+                    notification.getComponent(),
+                    error, location,
+                    subFlowSpanMeta);
+              }
+            }
           }
-          findLocation(targetFlowName,
-              configurationComponentLocator)
-                  .filter(ComponentsUtil::isSubFlow)
-                  .ifPresent(subFlowComp -> {
-                    TraceComponent subflowTrace = getSubFlowTraceComponent(subFlowComp,
-                        traceComponent);
-                    SpanMeta subFlow = openTelemetryConnection.endProcessorSpan(subflowTrace,
-                        notification.getEvent().getError().orElse(null));
-                    if (subFlow != null) {
-                      openTelemetryConnection.getMetricsProviders().captureProcessorMetrics(
-                          notification.getComponent(),
-                          notification.getEvent().getError().orElse(null), location,
-                          spanMeta);
-                    }
-                  });
         }
 
         if (spanMeta != null) {
           openTelemetryConnection.getMetricsProviders().captureProcessorMetrics(notification.getComponent(),
-              notification.getEvent().getError().orElse(null), location, spanMeta);
+              error, location, spanMeta);
         }
       }
     } catch (Exception ex) {
@@ -299,30 +302,49 @@ public class MuleNotificationProcessor {
 
   public void handleFlowStartEvent(PipelineMessageNotification notification) {
     try {
-      logger.trace("Handling '{}' flow start event context id {} correlation id {} ",
-          notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
-          notification.getEvent().getCorrelationId());
-      TraceComponent traceComponent = flowProcessorComponent
-          .getSourceStartTraceComponent(notification, openTelemetryConnection)
-          .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()))
-          .withEventContextId(notification.getEvent().getContext().getId());
-      traceComponent = attemptAddingTraceContextIfMissing(notification, traceComponent);
-      addBatchTags(traceComponent, notification.getEvent());
-      openTelemetryConnection.startTransaction(traceComponent);
+      if (logger.isTraceEnabled()) {
+        logger.trace("Handling '{}' flow start event context id {} correlation id {} ",
+            notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
+            notification.getEvent().getCorrelationId());
+      }
+      try (TraceComponent traceComponent = flowProcessorComponent
+          .getSourceStartTraceComponent(notification, openTelemetryConnection)) {
+        traceComponent
+            .withStartTime(Instant.ofEpochMilli(notification.getTimestamp()))
+            .withEventContextId(notification.getEvent().getContext().getId());
+        attemptAddingTraceContextIfMissing(notification, traceComponent);
+        addBatchTags(traceComponent, notification.getEvent());
+        openTelemetryConnection.startTransaction(traceComponent);
+      }
     } catch (Exception ex) {
       logger.error("Error in handling {} flow start event", notification.getResourceIdentifier(), ex);
       throw ex;
     }
   }
 
+  /**
+   * Attempts to add a trace context to the provided TraceComponent if it is
+   * missing and dynamic context detection is enabled.
+   * The context is determined based on predefined or cached expressions
+   * associated with the provided notification.
+   *
+   * @param notification
+   *            the PipelineMessageNotification instance used to determine if a
+   *            trace context should be added
+   * @param traceComponent
+   *            the existing TraceComponent which may or may not have a context
+   * @return the updated TraceComponent with a context added if applicable
+   */
   private TraceComponent attemptAddingTraceContextIfMissing(PipelineMessageNotification notification,
       TraceComponent traceComponent) {
-    if (traceComponent.getContext() != null) {
+    if (traceComponent.getContext() != null || !PropertiesUtil.isDynamicContextDetectionEnabled()) {
       return traceComponent;
     }
     if (flowContextExpressions.containsKey(notification.getResourceIdentifier())) {
       String expression = flowContextExpressions.get(notification.getResourceIdentifier());
-      logger.trace("Getting context for {} with {}", notification.getResourceIdentifier(), expression);
+      if (logger.isTraceEnabled()) {
+        logger.trace("Getting context for {} with {}", notification.getResourceIdentifier(), expression);
+      }
       Context context = getContext(expression, notification);
       traceComponent = traceComponent.withContext(context);
     } else {
@@ -371,27 +393,34 @@ public class MuleNotificationProcessor {
 
   public void handleFlowEndEvent(PipelineMessageNotification notification) {
     try {
-      logger.trace("Handling '{}' flow end event context id {} correlation id {} ",
-          notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
-          notification.getEvent().getCorrelationId());
-      TraceComponent traceComponent = flowProcessorComponent
-          .getSourceEndTraceComponent(notification, openTelemetryConnection)
-          .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()))
-          .withEventContextId(notification.getEvent().getContext().getId());
-      addBatchTags(traceComponent, notification.getEvent());
-      TransactionMeta transactionMeta = openTelemetryConnection.endTransaction(traceComponent,
-          notification.getException());
-      if (transactionMeta == null) {
-        // If transaction isn't found by the current context,
-        // search by any context from variable
-        TypedValue<String> contextId = (TypedValue<String>) notification.getEvent().getVariables()
-            .get(TransactionStore.OTEL_FLOW_CONTEXT_ID);
-        if (contextId != null && contextId.getValue() != null) {
-          logger.trace("Attempting to find {} by {}", traceComponent, contextId.getValue());
-          traceComponent = traceComponent.withEventContextId(contextId.getValue());
-        }
+      if (logger.isTraceEnabled()) {
+        logger.trace("Handling '{}' flow end event context id {} correlation id {} ",
+            notification.getResourceIdentifier(), notification.getEvent().getContext().getId(),
+            notification.getEvent().getCorrelationId());
+      }
+      TransactionMeta transactionMeta;
+      try (TraceComponent traceComponent = flowProcessorComponent
+          .getSourceEndTraceComponent(notification, openTelemetryConnection)) {
+        traceComponent
+            .withEndTime(Instant.ofEpochMilli(notification.getTimestamp()))
+            .withEventContextId(notification.getEvent().getContext().getId());
+        addBatchTags(traceComponent, notification.getEvent());
         transactionMeta = openTelemetryConnection.endTransaction(traceComponent,
             notification.getException());
+        if (transactionMeta == null) {
+          // If transaction isn't found by the current context,
+          // search by any context from variable
+          TypedValue<String> contextId = (TypedValue<String>) notification.getEvent().getVariables()
+              .get(TransactionStore.OTEL_FLOW_CONTEXT_ID);
+          if (contextId != null && contextId.getValue() != null) {
+            if (logger.isTraceEnabled()) {
+              logger.trace("Attempting to find {} by {}", traceComponent, contextId.getValue());
+            }
+            traceComponent.withEventContextId(contextId.getValue());
+          }
+          transactionMeta = openTelemetryConnection.endTransaction(traceComponent,
+              notification.getException());
+        }
       }
       if (transactionMeta != null) {
         openTelemetryConnection.getMetricsProviders().captureFlowMetrics(transactionMeta,
@@ -407,31 +436,32 @@ public class MuleNotificationProcessor {
 
   public void handleBatchOnCompleteEndEvent(OtelBatchNotification batchNotification) {
     BatchJobInstance jobInstance = batchNotification.getJobInstance();
-    TraceComponent traceComponent = TraceComponent.of(BATCH_ON_COMPLETE_TAG)
-        .withSpanName(BATCH_ON_COMPLETE_TAG)
-        .withTransactionId(jobInstance.getId())
-        .withEndTime(Instant.ofEpochMilli(batchNotification.getTimestamp()))
-        .withTags(new HashMap<>());
-    traceComponent.getTags().put(MULE_BATCH_JOB_INSTANCE_ID.toString(), jobInstance.getId());
-    openTelemetryConnection.endProcessorSpan(traceComponent,
-        BatchError.of(batchNotification.getException()));
-    if (BatchJobInstanceStatus.FAILED_PROCESS_RECORDS.equals(batchNotification.getJobInstance().getStatus())) {
-      // When batch job ends due exceeding the number of allowed records to fail,
-      // JOB_SUCCESSFUL or JOB_STOPPED notification isn't fired.
-      // So, when the on-complete block finished with this status, also end the batch
-      // job.
-      handleBatchEndEvent(batchNotification);
+    try (TraceComponent traceComponent = TraceComponentManager.getInstance()
+        .createTraceComponent(jobInstance.getId(), BATCH_ON_COMPLETE_TAG)) {
+      traceComponent
+          .withSpanName(BATCH_ON_COMPLETE_TAG)
+          .withEndTime(Instant.ofEpochMilli(batchNotification.getTimestamp()));
+      traceComponent.addTag(MULE_BATCH_JOB_INSTANCE_ID.toString(), jobInstance.getId());
+      openTelemetryConnection.endProcessorSpan(traceComponent,
+          BatchError.of(batchNotification.getException()));
+      if (BatchJobInstanceStatus.FAILED_PROCESS_RECORDS.equals(batchNotification.getJobInstance().getStatus())) {
+        // When batch job ends due exceeding the number of allowed records to fail,
+        // JOB_SUCCESSFUL or JOB_STOPPED notification isn't fired.
+        // So, when the on-complete block finished with this status, also end the batch
+        // job.
+        handleBatchEndEvent(batchNotification);
+      }
     }
   }
 
   public void handleBatchEndEvent(OtelBatchNotification batchNotification) {
     BatchJobInstance jobInstance = batchNotification.getJobInstance();
-    TraceComponent traceComponent = TraceComponent.of(batchNotification.getJobInstance().getOwnerJobName())
-        .withTransactionId(jobInstance.getId())
-        .withEndTime(Instant.ofEpochMilli(batchNotification.getTimestamp()))
-        .withTags(new HashMap<>());
-
-    openTelemetryConnection.endTransaction(traceComponent, batchNotification.getException());
+    try (TraceComponent traceComponent = traceComponentManager
+        .createTraceComponent(jobInstance.getId(), batchNotification.getJobInstance().getOwnerJobName())) {
+      traceComponent
+          .withEndTime(Instant.ofEpochMilli(batchNotification.getTimestamp()));
+      openTelemetryConnection.endTransaction(traceComponent, batchNotification.getException());
+    }
   }
 
   public void handleBatchStepRecordEndEvent(OtelBatchNotification batchNotification) {
@@ -441,34 +471,37 @@ public class MuleNotificationProcessor {
     String recordLocation = batchNotification.getStep().getComponent().getLocation()
         .getLocation();
     recordLocation = recordLocation + "/record";
-    TraceComponent traceComponent = TraceComponent.of(BATCH_STEP_RECORD_TAG)
-        .withLocation(recordLocation)
-        .withSpanName(BATCH_STEP_RECORD_TAG)
-        .withTransactionId(jobInstance.getId())
-        .withEndTime(Instant.ofEpochMilli(batchNotification.getTimestamp()))
-        .withEventContextId(
-            record.getVariable(TransactionStore.OTEL_BATCH_STEP_RECORD_CONTEXT_ID).getValue().toString())
-        .withTags(new HashMap<>());
-    traceComponent.getTags().put(MULE_BATCH_JOB_INSTANCE_ID.getKey(), jobInstance.getId());
-    traceComponent.getTags().put(MULE_BATCH_JOB_NAME.getKey(), jobInstance.getOwnerJobName());
-    traceComponent.getTags().put(MULE_BATCH_JOB_STEP_NAME.getKey(), batchStep.getName());
+    try (TraceComponent traceComponent = TraceComponentManager.getInstance()
+        .createTraceComponent(jobInstance.getId(), BATCH_STEP_RECORD_TAG)) {
+      traceComponent
+          .withLocation(recordLocation)
+          .withSpanName(BATCH_STEP_RECORD_TAG)
+          .withEndTime(Instant.ofEpochMilli(batchNotification.getTimestamp()))
+          .withEventContextId(
+              record.getVariable(TransactionStore.OTEL_BATCH_STEP_RECORD_CONTEXT_ID).getValue()
+                  .toString());
+      traceComponent.addTag(MULE_BATCH_JOB_INSTANCE_ID.getKey(), jobInstance.getId());
+      traceComponent.addTag(MULE_BATCH_JOB_NAME.getKey(), jobInstance.getOwnerJobName());
+      traceComponent.addTag(MULE_BATCH_JOB_STEP_NAME.getKey(), batchStep.getName());
 
-    openTelemetryConnection.endProcessorSpan(traceComponent,
-        BatchError.of(record.getExceptionForStep(record.getCurrentStepId())));
+      openTelemetryConnection.endProcessorSpan(traceComponent,
+          BatchError.of(record.getExceptionForStep(record.getCurrentStepId())));
+    }
   }
 
   public void handleBatchStepEndEvent(OtelBatchNotification batchNotification) {
     BatchJobInstance jobInstance = batchNotification.getJobInstance();
     BatchStep batchStep = batchNotification.getStep();
-    TraceComponent traceComponent = TraceComponent.of(BATCH_STEP_TAG)
-        .withSpanName(batchStep.getName())
-        .withTransactionId(jobInstance.getId())
-        .withEndTime(Instant.ofEpochMilli(batchNotification.getTimestamp()))
-        .withTags(new HashMap<>());
-    traceComponent.getTags().put(MULE_BATCH_JOB_INSTANCE_ID.getKey(), jobInstance.getId());
-    traceComponent.getTags().put(MULE_BATCH_JOB_NAME.getKey(), jobInstance.getOwnerJobName());
-    traceComponent.getTags().put(MULE_BATCH_JOB_STEP_NAME.getKey(), batchStep.getName());
+    try (TraceComponent traceComponent = TraceComponentManager.getInstance()
+        .createTraceComponent(jobInstance.getId(), BATCH_STEP_TAG)) {
+      traceComponent
+          .withSpanName(batchStep.getName())
+          .withEndTime(Instant.ofEpochMilli(batchNotification.getTimestamp()));
+      traceComponent.addTag(MULE_BATCH_JOB_INSTANCE_ID.getKey(), jobInstance.getId());
+      traceComponent.addTag(MULE_BATCH_JOB_NAME.getKey(), jobInstance.getOwnerJobName());
+      traceComponent.addTag(MULE_BATCH_JOB_STEP_NAME.getKey(), batchStep.getName());
 
-    openTelemetryConnection.endProcessorSpan(traceComponent, null);
+      openTelemetryConnection.endProcessorSpan(traceComponent, null);
+    }
   }
 }

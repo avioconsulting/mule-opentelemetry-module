@@ -55,24 +55,20 @@ public class MuleCoreProcessorComponent extends AbstractProcessorComponent {
   }
 
   @Override
-  protected <A> Map<String, String> getAttributes(Component component, TypedValue<A> attributes) {
-    Map<String, String> tags = new HashMap<>();
-    ComponentWrapper componentWrapper = new ComponentWrapper(component,
-        configurationComponentLocator);
+  protected <A> void addAttributes(Component component, TypedValue<A> attributes, TraceComponent collector) {
+    ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
     if (ComponentsUtil.isFlowRef(component.getLocation())) {
-      tags.put(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(),
+      collector.addTag(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(),
           componentWrapper.getParameter("name"));
     }
-    return tags;
   }
 
   @Override
   public TraceComponent getEndTraceComponent(EnrichedServerNotification notification) {
     TraceComponent endTraceComponent = super.getEndTraceComponent(notification);
-    ComponentWrapper componentWrapper = new ComponentWrapper(notification.getComponent(),
-        configurationComponentLocator);
+    ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(notification.getComponent());
     if (ComponentsUtil.isFlowRef(notification.getComponent().getLocation())) {
-      endTraceComponent.getTags().put(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(),
+      endTraceComponent.addTag(MULE_APP_PROCESSOR_FLOW_REF_NAME.getKey(),
           componentWrapper.getParameter("name"));
     }
     return endTraceComponent;

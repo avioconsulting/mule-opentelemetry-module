@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.internal.notifications.listeners;
 
 import com.avioconsulting.mule.opentelemetry.api.ee.batch.notifications.OtelBatchNotification;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
+import com.avioconsulting.mule.opentelemetry.internal.util.MDCUtil;
 import org.mule.runtime.api.event.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,11 +26,13 @@ public class OtelBatchNotificationListener extends AbstractMuleNotificationListe
 
   @Override
   protected void processNotification(OtelBatchNotification notification) {
-    replaceMDCEntry(
+    MDCUtil.replaceMDCOtelEntriesFromVars(
         notification.getRecord() != null ? notification.getRecord().getAllVariables() : Collections.emptyMap());
-    LOGGER.debug("Batch notification received: {}, Step: {}, Record: {}", notification.getActionName(),
-        notification.getStep() == null ? "null" : notification.getStep().getName(),
-        notification.getRecord() == null ? "null" : notification.getRecord().getCurrentStepId());
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Batch notification received: {}, Step: {}, Record: {}", notification.getActionName(),
+          notification.getStep() == null ? "null" : notification.getStep().getName(),
+          notification.getRecord() == null ? "null" : notification.getRecord().getCurrentStepId());
+    }
     int action = Integer.parseInt(notification.getAction().getIdentifier());
     if (STEP_JOB_END == action) {
       muleNotificationProcessor.handleBatchStepEndEvent(notification);

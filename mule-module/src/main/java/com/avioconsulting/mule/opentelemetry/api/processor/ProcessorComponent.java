@@ -2,17 +2,16 @@ package com.avioconsulting.mule.opentelemetry.api.processor;
 
 import com.avioconsulting.mule.opentelemetry.internal.connection.TraceContextHandler;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.ComponentIdentifier;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
 import org.mule.runtime.core.api.el.ExpressionManager;
 
 public interface ProcessorComponent {
-  boolean canHandle(ComponentIdentifier componentIdentifier);
 
-  ProcessorComponent withConfigurationComponentLocator(ConfigurationComponentLocator configurationComponentLocator);
+  boolean canHandle(ComponentIdentifier componentIdentifier);
 
   /**
    * Build a {@link TraceComponent} for start of a flow-like container or a
@@ -86,4 +85,16 @@ public interface ProcessorComponent {
    * @return the updated ProcessorComponent
    */
   ProcessorComponent withExpressionManager(ExpressionManager expressionManager);
+
+  /**
+   * Sets the ComponentRegistryService to be used by the ProcessorComponent.
+   * This service facilitates management and initialization of component wrappers
+   * for
+   * various components in a registry.
+   *
+   * @param componentRegistryService
+   *            the ComponentRegistryService instance to be set
+   * @return the updated ProcessorComponent instance
+   */
+  ProcessorComponent withComponentRegistryService(ComponentRegistryService componentRegistryService);
 }

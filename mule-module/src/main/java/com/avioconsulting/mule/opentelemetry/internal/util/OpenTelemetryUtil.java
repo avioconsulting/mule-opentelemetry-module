@@ -17,9 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.OTEL_BATCH_PARENT_CONTEXT_ID;
@@ -40,23 +38,26 @@ public class OpenTelemetryUtil {
    * @param configName
    *            {@link String} name of the component's global configuration
    *            element
-   * @param tags
-   *            Modifiable {@link Map} to populate any
    * @param sourceMap
    *            {@link Map} contains all properties to search in
-   *
+   * @return Map of a key-value pair resolved from given source map
    */
-  public static void addGlobalConfigSystemAttributes(String configName, Map<String, String> tags,
+  public static Map<String, String> getGlobalConfigSystemAttributes(String configName,
       Map<String, String> sourceMap) {
-    if (configName == null || configName.trim().isEmpty())
-      return;
-    Objects.requireNonNull(tags, "Tags map cannot be null");
+    if (configName == null || configName.trim().isEmpty()
+        || sourceMap == null || sourceMap.isEmpty()) {
+      return Collections.emptyMap();
+    }
     String configRef = configName.toLowerCase();
     String replaceVal = configRef + ".otel.";
-    sourceMap.entrySet().stream().filter(e -> e.getKey().startsWith(configRef)).forEach(entry -> {
-      String propKey = entry.getKey().substring(replaceVal.length());
-      tags.put(propKey, entry.getValue());
-    });
+    Map<String, String> newTags = new HashMap<>();
+    for (Map.Entry<String, String> e : sourceMap.entrySet()) {
+      if (e.getKey().startsWith(configRef)) {
+        String propKey = e.getKey().substring(replaceVal.length());
+        newTags.put(propKey, e.getValue());
+      }
+    }
+    return newTags;
   }
 
   /**
@@ -86,7 +87,8 @@ public class OpenTelemetryUtil {
   public static String getEventTransactionId(String eventId) {
     // For child contexts, the primary id is appended with "_{timeInMillis}".
     // We remove time part to get a unique id across the event processing.
-    return eventId.split("_")[0];
+    int index = eventId.indexOf('_');
+    return (index != -1) ? eventId.substring(0, index) : eventId;
   }
 
   /**
@@ -131,14 +133,14 @@ public class OpenTelemetryUtil {
           traceComponent.withSpanName(value);
         }
       }
-      List<Map.Entry<String, String>> expressionTags = traceComponent.getTags().entrySet().stream()
-          .filter(e -> expressionManager.isExpression(e.getValue())).collect(Collectors.toList());
-      for (Map.Entry<String, String> expressionTag : expressionTags) {
-        String value = resolveExpression(expressionTag.getValue(), expressionManager, event);
-        if (value != null) {
-          traceComponent.getTags().replace(expressionTag.getKey(), value);
+      traceComponent.forEachTagEntry(entry -> {
+        if (expressionManager.isExpression(entry.getValue())) {
+          try {
+            entry.setValue(resolveExpression(entry.getValue(), expressionManager, event));
+          } catch (Exception ignored) {
+          }
         }
-      }
+      });
     } catch (Exception ignored) {
     }
   }
@@ -176,24 +178,22 @@ public class OpenTelemetryUtil {
   }
 
   public static void tagsToAttributes(TraceComponent traceComponent, SpanBuilder spanBuilder) {
-    if (traceComponent.getTags() == null || traceComponent.getTags().isEmpty()) {
+    if (!traceComponent.hasTags()) {
       return;
     }
-    traceComponent.getTags()
-        .forEach((k, v) -> {
-          AttributeKey attributeKey = attributesKeyCache.getAttributeKey(k);
-          spanBuilder.setAttribute(attributeKey, attributesKeyCache.convertValue(attributeKey, v));
-        });
+    traceComponent.forEachTagEntry(entry -> {
+      AttributeKey attributeKey = attributesKeyCache.getAttributeKey(entry.getKey());
+      spanBuilder.setAttribute(attributeKey, attributesKeyCache.convertValue(attributeKey, entry.getValue()));
+    });
   }
 
   public static void tagsToAttributes(TraceComponent traceComponent, Span span) {
-    if (traceComponent.getTags() == null || traceComponent.getTags().isEmpty()) {
+    if (!traceComponent.hasTags()) {
       return;
     }
-    traceComponent.getTags()
-        .forEach((k, v) -> {
-          AttributeKey attributeKey = attributesKeyCache.getAttributeKey(k);
-          span.setAttribute(attributeKey, attributesKeyCache.convertValue(attributeKey, v));
-        });
+    traceComponent.forEachTagEntry(entry -> {
+      AttributeKey attributeKey = attributesKeyCache.getAttributeKey(entry.getKey());
+      span.setAttribute(attributeKey, attributesKeyCache.convertValue(attributeKey, entry.getValue()));
+    });
   }
 }

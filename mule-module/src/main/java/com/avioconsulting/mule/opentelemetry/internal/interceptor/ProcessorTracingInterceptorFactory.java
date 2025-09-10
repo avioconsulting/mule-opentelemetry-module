@@ -4,7 +4,6 @@ import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtens
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.internal.util.PropertiesUtil;
 import org.mule.runtime.api.component.location.ComponentLocation;
-import org.mule.runtime.api.component.location.ConfigurationComponentLocator;
 import org.mule.runtime.api.interception.ProcessorInterceptor;
 import org.mule.runtime.api.interception.ProcessorInterceptorFactory;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ public class ProcessorTracingInterceptorFactory implements ProcessorInterceptorF
   // Negating the property value since usage is negated
   private final boolean NOT_FIRST_PROCESSOR_ONLY_MODE = !PropertiesUtil
       .getBoolean(MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY, false);
-
+  private final InterceptorProcessorConfig interceptorProcessorConfig;
   /**
    * {@link MuleNotificationProcessor} instance for getting opentelemetry
    * connection supplier by processor.
@@ -44,10 +43,9 @@ public class ProcessorTracingInterceptorFactory implements ProcessorInterceptorF
   private final ProcessorTracingInterceptor processorTracingInterceptor;
 
   @Inject
-  public ProcessorTracingInterceptorFactory(MuleNotificationProcessor muleNotificationProcessor,
-      ConfigurationComponentLocator configurationComponentLocator) {
-    processorTracingInterceptor = new ProcessorTracingInterceptor(muleNotificationProcessor,
-        configurationComponentLocator);
+  public ProcessorTracingInterceptorFactory(MuleNotificationProcessor muleNotificationProcessor) {
+    processorTracingInterceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
+    interceptorProcessorConfig = muleNotificationProcessor.getInterceptorProcessorConfig();
   }
 
   @Override
@@ -77,11 +75,7 @@ public class ProcessorTracingInterceptorFactory implements ProcessorInterceptorF
    */
   @Override
   public boolean intercept(ComponentLocation location) {
-    boolean intercept = false;
-    if (interceptorEnabled) {
-      intercept = (isFirstProcessor(location)
-          || NOT_FIRST_PROCESSOR_ONLY_MODE);
-    }
+    boolean intercept = interceptorProcessorConfig.shouldIntercept(location, null);
     if (LOGGER.isTraceEnabled() && intercept) {
       LOGGER.trace("Will Intercept '{}::{}'", location.getRootContainerName(), location.getLocation());
     }

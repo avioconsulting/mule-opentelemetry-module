@@ -20,6 +20,12 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 			<opentelemetry:generic-exporter >
 				<opentelemetry:config-properties >
 					<opentelemetry:config-property key="otel.traces.exporter" value="delegatedLogging" />
+					<!-- Log record processor optimization:START -->
+					<opentelemetry:config-property key="otel.blrp.max.queue.size" value="4096" />
+					<opentelemetry:config-property key="otel.blrp.max.export.batch.size" value="2048" />
+					<opentelemetry:config-property key="otel.blrp.export.timeout" value="15000" />
+					<opentelemetry:config-property key="otel.blrp.schedule.delay" value="2000" />
+					<!-- Log record processor optimization:END -->
 				</opentelemetry:config-properties>
 			</opentelemetry:generic-exporter>
 		</opentelemetry:exporter>
