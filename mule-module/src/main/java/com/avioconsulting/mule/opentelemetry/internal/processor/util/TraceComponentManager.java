@@ -39,6 +39,23 @@ public class TraceComponentManager {
 
   private static final TraceComponentManager INSTANCE = new TraceComponentManager();
 
+  /**
+   * Configuration property that enables or disables the pooling of TraceComponent
+   * instances
+   * within the OpenTelemetry integration for Mule applications.
+   *
+   * This property is primarily used for optimizing the management of
+   * TraceComponents by
+   * pooling and reusing instances rather than creating new ones repeatedly. When
+   * enabled,
+   * the pooling mechanism improves performance by reducing the number of
+   * allocated and destroyed
+   * objects.
+   *
+   * @default true
+   */
+  private static final String MULE_OTEL_POOLING_TRACECOMPONENT_ENABLED = "mule.otel.pooling.tracecomponent.enabled";
+
   // Track active components for automatic cleanup
   private final Map<String, Borrowable> activeComponents = new ConcurrentHashMap<>();
 
@@ -57,7 +74,7 @@ public class TraceComponentManager {
 
   private static void init() {
     // Enable pooling by default, can be disabled via system property
-    usePooling = PropertiesUtil.getBoolean("mule.otel.pooling.tracecomponent.enabled", true);
+    usePooling = PropertiesUtil.getBoolean(MULE_OTEL_POOLING_TRACECOMPONENT_ENABLED, true);
     LOGGER.trace("TraceComponent pooling is {}", usePooling ? "enabled" : "disabled");
 
   }

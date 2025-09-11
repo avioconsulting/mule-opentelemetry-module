@@ -21,8 +21,15 @@ public class TraceComponentPool {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TraceComponentPool.class);
 
-  // Pool configuration
-  private static final int MAX_POOL_SIZE = PropertiesUtil.getInt("mule.otel.pooling.tracecomponent.maxsize", 1000);
+  /**
+   * This limit controls the maximum number of reusable TraceComponent instances
+   * that can be maintained in the pool.
+   * 
+   * @default 1000
+   */
+  private static final String MULE_OTEL_POOLING_TRACECOMPONENT_MAXSIZE = "mule.otel.pooling.tracecomponent.maxsize";
+
+  private static final int MAX_POOL_SIZE = PropertiesUtil.getInt(MULE_OTEL_POOLING_TRACECOMPONENT_MAXSIZE, 1000);
 
   // Pools
   private final Queue<PooledTraceComponent> componentPool = new ConcurrentLinkedQueue<>();

@@ -45,7 +45,20 @@ import java.util.List;
 public class OpenTelemetryExtensionConfiguration
     implements Startable, Stoppable, OpenTelemetryConfiguration, OpenTelemetryMetricsConfigSupplier {
 
+  /**
+   * Configuration property used to disable the collection or reporting of metrics
+   * in the OpenTelemetry integration for Mule applications.
+   *
+   * @default false
+   */
   public static final String PROP_MULE_OTEL_METRICS_DISABLED = "mule.otel.metrics.disabled";
+
+  /**
+   * Configuration property to disable OpenTelemetry tracing in the Mule
+   * application.
+   *
+   * @default false
+   */
   public static final String PROP_MULE_OTEL_TRACING_DISABLED = "mule.otel.tracing.disabled";
   private final Logger logger = LoggerFactory.getLogger(OpenTelemetryExtensionConfiguration.class);
   private static final DataType METRIC_NOTIFICATION_DATA_TYPE = DataType.fromType(MetricBaseNotificationData.class);

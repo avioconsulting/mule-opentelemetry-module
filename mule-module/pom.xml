@@ -364,6 +364,26 @@
           </excludes>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <id>extract-system-properties</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <mainClass>com.avioconsulting.mule.opentelemetry.tools.SystemPropertyExtractor</mainClass>
+              <arguments>
+                <argument>${project.basedir}</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 
