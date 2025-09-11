@@ -1,0 +1,82 @@
+=== System Properties Reference
+
+The following table lists all system properties supported by the Mule OpenTelemetry Module:
+
+NOTE: *Environment variables take precedence over system properties*. System properties take precedence over configuration values.
+
+.System Properties
+|===
+|System Property |Environment Variable |Description |Default Value
+
+|mule.otel.use.apikit.span.names
+|MULE_OTEL_USE_APIKIT_SPAN_NAMES
+|Configuration property key for enabling or disabling the use of APIKit flow names as HTTP root span names in OpenTelemetry integration for Mule applications.
+|`true`
+
+|mule.otel.enable.dynamic.context.detection
+|MULE_OTEL_ENABLE_DYNAMIC_CONTEXT_DETECTION
+|Configuration property key to enable or disable dynamic context detection in the OpenTelemetry integration for Mule applications. This property controls whether dynamic detection of context information is enabled during the processing of Mule events. If set to `true`, the system dynamically detects and sets context variables such as trace IDs or span IDs for OpenTelemetry tracing. The default value is `false` unless explicitly specified using a system property or environment variable.
+|`false`
+
+|mule.otel.metrics.disabled
+|MULE_OTEL_METRICS_DISABLED
+|Configuration property used to disable the collection or reporting of metrics in the OpenTelemetry integration for Mule applications.
+|`false`
+
+|mule.otel.tracing.disabled
+|MULE_OTEL_TRACING_DISABLED
+|Configuration property to disable OpenTelemetry tracing in the Mule application.
+|`false`
+
+|mule.otel.service.host.chv1.strategy
+|MULE_OTEL_SERVICE_HOST_CHV1_STRATEGY
+|Specifies the strategy for determining the hostname attribute in OpenTelemetry Resource for applications deployed on CloudHub V1. Possible values include: - "service_name": Use the OpenTelemetry service name to define the hostname. - "env_id": Use the environment ID to define the hostname. - "": Defaults to the worker's hostname or public IP address, as applicable. This configuration is used when building resource attributes to ensure consistency of trace data for CloudHub V1 deployments.
+|`""`
+
+|mule.otel.pooling.tracecomponent.enabled
+|MULE_OTEL_POOLING_TRACECOMPONENT_ENABLED
+|Configuration property that enables or disables the pooling of TraceComponent instances within the OpenTelemetry integration for Mule applications. This property is primarily used for optimizing the management of TraceComponents by pooling and reusing instances rather than creating new ones repeatedly. When enabled, the pooling mechanism improves performance by reducing the number of allocated and destroyed objects.
+|`true`
+
+|mule.otel.pooling.tracecomponent.maxsize
+|MULE_OTEL_POOLING_TRACECOMPONENT_MAXSIZE
+|This limit controls the maximum number of reusable TraceComponent instances that can be maintained in the pool.
+|`1000`
+
+|mule.otel.span.processors.enable
+|MULE_OTEL_SPAN_PROCESSORS_ENABLE
+|Property found in codebase
+|Not set
+
+|mule.otel.interceptor.processor.enable
+|MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE
+|Disable the interceptor feature by setting this system property to `false`.
+|`true`
+
+|mule.otel.interceptor.enabled.processors
+|MULE_OTEL_INTERCEPTOR_ENABLED_PROCESSORS
+|Configuration key representing enabled processors interception. These should be the components that require to inject its own trace context into flow variables. Value should be a comma-separated string of namespace:operation format, For example, http:request,jms:publish... Module includes a predefined list of processors configured for interception. Use this property only if your processor isn't included.
+|Not set
+
+|mule.otel.interceptor.disabled.processors
+|MULE_OTEL_INTERCEPTOR_DISABLED_PROCESSORS
+|Configuration key representing disable processors interception. This is useful in case any default intercepted component is causing issued. Value should be a comma-separated string of namespace:operation format, For example, http:request,jms:publish...
+|Not set
+
+|mule.otel.interceptor.context.enabled.processors
+|MULE_OTEL_INTERCEPTOR_CONTEXT_ENABLED_PROCESSORS
+|Configuration key representing enabled processors for OpenTelemetry context propagation. This property allows the module to configure around() interceptor to these processors and thus have OpenTelemetry context available during processor execution. Value should be a comma-separated string of namespace:operation format, For example, http:request,jms:publish... Module includes a predefined list of processors configured for context propagation. Use this property only if your processor isn't included.
+|Not set
+
+|mule.otel.interceptor.context.disabled.processors
+|MULE_OTEL_INTERCEPTOR_CONTEXT_DISABLED_PROCESSORS
+|If the processor is configured to use context propagation interceptor but causing any issues, this property can be used to exclude processors from interception. Value should be a comma-separated string of namespace:operation format, For example, http:request,jms:publish...
+|Not set
+
+|mule.otel.interceptor.first.processor.only
+|MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY
+|Enable interceptor feature for first processor in the container (eg. Flow) by setting this system property to `true`.
+|`false`
+
+|===
+

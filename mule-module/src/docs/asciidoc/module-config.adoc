@@ -68,7 +68,9 @@ Supported environment variable details can be seen on https://github.com/open-te
 === Extension Configuration
 Extension allows to configure some resource and exporter attributes at individual application level. This configuration is minimal required to successfully send traces to OpenTelemetry collector.
 
-Following example shows an OpenTelemetry Config with OTLP Exporter configured -
+NOTE: See link:#system-properties[System Properties Reference] for how to alter configuration behavior using System Properties/Environment Variables.
+
+The following example shows an OpenTelemetry Config with OTLP Exporter configured
 
 [source,xml]
 ----
@@ -385,10 +387,10 @@ For non-logging exporters, Tracing SDK uses https://opentelemetry.io/docs/refere
 ----
 <opentelemetry:config name="OpenTelemetry_Config"
     serviceName="otel-comparison-test"
-    maxQueueSize="2048"
-    maxBatchExportSize="512"
-    batchExportDelayInterval="5000"
-    exportTimeout="30000">
+    maxQueueSize="4096"
+    maxBatchExportSize="1024"
+    batchExportDelayInterval="1500"
+    exportTimeout="10000">
 .... other config ....
 </opentelemetry:config>
 ----
@@ -613,7 +615,6 @@ It is always injected under a key **OTEL_TRACE_CONTEXT**.
 
 Disabling the interceptor processing can result in incorrect context propagation.
 |`true`
-|`false`
 |`false`
 
 
@@ -920,6 +921,12 @@ When logging with Log4J, JSONLayout can be used to structure the log records wit
         </JSONLayout>
     </console>
 ----
+
+=== System Properties
+[#system-properties]
+The Mule OpenTelemetry Module supports various system properties and environment variables for configuration. These properties can be used to control tracing behavior, interceptor settings, and other module features.
+
+include::system-properties-reference.adoc[]
 
 === Generated Documentation
 

@@ -23,6 +23,23 @@ import static io.opentelemetry.semconv.incubating.HostIncubatingAttributes.HOST_
  */
 public final class MuleAppHostResource {
 
+  /**
+   * Specifies the strategy for determining the hostname attribute in
+   * OpenTelemetry Resource
+   * for applications deployed on CloudHub V1.
+   *
+   * Possible values include:
+   * - "service_name": Use the OpenTelemetry service name to define the hostname.
+   * - "env_id": Use the environment ID to define the hostname.
+   * - "": Defaults to the worker's hostname or public IP address, as applicable.
+   *
+   * This configuration is used when building resource attributes to ensure
+   * consistency
+   * of trace data for CloudHub V1 deployments.
+   *
+   * @default ""
+   */
+  private static final String MULE_OTEL_SERVICE_HOST_CHV_1_STRATEGY = "mule.otel.service.host.chv1.strategy";
   private static Resource INSTANCE = null;
   private static final Logger LOGGER = LoggerFactory.getLogger(MuleAppHostResource.class);
 
@@ -62,7 +79,7 @@ public final class MuleAppHostResource {
         attributes.put(HostIncubatingAttributes.HOST_IP, workerPublicIP);
         hostname = "ip-" + workerPublicIP.replace(".", "-");
       }
-      String hostStrategy = config.getString("mule.otel.service.host.chv1.strategy", "");
+      String hostStrategy = config.getString(MULE_OTEL_SERVICE_HOST_CHV_1_STRATEGY, "");
       switch (hostStrategy) {
         case "service_name":
           hostname = config.getString("otel.service.name");

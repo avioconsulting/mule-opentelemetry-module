@@ -1,15 +1,39 @@
 package com.avioconsulting.mule.opentelemetry.internal.util;
 
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 public class PropertiesUtil {
+  /**
+   * Configuration property key for enabling or disabling the use of APIKit flow
+   * names
+   * as HTTP root span names in OpenTelemetry integration for Mule applications.
+   * 
+   * @default true
+   */
   public static final String MULE_OTEL_USE_APIKIT_SPAN_NAMES = "mule.otel.use.apikit.span.names";
+
+  /**
+   * Configuration property key to enable or disable dynamic context detection in
+   * the OpenTelemetry
+   * integration for Mule applications.
+   *
+   * This property controls whether dynamic detection of context information is
+   * enabled during the
+   * processing of Mule events. If set to `true`, the system dynamically detects
+   * and sets context
+   * variables such as trace IDs or span IDs for OpenTelemetry tracing. The
+   * default value is `false`
+   * unless explicitly specified using a system property or environment variable.
+   *
+   * @default false
+   */
   public static final String MULE_OTEL_ENABLE_DYNAMIC_CONTEXT_DETECTION = "mule.otel.enable.dynamic.context.detection";
   private static boolean enableDynamicContextDetection;
 
   /**
-   * Should APIKit Flow names be used to name http root spans? Default true.
+   * Should APIKit Flow names be used to name http root spans?
+   *
+   * @default true.
    */
   private static boolean useAPIKitSpanNames = true;
 

@@ -46,8 +46,9 @@ public class InterceptorProcessorConfig {
   private static final Logger LOGGER = LoggerFactory.getLogger(InterceptorProcessorConfig.class);
 
   /**
-   * Disable interceptor feature by setting this system property to `false`.
-   * Default `true`.
+   * Disable the interceptor feature by setting this system property to `false`.
+   *
+   * @default true
    */
   public static final String MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE_PROPERTY_NAME = "mule.otel.interceptor.processor.enable";
   private final boolean INTERCEPTOR_ENABLED_BY_SYS_PROPERTY = PropertiesUtil
@@ -111,7 +112,9 @@ public class InterceptorProcessorConfig {
 
   /**
    * Enable interceptor feature for first processor in the container (eg. Flow) by
-   * setting this system property to `true`. Default `false`.
+   * setting this system property to `true`.
+   *
+   * @default false
    */
   public static final String MULE_OTEL_INTERCEPTOR_FIRST_PROCESSOR_ONLY = "mule.otel.interceptor.first.processor.only";
   // Negating the property value since usage is negated
