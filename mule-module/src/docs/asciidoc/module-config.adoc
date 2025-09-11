@@ -387,10 +387,10 @@ For non-logging exporters, Tracing SDK uses https://opentelemetry.io/docs/refere
 ----
 <opentelemetry:config name="OpenTelemetry_Config"
     serviceName="otel-comparison-test"
-    maxQueueSize="2048"
-    maxBatchExportSize="512"
-    batchExportDelayInterval="5000"
-    exportTimeout="30000">
+    maxQueueSize="4096"
+    maxBatchExportSize="1024"
+    batchExportDelayInterval="1500"
+    exportTimeout="10000">
 .... other config ....
 </opentelemetry:config>
 ----
