@@ -40,10 +40,84 @@ To simulate real world scenarios, the system APIs are configured using the mocks
 
 === Observations
 
-After multiple iterations of the test with above setup and comparing the performance of both applications (with and without OpenTelemetry module), it is observed that _using OpenTelemetry module_ had the following impacts on the application performance -
+After multiple iterations of the test with above setup and comparing the performance of both applications (with and without OpenTelemetry module), it is observed that _using OpenTelemetry module_ had the following impacts on the application performance.
 
 * Up to 5% overhead on request processing under the load
 * Up to 10% CPU overhead
+
+[#Batch_Span_Processor_Performance_Config]
+==== Batch Span Processor
+
+OpenTelemetry's https://opentelemetry.io/docs/specs/otel/trace/sdk/#batching-processor[Batch Span Processor] is responsible for exporting generated spans to the backend collector.
+
+*Estimate Span generation rate:*
+
+In the production setting (eg. `spanAllProcessors=false`), this module creates spans for
+
+- Mule scopes and routers such as flow, sub-flow, choice, scatter-gather etc
+- Processors from non-mule namespace
+
+To estimate the span rate-
+
+ Span Rate = No. of processors in a request flow * 1.1 (buffer) * request per second
+
+*Configuration:*
+
+This module allows link:#batch-span-processor-config[configuring] this batch processor at a global level and is shipped with the following default values.
+
+- maxQueueSize = 4096
+- maxBatchExportSize = 1024
+- batchExportDelayInterval = 1500ms (1.5 seconds)
+- exportTimeout = 10000ms (10 seconds)
+
+Understanding these default values and comparing them with those with your application's execution can help optimize the performance.
+
+*Maximum theoretical throughput with Defaults:*
+
+- Queue capacity: 4096 spans
+- Batch size: 1024 spans
+- Export frequency: every 1.5 seconds (minimum)
+
+_Max sustained rate_ = 4096 spans / 1.5 seconds = ~2,730 spans/second
+
+_Comfortable sustained rate_ = ~2,000 spans/second (with buffer)
+
+*Assumptions for Actual Throughput*:
+
+Make sure to review your application environment for external factors that can affect the throughput when exporting to backend OTEL collector/agent.
+
+- Network latency to backend (typically 20–100ms)
+- Backend processing time (10–50ms)
+- Serialization overhead (~0.1-0.2ms per span)
+
+_Real-world sustained with assumptions_: 1,500-2,000 spans/second
+
+This configuration creates a robust buffering mechanism capable of handling significant loads before dropping spans. The performance characteristics can be understood by examining the interplay of the configured parameters:
+
+- *High Throughput:* The large `maxQueueSize` of 4096 allows the application to buffer a substantial number of spans in memory. This is particularly beneficial for applications that generate a high volume of trace data in bursts. It decouples the application's performance from the immediate availability and performance of the backend telemetry system.
+
+- *Efficient Exporting:* With a `maxExportBatchSize` of 1024, the processor will send up to 1024 spans in a single export request. This batching is highly efficient as it reduces the number of outgoing network connections, thereby lowering the overall network and CPU overhead on both the client and the backend.
+
+- *Balanced Latency:* The `batchExportDelayInterval` of 1500ms (1.5 seconds) ensures that even if the batch size of 1024 is not reached, spans will not remain in memory for an extended period. This introduces a _predictable latency of up to 1.5 seconds for spans to be exported_, which is a reasonable trade-off for the efficiency gained from batching in many applications.
+
+- *Resilient Exporting:* An `exportTimeout` of 10000ms (10 seconds) provides a generous window for the exporter to send data to the backend, even in the presence of network latency or a temporarily slow backend. This long timeout reduces the likelihood of failed exports due to transient network issues.
+
+===== Span Loss Risk Analysis with Defaults
+
+While this configuration is designed to be resilient, span loss can still occur under specific circumstances. The primary scenarios for data loss are:
+
+- *Queue Overflow:* This is the most direct cause of span loss. If the application _generates spans faster than they can be exported_, the in-memory queue will eventually reach its `maxQueueSize` of 4096. Any new *_spans generated while the queue is full will be dropped immediately_*. This scenario can occur if:
+
+ * There is a sudden, sustained spike in traffic and span generation.
+
+ * The backend is unavailable or responding very slowly for a prolonged period, causing the exporter to be backlogged.
+
+ * The network connection to the backend is down.
+
+- *Exporter Timeouts:* Although the `exportTimeout` is set to relatively high 10 seconds, a persistently slow or unresponsive backend can still cause exports to time out. When an export times out, the batch of spans being processed is typically dropped. If the underlying issue with the backend is not resolved, subsequent export attempts will also likely time out, leading to continuous data loss.
+
+- *Application Crashes:* The Batch Span Processor holds spans in an in-memory queue. If the application crashes unexpectedly, any spans residing in this queue that have not yet been exported will be lost permanently. For scenarios requiring higher durability guarantees, a persistent queue mechanism, often available in the OpenTelemetry Collector, would be a more suitable choice.
+
 
 [#_static_vs_dynamic_global_configurations]
 ==== Static vs. Dynamic Configurations

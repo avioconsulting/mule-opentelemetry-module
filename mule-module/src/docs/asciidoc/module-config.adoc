@@ -382,6 +382,7 @@ The required Zipkin exporter dependencies must be configured as an https://docs.
 ==== Span Processors
 For non-logging exporters, Tracing SDK uses https://opentelemetry.io/docs/reference/specification/trace/sdk/#batching-processor[Batch Span Processor]. Global Configuration allows to customize Batch span processor settings -
 
+[#batch-span-processor-config]
 [source,xml]
 .OpenTelemetry config with Batch span processor default values
 ----
@@ -394,6 +395,9 @@ For non-logging exporters, Tracing SDK uses https://opentelemetry.io/docs/refere
 .... other config ....
 </opentelemetry:config>
 ----
+
+Review link:#Batch_Span_Processor_Performance_Config[Performance considerations] for Batch Span Processor to ensure it is relavant to your application.
+
 ==== Span Sampler
 
 By default, _every span is recorded_. In a high transaction environment, this can become noisy or needing high storage requirements for backend APM. In such cases, it is possible to reduce the span recorded and sent to the APM. This can help reduce the network traffic as well as data sent to the backend. Although, it comes at a cost of not collecting all traces, which maybe acceptable in certain use cases.
