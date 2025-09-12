@@ -97,7 +97,7 @@ public class OpenTelemetryConnection implements TraceContextHandler,
         configMap.putAll(openTelemetryConfigWrapper.getSpanProcessorConfiguration().getConfigMap());
       }
       // Disable the resource providers that are handled by
-      // MuleAppHostResourceProvider
+      // MuleAppHostResourceProvider or MuleResourceProvider
       configMap.put("otel.java.disabled.resource.providers",
           "io.opentelemetry.instrumentation.resources.HostResourceProvider," +
               "io.opentelemetry.instrumentation.resources.ContainerResourceProvider," +

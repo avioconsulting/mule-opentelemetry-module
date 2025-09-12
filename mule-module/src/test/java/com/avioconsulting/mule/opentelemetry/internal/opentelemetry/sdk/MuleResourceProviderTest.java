@@ -3,6 +3,7 @@ package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk;
 import com.avioconsulting.mule.opentelemetry.internal.AbstractInternalTest;
 import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;
 import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.semconv.incubating.ProcessIncubatingAttributes;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -41,7 +42,9 @@ public class MuleResourceProviderTest extends AbstractInternalTest {
         .containsEntry(MULE_WORKER_ID, "MULE_WORKER_ID")
         .containsEntry(MULE_APP_DOMAIN, "MULE_APP_DOMAIN")
         .containsEntry(MULE_APP_FULL_DOMAIN, "MULE_APP_FULL_DOMAIN")
-        .containsEntry(MULE_ENVIRONMENT_AWS_REGION, "MULE_APP_AWS_REGION");
+        .containsEntry(MULE_ENVIRONMENT_AWS_REGION, "MULE_APP_AWS_REGION")
+        .containsKey(ProcessIncubatingAttributes.PROCESS_PID)
+        .containsKey(ProcessIncubatingAttributes.PROCESS_EXECUTABLE_PATH);
     props.forEach((key, value) -> System.clearProperty(key.toString()));
   }
 }

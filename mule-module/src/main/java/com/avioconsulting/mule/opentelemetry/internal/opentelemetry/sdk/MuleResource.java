@@ -2,10 +2,12 @@ package com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.instrumentation.resources.ProcessResource;
 import io.opentelemetry.sdk.resources.Resource;
 
 import static com.avioconsulting.mule.opentelemetry.api.sdk.SemanticAttributes.*;
 import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryUtil.addAttribute;
+import static io.opentelemetry.semconv.incubating.ProcessIncubatingAttributes.*;
 
 /**
  * Creates an OpenTelemetry {@link Resource} that adds Mule Runtime specific
@@ -42,8 +44,26 @@ public class MuleResource {
     addAttribute("domain", builder, MULE_APP_DOMAIN);
     addAttribute("fullDomain", builder, MULE_APP_FULL_DOMAIN);
     addAttribute("application.aws.region", builder, MULE_ENVIRONMENT_AWS_REGION);
+    addMuleProcessAttributes(builder);
     Attributes build = builder.build();
     return Resource.create(build);
+  }
+
+  private static void addMuleProcessAttributes(AttributesBuilder builder) {
+    // ProcessResource has been disabled to avoid sending sensitive data possibly
+    // present in command line strings
+    // and to reduce the size of attributes processed. See OpenTelemetryConnection
+    // initialization for disabled resource providers
+    // We are only adding Process Id and Executable Path for Mule here
+    Resource resource = ProcessResource.get();
+    Long pid = resource.getAttribute(PROCESS_PID);
+    if (pid != null && pid >= 0) {
+      builder.put(PROCESS_PID, pid);
+    }
+    String executablePath = resource.getAttribute(PROCESS_EXECUTABLE_PATH);
+    if (executablePath != null && !executablePath.isEmpty()) {
+      builder.put(PROCESS_EXECUTABLE_PATH, executablePath);
+    }
   }
 
   private MuleResource() {
