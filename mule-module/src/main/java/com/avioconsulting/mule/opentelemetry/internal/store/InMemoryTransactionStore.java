@@ -135,7 +135,7 @@ public class InMemoryTransactionStore implements TransactionStore {
     }
     ProcessorSpan processorSpan = transaction.findSpan(componentLocation);
     if (processorSpan != null) {
-    return TransactionContext.of(processorSpan.getSpan(), transaction);
+      return TransactionContext.of(processorSpan.getSpan(), transaction);
     } else {
       return transaction.getTransactionContext();
     }
