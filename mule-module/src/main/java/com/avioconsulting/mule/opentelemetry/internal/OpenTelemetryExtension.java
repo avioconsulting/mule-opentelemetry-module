@@ -28,7 +28,9 @@ import org.mule.sdk.api.meta.JavaVersion;
 @SubTypeMapping(baseType = OpenTelemetryMetricsConfigProvider.class, subTypes = {
     NoopOpenTelemetryMetricsConfigProvider.class })
 @Export(classes = { OpenTelemetryMetricsConfigProvider.class, AppIdentifier.class, OpenTelemetryMetricsProvider.class,
-    MetricBaseNotificationData.class, OpenTelemetryMetricsConfigSupplier.class, LogsApiPackageMarker.class })
+    MetricBaseNotificationData.class, OpenTelemetryMetricsConfigSupplier.class,
+    LogsApiPackageMarker.class }, resources = {
+        "com/avioconsulting/mule/opentelemetry/internal/interceptor/intercept-components.txt" })
 @JavaVersionSupport({ JavaVersion.JAVA_8, JavaVersion.JAVA_11, JavaVersion.JAVA_17 })
 public class OpenTelemetryExtension {
 }
