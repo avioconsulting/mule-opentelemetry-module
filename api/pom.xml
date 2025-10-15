@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.avioconsulting.mule</groupId>
     <artifactId>mule-opentelemetry-module-parent</artifactId>
-    <version>2.11.1</version>
+    <version>2.11.2-SNAPSHOT</version>
   </parent>
 
   <artifactId>mule-opentelemetry-module-api</artifactId>
