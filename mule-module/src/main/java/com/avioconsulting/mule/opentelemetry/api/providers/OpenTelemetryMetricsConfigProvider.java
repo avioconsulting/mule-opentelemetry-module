@@ -25,4 +25,6 @@ public interface OpenTelemetryMetricsConfigProvider {
    */
   void stop();
 
+  void turnOffMetrics(boolean turnOffMetrics);
+
 }
