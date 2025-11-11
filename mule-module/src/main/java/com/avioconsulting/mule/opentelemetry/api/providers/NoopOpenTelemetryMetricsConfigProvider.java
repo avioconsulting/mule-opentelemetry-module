@@ -21,4 +21,8 @@ public class NoopOpenTelemetryMetricsConfigProvider implements OpenTelemetryMetr
     // nothing to do here
   }
 
+  @Override
+  public void turnOffMetrics(boolean turnOffMetrics) {
+    // nothing to do here
+  }
 }

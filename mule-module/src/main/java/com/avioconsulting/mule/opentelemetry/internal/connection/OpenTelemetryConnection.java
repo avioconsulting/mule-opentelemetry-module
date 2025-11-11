@@ -114,21 +114,20 @@ public class OpenTelemetryConnection implements TraceContextHandler,
       expressionManager = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getExpressionManager();
     }
     builder.setServiceClassLoader(AutoConfiguredOpenTelemetrySdkBuilder.class.getClassLoader());
-    if (!turnOffMetrics)
+    if (metricsProvider != null) {
       metricsProvider.initialise(appIdentifier);
+      metricsProvider.turnOffMetrics(turnOffMetrics);
+    }
     openTelemetry = builder.build().getOpenTelemetrySdk();
     installOpenTelemetryLogger();
-    if (!turnOffMetrics) {
-      if (logger.isInfoEnabled()) {
-        logger.info("Initializing Metrics Providers");
+    if (metricsProvider != null) {
+      if (!turnOffMetrics) {
+        if (logger.isInfoEnabled()) {
+          logger.info("Initializing Metrics Providers");
+        }
       }
       metricsProvider.start();
       metricsProviders.initialize(metricsProvider, openTelemetry);
-    } else {
-      if (logger.isInfoEnabled()) {
-        logger.info("Disabling loaded Metrics Providers");
-      }
-      metricsProviders.clear();
     }
     tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
     transactionStore = InMemoryTransactionStore.getInstance(this);
