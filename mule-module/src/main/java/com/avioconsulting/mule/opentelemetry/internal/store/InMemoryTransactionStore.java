@@ -127,12 +127,14 @@ public class InMemoryTransactionStore implements TransactionStore {
   @Override
   public TransactionContext getTransactionContext(String transactionId, String componentLocation) {
     Transaction transaction = getTransaction(transactionId);
-    if (componentLocation == null)
+    if (transaction == null) {
+      return null;
+    }
+    if (componentLocation == null) {
       return transaction.getTransactionContext();
-    ProcessorSpan processorSpan = null;
-    if (transaction != null
-        && ((processorSpan = transaction
-            .findSpan(componentLocation)) != null)) {
+    }
+    ProcessorSpan processorSpan = transaction.findSpan(componentLocation);
+    if (processorSpan != null) {
       return TransactionContext.of(processorSpan.getSpan(), transaction);
     } else {
       return transaction.getTransactionContext();

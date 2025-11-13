@@ -1,15 +1,14 @@
 receivers:
   otlp:
     protocols:
-      grpc:
       http:
+        endpoint: 0.0.0.0:4318
 
 processors:
   batch:
 
 exporters:
-  logging:
-    logLevel: debug
+  debug:
   zipkin:
     endpoint: "http://zipkin:9411/api/v2/spans"
 
@@ -18,4 +17,4 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [logging, zipkin]
+      exporters: [debug,zipkin]
