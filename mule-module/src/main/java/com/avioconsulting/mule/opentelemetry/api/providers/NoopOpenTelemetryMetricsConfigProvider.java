@@ -3,7 +3,7 @@ package com.avioconsulting.mule.opentelemetry.api.providers;
 import com.avioconsulting.mule.opentelemetry.api.AppIdentifier;
 import org.mule.runtime.extension.api.annotation.Alias;
 
-@Alias("No Metrics")
+@Alias("No-Op Metrics Provider")
 public class NoopOpenTelemetryMetricsConfigProvider implements OpenTelemetryMetricsConfigProvider {
 
   @Override

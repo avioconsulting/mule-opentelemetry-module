@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.connection;
 
 import com.avioconsulting.mule.opentelemetry.api.AppIdentifier;
+import com.avioconsulting.mule.opentelemetry.api.providers.NoopOpenTelemetryMetricsConfigProvider;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigProvider;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsProvider;
 import com.avioconsulting.mule.opentelemetry.api.store.SpanMeta;
@@ -120,7 +121,7 @@ public class OpenTelemetryConnection implements TraceContextHandler,
     }
     openTelemetry = builder.build().getOpenTelemetrySdk();
     installOpenTelemetryLogger();
-    if (metricsProvider != null) {
+    if (metricsProvider != null && !(metricsProvider instanceof NoopOpenTelemetryMetricsConfigProvider)) {
       if (!turnOffMetrics) {
         if (logger.isInfoEnabled()) {
           logger.info("Initializing Metrics Providers");
@@ -128,6 +129,11 @@ public class OpenTelemetryConnection implements TraceContextHandler,
       }
       metricsProvider.start();
       metricsProviders.initialize(metricsProvider, openTelemetry);
+    } else {
+      if (logger.isInfoEnabled()) {
+        logger.info("Metrics Providers are turned off. No metrics will be exported.");
+      }
+      metricsProviders.clear();
     }
     tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
     transactionStore = InMemoryTransactionStore.getInstance(this);
