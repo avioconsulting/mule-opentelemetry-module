@@ -16,7 +16,6 @@ import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfig
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryConfiguration;
 import io.opentelemetry.api.OpenTelemetry;
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
 import org.junit.Test;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.message.Error;
@@ -180,13 +179,23 @@ public class OpenTelemetryConnectionTest extends AbstractInternalTest {
     when(configuration.getMetricsConfigProvider()).thenReturn(configProvider);
     OpenTelemetryConfigWrapper wrapper = new OpenTelemetryConfigWrapper(configuration);
 
+    OpenTelemetryMetricsProviderCollection metricsProviderCollection = new OpenTelemetryMetricsProviderCollection();
+    metricsProviderCollection.add(new TestOpenTelemetryMetricsProvider());
+
     OpenTelemetryConnection instance = OpenTelemetryConnection.getInstance(wrapper);
+    OpenTelemetryConnection spy = spy(instance);
+    // Use ServiceLoader instead of spy to set this,
+    // but classloader isolation doesn't let test classes to be on the app
+    // classpath, unless they are moved to main source
+    // If a test-util like module is created, rewrite this - future feat.
+    when(spy.getMetricsProviders()).thenReturn(metricsProviderCollection);
+    spy.getMetricsProviders().initialize(configProvider, null);
 
     TransactionMeta transactionMeta = mock(TransactionMeta.class);
     Exception exception = mock(Exception.class);
-    Throwable possibleClassCast = Assertions.catchThrowable(
-        () -> instance.getMetricsProviders().captureFlowMetrics(transactionMeta, "flow", exception));
-    Assertions.assertThat(possibleClassCast).as(
+    Throwable anyEx = Assertions.catchThrowable(
+        () -> spy.getMetricsProviders().captureFlowMetrics(transactionMeta, "flow", exception));
+    Assertions.assertThat(anyEx).as(
         "Any exception from Metrics providers default settings (Enabled, None) with another provider on classpath")
         .isNull();
     Assertions.assertThat(store.get("flow")).isEqualTo(transactionMeta);
