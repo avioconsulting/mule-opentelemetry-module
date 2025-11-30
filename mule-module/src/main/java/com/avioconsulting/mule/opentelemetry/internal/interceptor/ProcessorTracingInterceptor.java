@@ -73,8 +73,11 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
         if (processorComponent == null) {
           // when spanAllProcessor is false, and it's the first generic processor
           String transactionId = getEventTransactionId(event);
-          addTraceContextMap(event,
-              muleNotificationProcessor.getOpenTelemetryConnection().getTraceContext(transactionId));
+          Map<String, Object> traceContext = muleNotificationProcessor.getOpenTelemetryConnection()
+              .getTraceContext(transactionId);
+          if (!traceContext.isEmpty()) {
+            addTraceContextMap(event, traceContext);
+          }
         } else {
           Component component = componentRegistryService.findComponentByLocation(location);
 

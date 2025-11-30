@@ -274,6 +274,9 @@ public class OpenTelemetryConnection implements TraceContextHandler,
   public Map<String, Object> getTraceContext(String transactionId, String componentLocation) {
     TransactionContext transactionContext = getTransactionStore().getTransactionContext(transactionId,
         componentLocation);
+    if (transactionContext == null) {
+      return new HashMap<>();
+    }
     Map<String, Object> traceContext = transactionContext.getTraceContextMap();
     injectTraceContext(transactionContext.getContext(), traceContext,
         HashMapObjectMapSetter.INSTANCE);
