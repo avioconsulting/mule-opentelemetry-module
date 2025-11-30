@@ -17,6 +17,7 @@ import org.mule.runtime.api.component.location.Location;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.Message;
+import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.MessageProcessorNotification;
 import org.mule.runtime.api.util.MultiMap;
 
@@ -203,6 +204,138 @@ public class HttpProcessorComponentTest extends AbstractProcessorComponentTest {
         .containsEntry("url.path", "/test")
         .containsEntry("url.query", "a=b&c=d")
         .containsEntry("user_agent.original", "test-unit");
+  }
+
+  @Test
+  public void getStartTraceComponent_withPort_shouldIncludeServerPort() {
+    Event event = mock(Event.class);
+    when(event.getCorrelationId()).thenReturn("testCorrelationId");
+    when(event.getContext()).thenReturn(new TestInterceptionEvent.TestEventContext());
+    Message message = mock(Message.class);
+    when(message.getAttributes()).thenReturn(TypedValue.of(null));
+    when(event.getMessage()).thenReturn(message);
+
+    ComponentLocation componentLocation = getComponentLocation();
+
+    Map<String, String> config = new HashMap<>();
+    config.put("path", "/api/test");
+    config.put("method", "POST");
+    config.put("config-ref", "test-http-config");
+    Component component = getComponent(componentLocation, config, "http", "request");
+
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+    ComponentWrapper wrapper = mock(ComponentWrapper.class);
+    when(wrapper.getParameters()).thenReturn(config);
+
+    Map<String, String> connectionParams = new HashMap<>();
+    connectionParams.put("protocol", "HTTPS");
+    connectionParams.put("host", "api.example.com");
+    connectionParams.put("port", "8443");
+    when(wrapper.getConfigConnectionParameters()).thenReturn(connectionParams);
+    when(wrapper.getConfigParameters()).thenReturn(Collections.emptyMap());
+
+    when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
+
+    ProcessorComponent httpProcessorComponent = new HttpProcessorComponent()
+        .withComponentRegistryService(componentRegistryService);
+
+    TraceComponent traceComponent = httpProcessorComponent.getStartTraceComponent(component, event);
+
+    assertThat(traceComponent).isNotNull();
+    assertThat(traceComponent.getReadOnlyTags())
+        .containsEntry("server.port", "8443")
+        .containsEntry("server.address", "api.example.com")
+        .containsEntry("url.scheme", "https")
+        .containsEntry("http.route", "/api/test")
+        .containsEntry("http.request.method", "POST");
+  }
+
+  @Test
+  public void getStartTraceComponent_withoutPort_shouldNotIncludeServerPort() {
+    Event event = mock(Event.class);
+    when(event.getCorrelationId()).thenReturn("testCorrelationId");
+    when(event.getContext()).thenReturn(new TestInterceptionEvent.TestEventContext());
+    Message message = mock(Message.class);
+    when(message.getAttributes()).thenReturn(TypedValue.of(null));
+    when(event.getMessage()).thenReturn(message);
+
+    ComponentLocation componentLocation = getComponentLocation();
+
+    Map<String, String> config = new HashMap<>();
+    config.put("path", "/api/test");
+    config.put("method", "GET");
+    config.put("config-ref", "test-http-config");
+    Component component = getComponent(componentLocation, config, "http", "request");
+
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+    ComponentWrapper wrapper = mock(ComponentWrapper.class);
+    when(wrapper.getParameters()).thenReturn(config);
+
+    Map<String, String> connectionParams = new HashMap<>();
+    connectionParams.put("protocol", "HTTP");
+    connectionParams.put("host", "api.example.com");
+    // port is not set
+    when(wrapper.getConfigConnectionParameters()).thenReturn(connectionParams);
+    when(wrapper.getConfigParameters()).thenReturn(Collections.emptyMap());
+
+    when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
+
+    ProcessorComponent httpProcessorComponent = new HttpProcessorComponent()
+        .withComponentRegistryService(componentRegistryService);
+
+    TraceComponent traceComponent = httpProcessorComponent.getStartTraceComponent(component, event);
+
+    assertThat(traceComponent).isNotNull();
+    assertThat(traceComponent.getReadOnlyTags())
+        .doesNotContainKey("server.port")
+        .containsEntry("server.address", "api.example.com")
+        .containsEntry("url.scheme", "http")
+        .containsEntry("http.route", "/api/test")
+        .containsEntry("http.request.method", "GET");
+  }
+
+  @Test
+  public void getStartTraceComponent_withEmptyPort_shouldNotIncludeServerPort() {
+    Event event = mock(Event.class);
+    when(event.getCorrelationId()).thenReturn("testCorrelationId");
+    when(event.getContext()).thenReturn(new TestInterceptionEvent.TestEventContext());
+    Message message = mock(Message.class);
+    when(message.getAttributes()).thenReturn(TypedValue.of(null));
+    when(event.getMessage()).thenReturn(message);
+
+    ComponentLocation componentLocation = getComponentLocation();
+
+    Map<String, String> config = new HashMap<>();
+    config.put("path", "/api/test");
+    config.put("method", "DELETE");
+    config.put("config-ref", "test-http-config");
+    Component component = getComponent(componentLocation, config, "http", "request");
+
+    ComponentRegistryService componentRegistryService = mock(ComponentRegistryService.class);
+    ComponentWrapper wrapper = mock(ComponentWrapper.class);
+    when(wrapper.getParameters()).thenReturn(config);
+
+    Map<String, String> connectionParams = new HashMap<>();
+    connectionParams.put("protocol", "HTTPS");
+    connectionParams.put("host", "api.example.com");
+    connectionParams.put("port", ""); // empty port
+    when(wrapper.getConfigConnectionParameters()).thenReturn(connectionParams);
+    when(wrapper.getConfigParameters()).thenReturn(Collections.emptyMap());
+
+    when(componentRegistryService.getComponentWrapper(component)).thenReturn(wrapper);
+
+    ProcessorComponent httpProcessorComponent = new HttpProcessorComponent()
+        .withComponentRegistryService(componentRegistryService);
+
+    TraceComponent traceComponent = httpProcessorComponent.getStartTraceComponent(component, event);
+
+    assertThat(traceComponent).isNotNull();
+    assertThat(traceComponent.getReadOnlyTags())
+        .doesNotContainKey("server.port")
+        .containsEntry("server.address", "api.example.com")
+        .containsEntry("url.scheme", "https")
+        .containsEntry("http.route", "/api/test")
+        .containsEntry("http.request.method", "DELETE");
   }
 
 }

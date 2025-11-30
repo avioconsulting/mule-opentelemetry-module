@@ -65,6 +65,7 @@ public class AttributesKeyCache {
     return key;
   }
 
+  @SuppressWarnings("unchecked")
   public <T> T convertValue(AttributeKey<T> key, String value) {
     if (value == null) {
       return (T) null;
