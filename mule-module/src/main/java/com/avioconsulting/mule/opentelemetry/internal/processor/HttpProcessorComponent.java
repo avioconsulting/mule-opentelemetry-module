@@ -153,7 +153,9 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
     if (!connectionParameters.isEmpty()) {
       collector.addTag(URL_SCHEME.getKey(), connectionParameters.getOrDefault("protocol", "").toLowerCase());
       collector.addTag(ServerAttributes.SERVER_ADDRESS.getKey(), connectionParameters.getOrDefault("host", ""));
-      collector.addTag(SERVER_PORT.getKey(), connectionParameters.getOrDefault("port", ""));
+      if (connectionParameters.containsKey("port") && !connectionParameters.get("port").isEmpty()) {
+        collector.addTag(SERVER_PORT.getKey(), connectionParameters.get("port"));
+      }
     }
     Map<String, String> configParameters = componentWrapper.getConfigParameters();
     if (!configParameters.isEmpty()) {
