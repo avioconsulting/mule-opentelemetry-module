@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-public class InMemoryTransactionStoreTest extends AbstractJMHTest {
+public class InMemoryTransactionStoreJMHTest extends AbstractJMHTest {
 
   public static final String TEST_1_FLOW_FLOW_REF = "/test-1-flow/flow-ref";
   public static final DefaultComponentLocation COMPONENT_LOCATION = DefaultComponentLocation

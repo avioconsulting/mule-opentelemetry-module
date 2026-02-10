@@ -32,7 +32,7 @@ import static org.mockito.Mockito.mock;
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-public class ProcessorTracingInterceptorTest extends AbstractJMHTest {
+public class ProcessorTracingInterceptorJMHTest extends AbstractJMHTest {
 
   public static final String TEST_1_FLOW_FLOW_REF = "/test-1-flow/flow-ref";
   public static final DefaultComponentLocation COMPONENT_LOCATION = DefaultComponentLocation
@@ -83,6 +83,14 @@ public class ProcessorTracingInterceptorTest extends AbstractJMHTest {
 
     // Benchmark Mode Cnt Score Error Units
     // ProcessorTracingInterceptorTest.interceptBefore thrpt 2 6163.569 ops/ms
+  }
+
+  @Benchmark
+  @Measurement(iterations = 2)
+  @Warmup(iterations = 3)
+  public void interceptBeforeWithError(Blackhole blackhole) {
+    // Component location that will cause a problem (e.g. missing connection)
+    interceptor.before(null, Collections.emptyMap(), event);
   }
 
   @Override

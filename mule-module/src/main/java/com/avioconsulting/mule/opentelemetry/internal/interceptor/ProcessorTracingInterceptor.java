@@ -3,10 +3,10 @@ package com.avioconsulting.mule.opentelemetry.internal.interceptor;
 import com.avioconsulting.mule.opentelemetry.api.processor.ProcessorComponent;
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
 import com.avioconsulting.mule.opentelemetry.api.traces.TraceComponent;
-import com.avioconsulting.mule.opentelemetry.api.util.logger.PeriodicLogger;
 import com.avioconsulting.mule.opentelemetry.internal.processor.MuleNotificationProcessor;
 import com.avioconsulting.mule.opentelemetry.internal.processor.service.ComponentRegistryService;
 import com.avioconsulting.mule.opentelemetry.internal.util.MDCUtil;
+import com.avioconsulting.mule.opentelemetry.internal.util.logger.PeriodicLogger;
 import org.mule.runtime.api.component.Component;
 import org.mule.runtime.api.component.location.ComponentLocation;
 import org.mule.runtime.api.interception.InterceptionEvent;
@@ -121,13 +121,11 @@ public class ProcessorTracingInterceptor implements ProcessorInterceptor {
         }
       }
     } catch (Exception ex) {
-      if (LOGGER.isErrorEnabled()) {
-        periodicLogger.error(LOGGER,
-            "Failed to intercept processor {} at " + location.getLocation()
-                + ", span may not be captured for this processor. Error - {}",
-            location.getComponentIdentifier().getIdentifier().toString(),
-            ex.getLocalizedMessage(), ex);
-      }
+      periodicLogger.error(LOGGER,
+          "Failed to intercept processor {} at {}, span may not be captured for this processor. Error - {}",
+          location.getComponentIdentifier().getIdentifier().toString(),
+          location.getLocation(),
+          ex.getLocalizedMessage(), ex);
     }
   }
 

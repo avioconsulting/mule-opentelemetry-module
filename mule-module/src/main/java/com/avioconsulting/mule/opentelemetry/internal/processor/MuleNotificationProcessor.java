@@ -54,6 +54,14 @@ import static com.avioconsulting.mule.opentelemetry.internal.util.OpenTelemetryU
 public class MuleNotificationProcessor {
 
   private static final Logger logger = LoggerFactory.getLogger(MuleNotificationProcessor.class);
+
+  /**
+   * System property to enable or disable span generation for all processors.
+   * If set to true, the module creates spans for every processor in the flow.
+   * This can be overridden by the trace level configuration.
+   *
+   * @default false
+   */
   public static final String MULE_OTEL_SPAN_PROCESSORS_ENABLE_PROPERTY_NAME = "mule.otel.span.processors.enable";
   public static final List<String> CONTEXT_EXPRESSIONS = Arrays.asList("#[attributes.headers]",
       "#[attributes.properties]",

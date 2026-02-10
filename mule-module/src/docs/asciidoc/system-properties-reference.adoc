@@ -8,6 +8,21 @@ NOTE: *Environment variables take precedence over system properties*. System pro
 |===
 |System Property |Environment Variable |Description |Default Value
 
+|mule.otel.periodic.logger.cache.size
+|MULE_OTEL_PERIODIC_LOGGER_CACHE_SIZE
+|Maximum number of unique log messages to cache for throttling.
+|`10000`
+
+|mule.otel.periodic.logger.interval.seconds
+|MULE_OTEL_PERIODIC_LOGGER_INTERVAL_SECONDS
+|The minimum time interval (in seconds) between identical log messages.
+|`60`
+
+|mule.otel.periodic.logger.cleanup.multiplier
+|MULE_OTEL_PERIODIC_LOGGER_CLEANUP_MULTIPLIER
+|Multiplier for the throttle interval to determine how often to clean up stale entries. For example, if interval is 60s and multiplier is 3, cleanup runs every 180s.
+|`3`
+
 |mule.otel.use.apikit.span.names
 |MULE_OTEL_USE_APIKIT_SPAN_NAMES
 |Configuration property key for enabling or disabling the use of APIKit flow names as HTTP root span names in OpenTelemetry integration for Mule applications.
@@ -45,8 +60,8 @@ NOTE: *Environment variables take precedence over system properties*. System pro
 
 |mule.otel.span.processors.enable
 |MULE_OTEL_SPAN_PROCESSORS_ENABLE
-|Property found in codebase
-|Not set
+|System property to enable or disable span generation for all processors. If set to true, the module creates spans for every processor in the flow. This can be overridden by the trace level configuration.
+|`false`
 
 |mule.otel.interceptor.processor.enable
 |MULE_OTEL_INTERCEPTOR_PROCESSOR_ENABLE

@@ -1,4 +1,4 @@
-package com.avioconsulting.mule.opentelemetry.api.util.logger;
+package com.avioconsulting.mule.opentelemetry.internal.util.logger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,8 +38,36 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PeriodicLogger {
 
   private static final Logger INTERNAL_LOGGER = LoggerFactory.getLogger(PeriodicLogger.class);
-  private static final int DEFAULT_MAX_CACHE_SIZE = 10000;
-  private static final long DEFAULT_INTERVAL_MS = 60000; // 1 minute
+
+  /**
+   * Maximum number of unique log messages to cache for throttling.
+   *
+   * @default 10000
+   */
+  public static final String MULE_OTEL_PERIODIC_LOGGER_CACHE_SIZE = "mule.otel.periodic.logger.cache.size";
+
+  /**
+   * The minimum time interval (in seconds) between identical log messages.
+   *
+   * @default 60
+   */
+  public static final String MULE_OTEL_PERIODIC_LOGGER_INTERVAL_SECONDS = "mule.otel.periodic.logger.interval.seconds";
+
+  /**
+   * Multiplier for the throttle interval to determine how often to clean up stale
+   * entries.
+   * For example, if interval is 60s and multiplier is 3, cleanup runs every 180s.
+   *
+   * @default 3
+   */
+  public static final String MULE_OTEL_PERIODIC_LOGGER_CLEANUP_MULTIPLIER = "mule.otel.periodic.logger.cleanup.multiplier";
+
+  private static final int DEFAULT_MAX_CACHE_SIZE = Integer
+      .getInteger(MULE_OTEL_PERIODIC_LOGGER_CACHE_SIZE, 10000);
+  private static final long DEFAULT_INTERVAL_MS = Long
+      .getLong(MULE_OTEL_PERIODIC_LOGGER_INTERVAL_SECONDS, 60) * 1000;
+  private static final long CLEANUP_MULTIPLIER = Long
+      .getLong(MULE_OTEL_PERIODIC_LOGGER_CLEANUP_MULTIPLIER, 3);
 
   private final ConcurrentHashMap<LogKey, LogThrottle> throttles;
   private final long intervalMs;
@@ -48,10 +76,12 @@ public class PeriodicLogger {
   private final AtomicLong lastCleanupTimeMs;
   private final AtomicInteger cacheSize;
   private final boolean includeSuppressionCount;
+  private final AtomicInteger newEntriesLastMinute = new AtomicInteger(0);
+  private final AtomicLong lastRateCheckMs = new AtomicLong(System.currentTimeMillis());
 
   private PeriodicLogger(Builder builder) {
     this.intervalMs = builder.intervalMs;
-    this.cleanupIntervalMs = Math.max(intervalMs * 10, TimeUnit.MINUTES.toMillis(5));
+    this.cleanupIntervalMs = Math.max(intervalMs * CLEANUP_MULTIPLIER, TimeUnit.MINUTES.toMillis(2));
     this.maxCacheSize = builder.maxCacheSize;
     this.includeSuppressionCount = builder.includeSuppressionCount;
     this.throttles = new ConcurrentHashMap<>(Math.min(1024, maxCacheSize));
@@ -142,122 +172,38 @@ public class PeriodicLogger {
     }
   }
 
-  /**
-   * Records an ERROR level log, logging it immediately if the throttle period has
-   * elapsed.
-   *
-   * @param logger
-   *            the SLF4J logger to use
-   * @param message
-   *            the log message
-   */
   public void error(Logger logger, String message) {
     log(logger, Level.ERROR, message);
   }
 
-  /**
-   * Records an ERROR level log with arguments.
-   *
-   * @param logger
-   *            the SLF4J logger to use
-   * @param message
-   *            the log message with placeholders
-   * @param args
-   *            the arguments to substitute
-   */
   public void error(Logger logger, String message, Object... args) {
     log(logger, Level.ERROR, message, args);
   }
 
-  /**
-   * Records a WARN level log.
-   *
-   * @param logger
-   *            the SLF4J logger to use
-   * @param message
-   *            the log message
-   */
   public void warn(Logger logger, String message) {
     log(logger, Level.WARN, message);
   }
 
-  /**
-   * Records a WARN level log with arguments.
-   *
-   * @param logger
-   *            the SLF4J logger to use
-   * @param message
-   *            the log message with placeholders
-   * @param args
-   *            the arguments to substitute
-   */
   public void warn(Logger logger, String message, Object... args) {
     log(logger, Level.WARN, message, args);
   }
 
-  /**
-   * Records an INFO level log.
-   *
-   * @param logger
-   *            the SLF4J logger to use
-   * @param message
-   *            the log message
-   */
   public void info(Logger logger, String message) {
     log(logger, Level.INFO, message);
   }
 
-  /**
-   * Records an INFO level log with arguments.
-   *
-   * @param logger
-   *            the SLF4J logger to use
-   * @param message
-   *            the log message with placeholders
-   * @param args
-   *            the arguments to substitute
-   */
   public void info(Logger logger, String message, Object... args) {
     log(logger, Level.INFO, message, args);
   }
 
-  /**
-   * Records a DEBUG level log.
-   *
-   * @param logger
-   *            the SLF4J logger to use
-   * @param message
-   *            the log message
-   */
   public void debug(Logger logger, String message) {
     log(logger, Level.DEBUG, message);
   }
 
-  /**
-   * Records a DEBUG level log with arguments.
-   *
-   * @param logger
-   *            the SLF4J logger to use
-   * @param message
-   *            the log message with placeholders
-   * @param args
-   *            the arguments to substitute
-   */
   public void debug(Logger logger, String message, Object... args) {
     log(logger, Level.DEBUG, message, args);
   }
 
-  /**
-   * Records a log statement, logging it immediately if the throttle period has
-   * elapsed.
-   *
-   * @param logger
-   *            the SLF4J logger to use
-   * @param level
-   *            the log level
-   * @param message
-   *            the log message
-   */
   public void log(Logger logger, Level level, String message) {
     log(logger, level, message, (Object[]) null);
   }
@@ -281,40 +227,91 @@ public class PeriodicLogger {
       return;
     }
 
+    // Early exit if level is not enabled - hot path optimization
+    if (!isLevelEnabled(logger, level)) {
+      return;
+    }
+
+    long now = System.currentTimeMillis();
+
     try {
       LogKey key = new LogKey(logger.getName(), level, message);
 
-      // Check cache size before adding new entries
-      if (cacheSize.get() >= maxCacheSize && !throttles.containsKey(key)) {
-        INTERNAL_LOGGER.warn("PeriodicLogger cache size limit reached ({}), triggering cleanup", maxCacheSize);
-        performCleanup(System.currentTimeMillis(), true);
+      // Optimistic read first (lock-free fast path)
+      LogThrottle throttle = throttles.get(key);
 
-        // If still over limit after cleanup, log directly without throttling
+      if (throttle == null) {
         if (cacheSize.get() >= maxCacheSize) {
-          logMessage(logger, level, message, args);
-          return;
+          INTERNAL_LOGGER.warn("PeriodicLogger cache size limit reached ({}), triggering cleanup",
+              maxCacheSize);
+          performCleanup(now, true);
+
+          // If still over limit after cleanup, log directly without throttling
+          if (cacheSize.get() >= maxCacheSize) {
+            logMessage(logger, level, message, args);
+            return;
+          }
+        }
+
+        LogThrottle newThrottle = new LogThrottle(now);
+        LogThrottle existing = throttles.putIfAbsent(key, newThrottle);
+        if (existing != null) {
+          throttle = existing;
+        } else {
+          throttle = newThrottle;
+          cacheSize.incrementAndGet();
+          detectHighCardinality(now);
         }
       }
 
-      LogThrottle throttle = throttles.computeIfAbsent(key, k -> {
-        cacheSize.incrementAndGet();
-        return new LogThrottle();
-      });
-
       throttle.tryLog(() -> logMessage(logger, level, message, args),
-          logger, includeSuppressionCount, intervalMs);
+          logger, level, includeSuppressionCount, intervalMs, now);
 
       // Periodically clean up stale entries
-      cleanupIfNeeded();
+      cleanupIfNeeded(now);
 
     } catch (Exception e) {
-      // Fallback: log directly if throttling fails
-      INTERNAL_LOGGER.error("Error in periodic logging, falling back to direct log in DEBUG level", e);
+      // Fallback: log directly if throttling fails. Keep original level.
+      INTERNAL_LOGGER.error("Error in periodic logging, falling back to direct log", e);
       try {
-        logMessage(logger, Level.DEBUG, message, args);
+        logMessage(logger, level, message, args);
       } catch (Exception fallbackEx) {
         INTERNAL_LOGGER.error("Failed to log message even in fallback", fallbackEx);
       }
+    }
+  }
+
+  private boolean isLevelEnabled(Logger logger, Level level) {
+    switch (level) {
+      case ERROR:
+        return logger.isErrorEnabled();
+      case WARN:
+        return logger.isWarnEnabled();
+      case INFO:
+        return logger.isInfoEnabled();
+      case DEBUG:
+        return logger.isDebugEnabled();
+      case TRACE:
+        return logger.isTraceEnabled();
+      default:
+        return false;
+    }
+  }
+
+  private void detectHighCardinality(long now) {
+    long lastCheck = lastRateCheckMs.get();
+    if (now - lastCheck > 60000) {
+      if (lastRateCheckMs.compareAndSet(lastCheck, now)) {
+        newEntriesLastMinute.set(0);
+      }
+    }
+    int newCount = newEntriesLastMinute.incrementAndGet();
+    if (newCount > 1000) {
+      INTERNAL_LOGGER.warn(
+          "PeriodicLogger: High rate of unique log messages detected ({}/min). " +
+              "This may indicate string concatenation instead of parameterized logging. " +
+              "Example: use logger.error(\"Failed for {}\", id) instead of logger.error(\"Failed for \" + id)",
+          newCount);
     }
   }
 
@@ -388,8 +385,7 @@ public class PeriodicLogger {
     }
   }
 
-  private void cleanupIfNeeded() {
-    long now = System.currentTimeMillis();
+  private void cleanupIfNeeded(long now) {
     long lastCleanup = lastCleanupTimeMs.get();
 
     if (now - lastCleanup > cleanupIntervalMs) {
@@ -436,10 +432,14 @@ public class PeriodicLogger {
   private static class LogThrottle {
     private final AtomicLong lastLogTimeMs = new AtomicLong(0);
     private final AtomicLong suppressedCount = new AtomicLong(0);
-    private final AtomicLong lastAccessTimeMs = new AtomicLong(System.currentTimeMillis());
+    private final AtomicLong lastAccessTimeMs;
 
-    void tryLog(Runnable logAction, Logger logger, boolean includeSuppressionCount, long intervalMs) {
-      long now = System.currentTimeMillis();
+    LogThrottle(long now) {
+      this.lastAccessTimeMs = new AtomicLong(now);
+    }
+
+    void tryLog(Runnable logAction, Logger logger, Level level, boolean includeSuppressionCount, long intervalMs,
+        long now) {
       lastAccessTimeMs.set(now); // Track access for cleanup
 
       long lastLog = lastLogTimeMs.get();
@@ -457,8 +457,7 @@ public class PeriodicLogger {
 
             // If messages were suppressed and user wants to see the count
             if (suppressed > 0 && includeSuppressionCount) {
-              logger.info("  └─ {} similar messages suppressed in last {} seconds",
-                  suppressed, intervalMs / 1000);
+              logSuppressionCount(logger, level, suppressed, intervalMs);
             }
           } catch (Exception e) {
             INTERNAL_LOGGER.error("Error executing log action", e);
@@ -470,6 +469,28 @@ public class PeriodicLogger {
       } else {
         // Too soon, suppress this log
         suppressedCount.incrementAndGet();
+      }
+    }
+
+    private void logSuppressionCount(Logger logger, Level level, long suppressed, long intervalMs) {
+      String msg = "  * {} similar messages suppressed in last {} seconds";
+      long intervalSecs = intervalMs / 1000;
+      switch (level) {
+        case ERROR:
+          logger.error(msg, suppressed, intervalSecs);
+          break;
+        case WARN:
+          logger.warn(msg, suppressed, intervalSecs);
+          break;
+        case INFO:
+          logger.info(msg, suppressed, intervalSecs);
+          break;
+        case DEBUG:
+          logger.debug(msg, suppressed, intervalSecs);
+          break;
+        case TRACE:
+          logger.trace(msg, suppressed, intervalSecs);
+          break;
       }
     }
 
@@ -486,19 +507,12 @@ public class PeriodicLogger {
     private final String loggerName;
     private final Level level;
     private final String message;
-    private final int hashCode;
+    private volatile int hashCode = 0;
 
     LogKey(String loggerName, Level level, String message) {
       this.loggerName = loggerName;
       this.level = level;
       this.message = message;
-
-      // Pre-compute hash code for performance
-      int hash = 17;
-      hash = 31 * hash + (loggerName != null ? loggerName.hashCode() : 0);
-      hash = 31 * hash + (level != null ? level.hashCode() : 0);
-      hash = 31 * hash + (message != null ? message.hashCode() : 0);
-      this.hashCode = hash;
     }
 
     @Override
@@ -521,7 +535,15 @@ public class PeriodicLogger {
 
     @Override
     public int hashCode() {
-      return hashCode;
+      int h = hashCode;
+      if (h == 0) {
+        h = 17;
+        h = 31 * h + (loggerName != null ? loggerName.hashCode() : 0);
+        h = 31 * h + (level != null ? level.hashCode() : 0);
+        h = 31 * h + (message != null ? message.hashCode() : 0);
+        hashCode = h;
+      }
+      return h;
     }
 
     @Override
