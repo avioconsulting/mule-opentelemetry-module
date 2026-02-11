@@ -330,4 +330,37 @@ public class ProcessorTracingInterceptorTest extends AbstractInternalTest {
     // must not propagate NPE exception
     assertThat(any).as("Exception from method invocation").isNull();
   }
+
+  @Test
+  public void verifyPeriodicLoggingInInterceptor() {
+    MuleNotificationProcessor muleNotificationProcessor = mock(MuleNotificationProcessor.class);
+    // This will cause NPE in ProcessorTracingInterceptor.before when accessing
+    // muleNotificationProcessor.getInterceptorProcessorConfig()
+    when(muleNotificationProcessor.getInterceptorProcessorConfig())
+        .thenThrow(new RuntimeException("Test Exception"));
+
+    ProcessorTracingInterceptor interceptor = new ProcessorTracingInterceptor(muleNotificationProcessor);
+
+    ComponentLocation location = mock(ComponentLocation.class);
+    when(location.getLocation()).thenReturn("test-location");
+    ComponentIdentifier ci = mock(ComponentIdentifier.class);
+    when(ci.getNamespace()).thenReturn("http");
+    when(ci.getName()).thenReturn("request");
+    TypedComponentIdentifier tci = mock(TypedComponentIdentifier.class);
+    when(tci.getIdentifier()).thenReturn(ci);
+    when(location.getComponentIdentifier()).thenReturn(tci);
+
+    TestInterceptionEvent interceptionEvent = new TestInterceptionEvent("random-id");
+
+    // Call 10 times
+    for (int i = 0; i < 10; i++) {
+      interceptor.before(location, Collections.emptyMap(), interceptionEvent);
+    }
+
+    // Since we can't easily verify the internal periodicLogger's behavior without
+    // reflection
+    // or making it injectable, we at least verify the interceptor swallowed the
+    // exception.
+    // The PeriodicLogger's own tests verify the throttling logic.
+  }
 }

@@ -68,3 +68,6 @@ mvn-temp
 
 mule-module/docs
 out/
+
+.beads
+.vscode
