@@ -39,18 +39,13 @@ In mule-maven-plugin, add/update an additional dependencies block to include bat
                 <groupId>com.avioconsulting.mule</groupId>
                 <artifactId>mule-opentelemetry-module</artifactId>
                 <additionalDependencies>
-                <!--
-                    pass:attributes[Module uses OpenTelemetry SDK v{opentelemetry-version}.
-                     Any opentelemetry dependencies used here must be at-least v{opentelemetry-version}
-                     or a compatible one.]
-                -->
-                    <dependency>
+                      <dependency>
                         <groupId>com.avioconsulting.mule</groupId>
 <!--                    Mule Runtime 4.5+-->
                         <artifactId>mule-opentelemetry-batch-runtime-adapter</artifactId>
 <!--                    For Mule Runtime 4.3/4.4, use legacy adapter-->                             // <1>
-<!--                    <artifactId>mule-opentelemetry-batch-runtime-adapter</artifactId>-->
-                        <version>pass:a[{opentelemetry-version}]</version>
+<!--                    <artifactId>mule-opentelemetry-batch-legacy-adapter</artifactId>-->
+                        <version>${mule-opentelemetry-module-version}</version>
                     </dependency>
                 </additionalDependencies>
             </plugin>
