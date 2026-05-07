@@ -37,7 +37,11 @@ public class PooledTraceComponent extends TraceComponent implements Borrowable {
   }
 
   /**
-   * Resets the component for reuse with a new name.
+   * Resets the component for reuse with a new transaction id and name.
+   * State is already cleared by
+   * {@link TraceComponentPool#release(TraceComponent)}
+   * before the component is returned to the pool, so no explicit clear is needed
+   * here.
    */
   void reset(String transactionId, String name) {
     this.setName(name)
@@ -61,4 +65,11 @@ public class PooledTraceComponent extends TraceComponent implements Borrowable {
     return this;
   }
 
+  @Override
+  public String toString() {
+    return "PooledTraceComponent{" +
+        "id='" + id + '\'' +
+        ", borrowedAt=" + borrowedAt +
+        "} " + super.toString();
+  }
 }

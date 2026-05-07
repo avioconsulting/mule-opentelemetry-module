@@ -62,7 +62,7 @@ public class TraceComponent implements ComponentEventContext, AutoCloseable, Cle
    * 
    * @param name
    *            Trace component name
-   * @return
+   * @return {@link TraceComponent}
    */
   @Deprecated
   public static TraceComponent of(String name) {
@@ -75,7 +75,7 @@ public class TraceComponent implements ComponentEventContext, AutoCloseable, Cle
    *
    * @param name
    *            Trace component name
-   * @return
+   * @return {@link TraceComponent}
    */
   @Deprecated
   public static TraceComponent of(String name, ComponentLocation location) {
@@ -90,7 +90,7 @@ public class TraceComponent implements ComponentEventContext, AutoCloseable, Cle
    *
    * @param component
    *            Trace component name
-   * @return
+   * @return {@link TraceComponent}
    */
   @Deprecated
   public static TraceComponent of(Component component) {
@@ -103,7 +103,7 @@ public class TraceComponent implements ComponentEventContext, AutoCloseable, Cle
    *
    * @param location
    *            Trace component name
-   * @return
+   * @return {@link TraceComponent}
    */
   @Deprecated
   public static TraceComponent of(ComponentLocation location) {
@@ -205,12 +205,10 @@ public class TraceComponent implements ComponentEventContext, AutoCloseable, Cle
 
   public TraceComponent withLocation(String val) {
     location = val;
-    if (val == null) {
-      contextScopedLocation = null;
-      return this;
-    }
-    if (getEventContextId() != null && contextScopedLocation == null) {
+    if (val != null && getEventContextId() != null) {
       contextScopedLocation = getEventContextId() + "/" + val;
+    } else {
+      contextScopedLocation = null;
     }
     return this;
   }
@@ -253,8 +251,10 @@ public class TraceComponent implements ComponentEventContext, AutoCloseable, Cle
       contextNestingLevel = 0;
       return this;
     }
-    if (getLocation() != null && contextScopedLocation == null) {
+    if (getLocation() != null) {
       contextScopedLocation = eventContextId + "/" + getLocation();
+    } else {
+      contextScopedLocation = null;
     }
     eventContextPrimaryId = eventContextId.contains(UNDERSCORE)
         ? eventContextId.substring(0, eventContextId.indexOf(UNDERSCORE))

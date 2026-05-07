@@ -85,6 +85,7 @@ public class TraceComponentManager {
   }
 
   private void clear() {
+    activeComponents.clear();
     pool.clear();
   }
 
@@ -192,10 +193,13 @@ public class TraceComponentManager {
       return;
     }
 
-    String key = getComponentKey(component);
+    String key = getPooledComponentId(component);
     if (key != null) {
       activeComponents.remove(key);
     }
+
+    String txId = component.getTransactionId();
+    String location = component.getLocation();
 
     // Return the component to the pool for reuse
     if (usePooling) {
@@ -203,109 +207,50 @@ public class TraceComponentManager {
     }
 
     if (LOGGER.isTraceEnabled()) {
-      LOGGER.trace("Closed TraceComponent: {}", key);
+      LOGGER.trace("Closed TraceComponent: {} (txId={}, location={})", key, txId, location);
     }
   }
 
   /**
-   * Releases a component back to the pool and removes tracking.
-   * This method is for external callers who want to manually release components.
-   * 
-   * @param component
-   *            the component to release
-   */
-  public void releaseComponent(TraceComponent component) {
-    if (component == null) {
-      return;
-    }
-
-    // For PooledTraceComponent, call close() which will trigger
-    // handleComponentClose
-    if (component instanceof PooledTraceComponent) {
-      try {
-        component.close();
-      } catch (Exception e) {
-        LOGGER.warn("Error closing PooledTraceComponent", e);
-      }
-    } else {
-      // For non-pooled components, just log
-      String key = getComponentKey(component);
-      if (LOGGER.isTraceEnabled()) {
-        LOGGER.trace("Released non-pooled TraceComponent: {}", key);
-      }
-    }
-  }
-
-  /**
-   * Releases a component by transaction ID and location.
-   * 
-   * @param transactionId
-   *            the transaction ID
-   * @param location
-   *            the component location
-   */
-  public void releaseComponent(String transactionId, String location) {
-    String key = generateKey(transactionId, location);
-    Borrowable borrowed = activeComponents.remove(key);
-
-    if (borrowed != null) {
-      releaseComponent((TraceComponent) borrowed);
-
-      if (LOGGER.isTraceEnabled()) {
-        LOGGER.trace("Released TraceComponent by key: {}", key);
-      }
-    }
-  }
-
-  /**
-   * Tracks a component for lifecycle management.
+   * Tracks a component for lifecycle management using the PooledTraceComponent's
+   * immutable UUID as the tracking key. This eliminates key-mismatch bugs that
+   * occurred when using mutable fields (transactionId|location) which could
+   * change
+   * between tracking and close time.
    */
   private void trackComponent(TraceComponent component) {
     if (component == null || !usePooling) {
       return;
     }
 
-    String key = getComponentKey(component);
-    if (key != null && component instanceof Borrowable) {
+    String key = getPooledComponentId(component);
+    if (key != null) {
       activeComponents.put(key, (Borrowable) component);
 
       if (LOGGER.isTraceEnabled()) {
-        LOGGER.trace("Tracking TraceComponent: {}", key);
+        LOGGER.trace("Tracking TraceComponent: {} (txId={}, location={})", key,
+            component.getTransactionId(), component.getLocation());
       }
     }
   }
 
   /**
-   * Generates a tracking key for a component.
+   * Returns the immutable UUID of a PooledTraceComponent for use as a tracking
+   * key.
+   * Returns null for non-pooled components (which are not tracked).
    */
-  private String getComponentKey(TraceComponent component) {
-    String transactionId = component.getTransactionId();
-    String location = component.getLocation();
-
-    if (transactionId == null && location == null) {
-      // Can't track without identifiers
-      return null;
+  private String getPooledComponentId(TraceComponent component) {
+    if (component instanceof PooledTraceComponent) {
+      return ((PooledTraceComponent) component).getId();
     }
-
-    return generateKey(transactionId, location);
-  }
-
-  /**
-   * Generates a tracking key from transaction ID and location.
-   */
-  private String generateKey(String transactionId, String location) {
-    if (transactionId != null && location != null) {
-      return transactionId + "|" + location;
-    } else if (transactionId != null) {
-      return transactionId + "|";
-    } else {
-      return "|" + location;
-    }
+    return null;
   }
 
   /**
    * Cleans up stale components that haven't been released.
    * This prevents memory leaks from components that weren't properly released.
+   * Returns stale components directly to the pool (bypassing close()) to avoid
+   * races with concurrent close/release/acquire cycles.
    */
   private void cleanupStaleComponents() {
     long now = System.currentTimeMillis();
@@ -315,11 +260,19 @@ public class TraceComponentManager {
       Borrowable borrowed = entry.getValue();
       if (now - borrowed.getBorrowedAt() > MAX_COMPONENT_AGE_MILLIS) {
         if (activeComponents.remove(entry.getKey(), borrowed)) {
-          releaseComponent((TraceComponent) borrowed);
+          TraceComponent tc = (TraceComponent) borrowed;
+          // Capture for logging before release clears the fields
+          String txId = tc.getTransactionId();
+          String location = tc.getLocation();
+          // Return directly to pool rather than calling close() to avoid
+          // a race where the component has already been re-acquired after
+          // a concurrent close/release/acquire cycle.
+          pool.release(tc);
           cleaned++;
 
           if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Cleaned up stale TraceComponent: {}", entry.getKey());
+            LOGGER.debug("Cleaned up stale TraceComponent: id={}, txId={}, location={}",
+                entry.getKey(), txId, location);
           }
         }
       } else if (now - borrowed.getBorrowedAt() > MAX_COMPONENT_AGE_MILLIS / 5) {
@@ -364,9 +317,10 @@ public class TraceComponentManager {
       Thread.currentThread().interrupt();
     }
 
-    // Release all active components
+    // Return all active components to the pool directly rather than
+    // calling close() to avoid races during shutdown.
     for (Borrowable borrowed : activeComponents.values()) {
-      releaseComponent((TraceComponent) borrowed);
+      pool.release((TraceComponent) borrowed);
     }
     activeComponents.clear();
   }

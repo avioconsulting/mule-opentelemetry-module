@@ -1,6 +1,8 @@
 package com.avioconsulting.mule.opentelemetry.internal.util;
 
 import com.avioconsulting.mule.opentelemetry.api.store.TransactionStore;
+import io.opentelemetry.api.trace.SpanId;
+import io.opentelemetry.api.trace.TraceId;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.slf4j.MDC;
@@ -32,19 +34,26 @@ public class MDCUtil {
   public static void replaceMDCOtelEntries(Map<String, Object> context) {
     if (context == null || context.isEmpty())
       return;
-    replaceMDCOtelEntry(context, traceId, TRACE_ID);
-    replaceMDCOtelEntry(context, spanId, SPAN_ID);
+    // In rare cases, the traceId and spanId can be invalid
+    // In such cases, don't replace existing MDC entries
+    replaceMDCOtelEntry(context, traceId, TRACE_ID, TraceId.getInvalid());
+    replaceMDCOtelEntry(context, spanId, SPAN_ID, SpanId.getInvalid());
   }
 
-  private static void replaceMDCOtelEntry(Map<String, Object> contextMap, String sourceKey, String targetKey) {
+  private static void replaceMDCOtelEntry(Map<String, Object> contextMap, String sourceKey, String targetKey,
+      String invalidValue) {
     if (contextMap.containsKey(sourceKey)) {
       String mdcValue = MDC.get(sourceKey);
+      String newValue = contextMap.get(sourceKey).toString();
+      if (newValue.equalsIgnoreCase(invalidValue)) {
+        return;
+      }
       if (mdcValue != null &&
-          mdcValue.equalsIgnoreCase(contextMap.get(sourceKey).toString())) {
+          mdcValue.equalsIgnoreCase(newValue)) {
         return;
       }
       MDC.remove(targetKey);
-      MDC.put(targetKey, contextMap.get(sourceKey).toString());
+      MDC.put(targetKey, newValue);
     }
   }
 }

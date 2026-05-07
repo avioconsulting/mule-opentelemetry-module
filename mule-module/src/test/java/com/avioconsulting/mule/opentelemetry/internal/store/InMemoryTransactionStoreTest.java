@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.store;
 
 import com.avioconsulting.mule.opentelemetry.api.config.ExporterConfiguration;
+import com.avioconsulting.mule.opentelemetry.api.traces.TransactionContext;
 import com.avioconsulting.mule.opentelemetry.api.config.OpenTelemetryResource;
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.LoggingExporter;
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.OpenTelemetryExporter;
@@ -28,6 +29,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.avioconsulting.mule.opentelemetry.api.store.TransactionStore.TRACE_TRANSACTION_ID;
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.Assert.*;
 
@@ -69,6 +71,43 @@ public class InMemoryTransactionStoreTest {
         tracer.spanBuilder(TEST_1_FLOW_FLOW_REF).setSpanKind(SpanKind.INTERNAL));
   }
 
+  /**
+   * Verifies that {@code endTransaction} does not throw a NullPointerException
+   * when the
+   * stored transaction has a null {@code rootSpanName} (e.g., caused by a pool
+   * reset race
+   * condition). With the {@code Objects.equals()} fix it must gracefully take the
+   * child-transaction branch instead of crashing.
+   */
+  @Test
+  public void endTransaction_doesNotThrowNPE_whenRootFlowNameIsNull() {
+    // Start a transaction with a null rootName to simulate a pool-race scenario
+    Instant startTimestamp = Instant.now();
+    SpanBuilder spanBuilder = tracer.spanBuilder("null-name-tx")
+        .setSpanKind(SpanKind.SERVER)
+        .setStartTimestamp(startTimestamp);
+    TraceComponent startComponent = TraceComponent.of(null, new HashMap<>())
+        .withTransactionId("null-name-tx")
+        .withSpanName("null-name-tx")
+        .withStartTime(startTimestamp)
+        .withLocation(TEST_1_FLOW_FLOW_REF)
+        .withEventContextId("null-name-ctx");
+    // startTransaction stores FlowTransaction with rootSpanName = null
+    connection.getTransactionStore().startTransaction(startComponent, null, spanBuilder);
+
+    // End event arrives with a non-null name
+    TraceComponent endComponent = TraceComponent.of(TEST_1_FLOW, new HashMap<>())
+        .withTransactionId("null-name-tx")
+        .withStartTime(startTimestamp)
+        .withEndTime(Instant.now())
+        .withLocation(TEST_1_FLOW_FLOW_REF)
+        .withEventContextId("null-name-ctx");
+
+    // Must not throw NullPointerException
+    assertThatCode(() -> connection.getTransactionStore().endTransaction(endComponent, span -> {
+    })).doesNotThrowAnyException();
+  }
+
   @Test
   public void endTransaction_return_new_tags_in_meta() {
     TraceComponent endTraceComponent = TraceComponent.of(TEST_1_FLOW, new HashMap<>()).withTransactionId("test-1")
@@ -86,6 +125,47 @@ public class InMemoryTransactionStoreTest {
     assertThat(transactionMeta).isNotNull()
         .extracting("tags", InstanceOfAssertFactories.map(String.class, String.class))
         .containsEntry("TEST_TAG_KEY", "test-tag-value");
+  }
+
+  /**
+   * H1: {@code addTransactionTags} must not throw when the transaction ID is
+   * unknown (i.e. the transaction was never started or has already been removed).
+   */
+  @Test
+  public void addTransactionTags_doesNotThrowNPE_whenTransactionNotFound() {
+    assertThatCode(() -> connection.getTransactionStore()
+        .addTransactionTags("non-existent-tx-id", "mule.app",
+            java.util.Collections.singletonMap("key", "value")))
+                .doesNotThrowAnyException();
+  }
+
+  /**
+   * H2: {@code getTransactionContext} with a {@code null} componentLocation must
+   * not throw when the transaction ID is unknown.
+   */
+  @Test
+  public void getTransactionContext_returnsFallbackContext_whenTransactionNotFoundAndComponentLocationIsNull() {
+    String txId = "non-existent-tx-id";
+    TransactionContext result = ((com.avioconsulting.mule.opentelemetry.internal.store.InMemoryTransactionStore) connection
+        .getTransactionStore()).getTransactionContext(txId, null);
+    assertThat(result).isNotNull();
+    assertThat(result.getTraceContextMap()).containsEntry(TRACE_TRANSACTION_ID, txId);
+  }
+
+  @Test
+  public void getTraceContext_returnsFallbackMap_whenTransactionNotFound() {
+    String txId = "missing-tx-id";
+    Map<String, Object> traceContext = connection.getTraceContext(txId);
+    assertThat(traceContext).isNotNull();
+    assertThat(traceContext).containsEntry(TRACE_TRANSACTION_ID, txId);
+  }
+
+  @Test
+  public void getTraceContext_withComponentLocation_returnsFallbackMap_whenTransactionNotFound() {
+    String txId = "missing-tx-id-with-location";
+    Map<String, Object> traceContext = connection.getTraceContext(txId, "flow/processors/0");
+    assertThat(traceContext).isNotNull();
+    assertThat(traceContext).containsEntry(TRACE_TRANSACTION_ID, txId);
   }
 
   private void processAPIKitRouterComponent() {

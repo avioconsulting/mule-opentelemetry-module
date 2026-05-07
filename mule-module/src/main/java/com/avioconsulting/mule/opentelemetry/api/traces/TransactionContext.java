@@ -40,6 +40,28 @@ public class TransactionContext {
     return transactionContext;
   }
 
+  /**
+   * Creates a new instance of {@code TransactionContext} and initializes it with
+   * the provided
+   * transaction ID. The trace context map is populated with the transaction ID,
+   * Invalid trace ID,
+   * and Invalid span ID.
+   *
+   * @param transactionId
+   *            the unique identifier for a transaction
+   * @return a new {@code TransactionContext} instance containing the provided
+   *         transaction ID
+   *         along with associated trace and span information in its trace context
+   *         map
+   */
+  public static TransactionContext of(String transactionId) {
+    TransactionContext transactionContext = new TransactionContext();
+    transactionContext.traceContextMap.put(TRACE_TRANSACTION_ID, transactionId);
+    transactionContext.traceContextMap.put(TransactionStore.traceId, transactionContext.getTraceId());
+    transactionContext.traceContextMap.put(TransactionStore.spanId, transactionContext.getSpanId());
+    return transactionContext;
+  }
+
   public static TransactionContext current() {
     return new TransactionContext();
   }
