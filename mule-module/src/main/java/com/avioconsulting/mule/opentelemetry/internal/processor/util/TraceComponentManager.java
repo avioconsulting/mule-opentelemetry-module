@@ -57,7 +57,8 @@ public class TraceComponentManager {
   private static final String MULE_OTEL_POOLING_TRACECOMPONENT_ENABLED = "mule.otel.pooling.tracecomponent.enabled";
 
   // Track active components for automatic cleanup
-  private final Map<String, Borrowable> activeComponents = new ConcurrentHashMap<>();
+  private final Map<String, Leasable> activeComponents = new ConcurrentHashMap<>();
+  private final Map<String, Long> activeLeases = new ConcurrentHashMap<>();
 
   // Cleanup configuration
   private static final long CLEANUP_INTERVAL_SECONDS = 120;
@@ -86,6 +87,7 @@ public class TraceComponentManager {
 
   private void clear() {
     activeComponents.clear();
+    activeLeases.clear();
     pool.clear();
   }
 
@@ -193,17 +195,38 @@ public class TraceComponentManager {
       return;
     }
 
-    String key = getPooledComponentId(component);
-    if (key != null) {
-      activeComponents.remove(key);
+    if (!(component instanceof PooledTraceComponent)) {
+      return;
     }
+
+    PooledTraceComponent pooled = (PooledTraceComponent) component;
+    long lease = pooled.getActiveLease();
+
+    String key = getPooledComponentId(component);
+    if (key == null) {
+      return;
+    }
+
+    Leasable tracked = activeComponents.get(key);
+    Long expectedLease = activeLeases.get(key);
+    if (tracked == null || tracked != pooled || expectedLease == null || expectedLease.longValue() != lease) {
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Ignoring close for stale/untracked TraceComponent: id={}, lease={}", key, lease);
+      }
+      return;
+    }
+
+    if (!activeComponents.remove(key, tracked)) {
+      return;
+    }
+    activeLeases.remove(key, expectedLease);
 
     String txId = component.getTransactionId();
     String location = component.getLocation();
 
     // Return the component to the pool for reuse
     if (usePooling) {
-      pool.release(component);
+      pool.release(component, lease);
     }
 
     if (LOGGER.isTraceEnabled()) {
@@ -223,9 +246,16 @@ public class TraceComponentManager {
       return;
     }
 
+    if (!(component instanceof PooledTraceComponent)) {
+      return;
+    }
+
+    PooledTraceComponent pooled = (PooledTraceComponent) component;
+
     String key = getPooledComponentId(component);
     if (key != null) {
-      activeComponents.put(key, (Borrowable) component);
+      activeLeases.put(key, pooled.getActiveLease());
+      activeComponents.put(key, pooled);
 
       if (LOGGER.isTraceEnabled()) {
         LOGGER.trace("Tracking TraceComponent: {} (txId={}, location={})", key,
@@ -256,28 +286,35 @@ public class TraceComponentManager {
     long now = System.currentTimeMillis();
     int cleaned = 0;
 
-    for (Map.Entry<String, Borrowable> entry : activeComponents.entrySet()) {
-      Borrowable borrowed = entry.getValue();
-      if (now - borrowed.getBorrowedAt() > MAX_COMPONENT_AGE_MILLIS) {
-        if (activeComponents.remove(entry.getKey(), borrowed)) {
-          TraceComponent tc = (TraceComponent) borrowed;
+    for (Map.Entry<String, Leasable> entry : activeComponents.entrySet()) {
+      Leasable leased = entry.getValue();
+      String key = entry.getKey();
+      Long expectedLease = activeLeases.get(key);
+      if (expectedLease == null) {
+        continue;
+      }
+      if (now - leased.getLeasedAt() > MAX_COMPONENT_AGE_MILLIS) {
+        if (activeComponents.remove(key, leased)) {
+          activeLeases.remove(key, expectedLease);
+          TraceComponent tc = (TraceComponent) leased;
           // Capture for logging before release clears the fields
           String txId = tc.getTransactionId();
           String location = tc.getLocation();
           // Return directly to pool rather than calling close() to avoid
           // a race where the component has already been re-acquired after
           // a concurrent close/release/acquire cycle.
-          pool.release(tc);
+          pool.release(tc, expectedLease);
           cleaned++;
 
           if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Cleaned up stale TraceComponent: id={}, txId={}, location={}",
-                entry.getKey(), txId, location);
+                key, txId, location);
           }
         }
-      } else if (now - borrowed.getBorrowedAt() > MAX_COMPONENT_AGE_MILLIS / 5) {
+      } else if (now - leased.getLeasedAt() > MAX_COMPONENT_AGE_MILLIS / 2) {
         if (LOGGER.isDebugEnabled()) {
-          LOGGER.debug("Stale TraceComponent still active Key: {}, component: {}", entry.getKey(), borrowed);
+          LOGGER.debug("Stale TraceComponent still active Key: {}, component: {}", entry.getKey(),
+              leased);
         }
       }
     }
@@ -319,10 +356,14 @@ public class TraceComponentManager {
 
     // Return all active components to the pool directly rather than
     // calling close() to avoid races during shutdown.
-    for (Borrowable borrowed : activeComponents.values()) {
-      pool.release((TraceComponent) borrowed);
+    for (Map.Entry<String, Leasable> entry : activeComponents.entrySet()) {
+      Long expectedLease = activeLeases.get(entry.getKey());
+      if (expectedLease != null) {
+        pool.release((TraceComponent) entry.getValue(), expectedLease.longValue());
+      }
     }
     activeComponents.clear();
+    activeLeases.clear();
   }
 
 }

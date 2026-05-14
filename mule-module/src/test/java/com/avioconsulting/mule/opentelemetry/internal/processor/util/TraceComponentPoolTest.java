@@ -362,4 +362,45 @@ public class TraceComponentPoolTest {
 
     executor.shutdown();
   }
+
+  @Test
+  public void shouldIgnoreStaleCloseFromPreviousThreadAfterReborrow() throws Exception {
+    TraceComponentPool[] holder = new TraceComponentPool[1];
+    holder[0] = new TraceComponentPool(component -> {
+      if (component instanceof PooledTraceComponent) {
+        holder[0].release(component, ((PooledTraceComponent) component).getActiveLease());
+      }
+    });
+    TraceComponentPool localPool = holder[0];
+    localPool.clear();
+
+    TraceComponent ownerARef = localPool.acquire("tx-a", "flow-a");
+    ownerARef.withLocation("flow-a/processors/0");
+    ownerARef.close();
+
+    final TraceComponent[] ownerBHolder = new TraceComponent[1];
+    Thread borrowerB = new Thread(() -> {
+      TraceComponent tc = localPool.acquire("tx-b", "flow-b");
+      tc.withLocation("flow-b/processors/0");
+      ownerBHolder[0] = tc;
+    });
+    borrowerB.start();
+    borrowerB.join();
+
+    TraceComponent ownerBRef = ownerBHolder[0];
+    assertThat(ownerBRef)
+        .as("test setup requires the same pooled instance to be reused")
+        .isSameAs(ownerARef);
+    assertThat(ownerBRef.getTransactionId()).isEqualTo("tx-b");
+
+    // Simulate delayed stale close from the previous owner thread (main/A).
+    ownerARef.close();
+
+    assertThat(ownerBRef.getTransactionId())
+        .as("stale close from previous thread must not clear active borrow")
+        .isEqualTo("tx-b");
+    assertThat(ownerBRef.getLocation())
+        .as("stale close from previous thread must not clear active borrow")
+        .isEqualTo("flow-b/processors/0");
+  }
 }

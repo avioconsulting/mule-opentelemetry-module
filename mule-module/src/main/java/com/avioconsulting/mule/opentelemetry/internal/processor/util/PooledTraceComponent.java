@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
@@ -18,13 +19,17 @@ import java.util.function.Consumer;
  * identifier and support custom
  * cleanup actions upon closure, as specified by the {@code onClose} consumer.
  */
-public class PooledTraceComponent extends TraceComponent implements Borrowable {
+public class PooledTraceComponent extends TraceComponent implements Leasable {
   private final Consumer<TraceComponent> onClose;
 
   private static final int INITIAL_TAG_MAP_CAPACITY = 64;
 
   private final String id = UUID.randomUUID().toString();
-  private long borrowedAt;
+  private volatile long leasedAt;
+  private final AtomicLong leaseCounter = new AtomicLong(0);
+  private final AtomicLong lastClosedLease = new AtomicLong(-1);
+  private volatile long activeLease;
+  private volatile long ownerThreadId;
 
   PooledTraceComponent(String transactionId, String name, Consumer<TraceComponent> onClose) {
     super(name, new HashMap<>(INITIAL_TAG_MAP_CAPACITY));
@@ -49,27 +54,45 @@ public class PooledTraceComponent extends TraceComponent implements Borrowable {
         .withStartTime(Instant.now());
   }
 
+  long nextLease() {
+    this.activeLease = leaseCounter.incrementAndGet();
+    this.ownerThreadId = Thread.currentThread().getId();
+    this.leasedAt = System.currentTimeMillis();
+    return this.activeLease;
+  }
+
+  @Override
+  public long getActiveLease() {
+    return activeLease;
+  }
+
+  private boolean tryCloseCurrentLease() {
+    long currentLease = this.activeLease;
+    if (Thread.currentThread().getId() != ownerThreadId) {
+      return false;
+    }
+    return lastClosedLease.getAndSet(currentLease) != currentLease;
+  }
+
   @Override
   public void close() {
+    if (!tryCloseCurrentLease()) {
+      return;
+    }
     onClose.accept(this);
   }
 
   @Override
-  public long getBorrowedAt() {
-    return this.borrowedAt;
-  }
-
-  @Override
-  public TraceComponent withBorrowedAt(long borrowedAt) {
-    this.borrowedAt = borrowedAt;
-    return this;
+  public long getLeasedAt() {
+    return this.leasedAt;
   }
 
   @Override
   public String toString() {
     return "PooledTraceComponent{" +
         "id='" + id + '\'' +
-        ", borrowedAt=" + borrowedAt +
+        ", activeLease=" + activeLease +
+        ", leasedAt=" + leasedAt +
         "} " + super.toString();
   }
 }
