@@ -43,8 +43,12 @@ public class MDCUtil {
   private static void replaceMDCOtelEntry(Map<String, Object> contextMap, String sourceKey, String targetKey,
       String invalidValue) {
     if (contextMap.containsKey(sourceKey)) {
-      String mdcValue = MDC.get(sourceKey);
-      String newValue = contextMap.get(sourceKey).toString();
+      String mdcValue = MDC.get(targetKey);
+      Object rawValue = contextMap.get(sourceKey);
+      if (rawValue == null) {
+        return;
+      }
+      String newValue = rawValue.toString();
       if (newValue.equalsIgnoreCase(invalidValue)) {
         return;
       }

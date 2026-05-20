@@ -135,7 +135,7 @@ public class InMemoryTransactionStore implements TransactionStore {
   public TransactionContext getTransactionContext(String transactionId, String componentLocation) {
     Transaction transaction = getTransaction(transactionId);
     if (transaction == null) {
-      LOGGER.debug("getTransactionContext: no transaction found for id '{}', returning null context",
+      LOGGER.debug("getTransactionContext: no transaction found for id '{}', returning fallback context",
           transactionId);
       return TransactionContext.of(transactionId);
     }
