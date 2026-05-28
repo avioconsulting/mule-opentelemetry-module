@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -114,6 +115,10 @@ public class InMemoryTransactionStore implements TransactionStore {
     String format = "%s.%s";
     tags.forEach((k, v) -> builder.put(String.format(format, tagPrefix, k), v));
     Transaction transaction = getTransaction(transactionId);
+    if (transaction == null) {
+      LOGGER.debug("addTransactionTags: no transaction found for id '{}', skipping tag update", transactionId);
+      return;
+    }
     Span span = transaction.getTransactionSpan();
     if (span != null) {
       span.setAllAttributes(builder.build());
@@ -121,18 +126,23 @@ public class InMemoryTransactionStore implements TransactionStore {
   }
 
   private Transaction getTransaction(String transactionId) {
+    if (transactionId == null)
+      return null;
     return transactionMap.get(transactionId);
   }
 
   @Override
   public TransactionContext getTransactionContext(String transactionId, String componentLocation) {
     Transaction transaction = getTransaction(transactionId);
+    if (transaction == null) {
+      LOGGER.debug("getTransactionContext: no transaction found for id '{}', returning fallback context",
+          transactionId);
+      return TransactionContext.of(transactionId);
+    }
     if (componentLocation == null)
       return transaction.getTransactionContext();
     ProcessorSpan processorSpan = null;
-    if (transaction != null
-        && ((processorSpan = transaction
-            .findSpan(componentLocation)) != null)) {
+    if ((processorSpan = transaction.findSpan(componentLocation)) != null) {
       return TransactionContext.of(processorSpan.getSpan(), transaction);
     } else {
       return transaction.getTransactionContext();
@@ -163,7 +173,10 @@ public class InMemoryTransactionStore implements TransactionStore {
     Transaction transaction = getTransaction(traceComponent.getTransactionId());
     TransactionMeta transactionMeta = transaction;
     if (transaction != null) {
-      if (transaction.getRootFlowName().equals(traceComponent.getName())) {
+      if (transaction.getRootFlowName() == null) {
+        LOGGER.warn("Root flow name is null for transaction {}", transaction.getTransactionId());
+      }
+      if (Objects.equals(transaction.getRootFlowName(), traceComponent.getName())) {
         if (LOGGER.isTraceEnabled()) {
           LOGGER.trace("Marking the end time of transaction {} from map for {} - Context Id {}",
               traceComponent.getTransactionId(),
@@ -222,6 +235,13 @@ public class InMemoryTransactionStore implements TransactionStore {
     }
     SpanMeta span = transaction
         .addProcessorSpan(containerName, traceComponent, spanBuilder);
+    if (span == null) {
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn("Failed to add processor span for transaction {} at location {}",
+            traceComponent.getTransactionId(), traceComponent.getLocation());
+      }
+      return null;
+    }
     if (LOGGER.isTraceEnabled()) {
       LOGGER.trace(
           "Adding Processor span to transaction {} for locator span '{}': OT SpanId {}, TraceId {}",

@@ -59,20 +59,21 @@ public class TraceComponentPool {
       currentPoolSize.decrementAndGet();
       componentsReused.incrementAndGet();
       pooled.reset(transactionId, name);
-      if (LOGGER.isTraceEnabled()) {
-        LOGGER.trace("Reused TraceComponent from pool (pool size: {}) - {} - {}", currentPoolSize.get(),
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Reused TraceComponent from pool (pool size: {}) - {} - {}", currentPoolSize.get(),
             pooled.getId() + " - " + pooled.getName(), pooled);
       }
-      return pooled.withBorrowedAt(System.currentTimeMillis());
+      pooled.nextLease();
+      return pooled;
     }
 
     // Create new if pool is empty
     componentsCreated.incrementAndGet();
-    if (LOGGER.isTraceEnabled()) {
-      LOGGER.trace("Created new TraceComponent (total created: {})", componentsCreated.get());
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Created new TraceComponent (total created: {})", componentsCreated.get());
     }
-    TraceComponent traceComponent = new PooledTraceComponent(transactionId, name, onClose).withBorrowedAt(
-        System.currentTimeMillis());
+    PooledTraceComponent traceComponent = new PooledTraceComponent(transactionId, name, onClose);
+    traceComponent.nextLease();
     return traceComponent;
   }
 
@@ -102,8 +103,21 @@ public class TraceComponentPool {
     if (!(component instanceof PooledTraceComponent)) {
       return;
     }
+    release(component, ((PooledTraceComponent) component).getActiveLease());
+  }
 
+  public void release(TraceComponent component, long expectedLease) {
+    if (!(component instanceof PooledTraceComponent)) {
+      return;
+    }
     PooledTraceComponent pooled = (PooledTraceComponent) component;
+    if (pooled.getActiveLease() != expectedLease) {
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Ignoring stale TraceComponent release. id={}, expectedLease={}, activeLease={}",
+            pooled.getId(), expectedLease, pooled.getActiveLease());
+      }
+      return;
+    }
     if (LOGGER.isTraceEnabled()) {
       LOGGER.trace("Returning TraceComponent to pool (pool size: {}): {} - {}", currentPoolSize.get(),
           pooled.getId() + " - " + pooled.getName(), pooled);
@@ -117,8 +131,8 @@ public class TraceComponentPool {
       currentPoolSize.incrementAndGet();
       componentsReturned.incrementAndGet();
 
-      if (LOGGER.isTraceEnabled()) {
-        LOGGER.trace("Returned TraceComponent to pool (pool size: {}) - {}", currentPoolSize.get(), pooled);
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("Returned TraceComponent to pool (pool size: {}) - {}", currentPoolSize.get(), pooled);
       }
     }
   }

@@ -340,6 +340,14 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
+          <tags>
+            <tag>
+              <name>default</name>
+              <!-- Placement options: a (all), t (types), m (methods), f (fields), etc. -->
+              <placement>f</placement>
+              <head>Default Value for Field:</head>
+            </tag>
+          </tags>
           <!-- Added here to change doc destination path from parent -->
           <destDir>../target/docs/apidocs</destDir>
         </configuration>

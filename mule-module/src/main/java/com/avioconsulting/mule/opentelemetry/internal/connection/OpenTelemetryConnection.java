@@ -368,7 +368,9 @@ public class OpenTelemetryConnection implements TraceContextHandler,
           parentSpan = addRouteSpan(parentTrace, traceComponent, parentLocation,
               getLocationParent(parentLocation));
         }
-        spanBuilder.setParent(parentSpan.getContext());
+        if (parentSpan != null) {
+          spanBuilder.setParent(parentSpan.getContext());
+        }
       }
     }
 
@@ -398,9 +400,11 @@ public class OpenTelemetryConnection implements TraceContextHandler,
         traceComponent,
         span -> {
           if (error != null) {
-            span.recordException(error.getCause());
-            traceComponent.addTag(ERROR_TYPE.getKey(),
-                error.getCause().getClass().getCanonicalName());
+            Throwable cause = error.getCause();
+            if (cause != null) {
+              span.recordException(cause);
+              traceComponent.addTag(ERROR_TYPE.getKey(), cause.getClass().getCanonicalName());
+            }
             traceComponent.addTag(ERROR_MESSAGE.getKey(),
                 error.getDescription());
             if (error.getErrorType() != null
@@ -418,21 +422,38 @@ public class OpenTelemetryConnection implements TraceContextHandler,
   }
 
   private void processBatchJob(SpanMeta spanMeta, TraceComponent traceComponent) {
-    if (!traceComponent.getName().equalsIgnoreCase(BATCH_JOB_TAG)) {
+    if (!BATCH_JOB_TAG.equalsIgnoreCase(traceComponent.getName())) {
       return;
     }
     String batchJobInstanceId = traceComponent.getTag(MULE_BATCH_JOB_INSTANCE_ID.getKey());
-    try (TraceComponent batchComponent = TraceComponentManager.getInstance()
-        .createTraceComponent(batchJobInstanceId, traceComponent.getTag(MULE_BATCH_JOB_NAME.getKey()),
-            traceComponent.getComponentLocation())) {
+    String batchJobName = traceComponent.getTag(MULE_BATCH_JOB_NAME.getKey());
+    if (batchJobInstanceId == null || batchJobName == null) {
+      if (logger.isWarnEnabled()) {
+        logger.warn("Skipping batch job span processing due to missing metadata. jobInstanceId={}, jobName={}",
+            batchJobInstanceId, batchJobName);
+      }
+      return;
+    }
+    TraceComponent batchTraceComponent;
+    if (traceComponent.getComponentLocation() != null) {
+      batchTraceComponent = TraceComponentManager.getInstance().createTraceComponent(batchJobInstanceId,
+          batchJobName,
+          traceComponent.getComponentLocation());
+    } else {
+      batchTraceComponent = TraceComponentManager.getInstance().createTraceComponent(batchJobInstanceId,
+          batchJobName);
+    }
+    try (TraceComponent batchComponent = batchTraceComponent) {
       batchComponent.withLocation(traceComponent.getLocation())
           .withTransactionId(batchJobInstanceId)
-          .withSpanName(traceComponent.getTag(MULE_BATCH_JOB_NAME.getKey()))
+          .withSpanName(batchJobName)
           .withSpanKind(SpanKind.SERVER)
-          .withContext(spanMeta.getContext())
           .withEventContextId(traceComponent.getEventContextId())
           .withStartTime(traceComponent.getStartTime());
-      batchComponent.addAllTags(spanMeta.getTags());
+      if (spanMeta != null) {
+        batchComponent.withContext(spanMeta.getContext());
+        batchComponent.addAllTags(spanMeta.getTags());
+      }
       traceComponent.copyTagsTo(batchComponent);
       startTransaction(batchComponent);
       if (BatchHelperUtil.isBatchSupportDisabled()) {
