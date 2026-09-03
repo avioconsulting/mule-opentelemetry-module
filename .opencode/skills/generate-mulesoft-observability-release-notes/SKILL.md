@@ -31,7 +31,7 @@ Use authenticated GitHub CLI for all release sources. The two paid module reposi
 | OpenTelemetry Module | Trace instrumentation for Mule applications | `gh release` with `avioconsulting/mule-opentelemetry-module` |
 | Metrics Provider | Metrics collection from Mule applications | `gh release` with `avioconsulting/mule-opentelemetry-metrics-avio-provider` |
 | Log4j2 Appender | Exports logs through the OpenTelemetry module | `gh release` with `avioconsulting/mule-opentelemetry-log4j2-appender` |
-| MuleSoft Observability for Datadog |Datadog Marketplace MuleSoft observability integration | `DataDog/marketplace`, path `avio_consulting_mulesoft_observability/CHANGELOG.md` |
+| MuleSoft Observability for Datadog | Datadog Marketplace MuleSoft observability integration | `DataDog/marketplace`, path `avio_consulting_mulesoft_observability/CHANGELOG.md` |
 | MuleSoft Anypoint Monitoring for Datadog | Datadog Marketplace Anypoint Monitoring based observability integration | `DataDog/marketplace`, path `avio_consulting_mulesoft_anypoint_monitoring/CHANGELOG.md` |
 
 ## Workflow
@@ -52,9 +52,9 @@ gh api -H "Accept: application/vnd.github.raw+json" "repos/DataDog/marketplace/c
 8. Retrieve runtime component releases using `gh`, including paid private repositories. Ignore draft and prerelease releases when determining the latest stable version.
 
 ```sh
-gh release list --repo avioconsulting/mule-opentelemetry-module --limit 10 --json tagName,publishedAt,isPrerelease,name
-gh release list --repo avioconsulting/mule-opentelemetry-metrics-avio-provider --limit 10 --json tagName,publishedAt,isPrerelease,name
-gh release list --repo avioconsulting/mule-opentelemetry-log4j2-appender --limit 10 --json tagName,publishedAt,isPrerelease,name
+gh release list --repo avioconsulting/mule-opentelemetry-module --limit 10 --exclude-drafts --exclude-pre-releases --json tagName,publishedAt,name
+gh release list --repo avioconsulting/mule-opentelemetry-metrics-avio-provider --limit 10 --exclude-drafts --exclude-pre-releases --json tagName,publishedAt,name
+gh release list --repo avioconsulting/mule-opentelemetry-log4j2-appender --limit 10 --exclude-drafts --exclude-pre-releases --json tagName,publishedAt,name
 gh release view <tag> --repo <owner/repository> --json tagName,publishedAt,name,body,url
 ```
 
