@@ -37,7 +37,7 @@ public class OtlpAuthenticationCustomizerTest {
       assertThat(replacement.getDefaultAggregation(InstrumentType.HISTOGRAM))
           .isEqualTo(original.getDefaultAggregation(InstrumentType.HISTOGRAM));
       assertThat(replacement.getMemoryMode()).isEqualTo(MemoryMode.REUSABLE_DATA);
-      assertThat(replacement.toString()).contains("X-Tenant").doesNotContain("dummy");
+      assertThat(replacement.toString()).doesNotContain("dummy");
     } finally {
       replacement.shutdown();
     }

@@ -2,6 +2,10 @@ package com.avioconsulting.mule.opentelemetry.internal.connection;
 
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.AuthenticationValidation;
 import com.avioconsulting.mule.opentelemetry.internal.auth.ExporterAuthenticationProvider;
+import com.avioconsulting.mule.opentelemetry.internal.auth.AuthenticationExportGate;
+import com.avioconsulting.mule.opentelemetry.internal.auth.AuthenticatedSpanExporter;
+import com.avioconsulting.mule.opentelemetry.internal.auth.AuthenticatedMetricExporter;
+import com.avioconsulting.mule.opentelemetry.internal.auth.AuthenticatedLogRecordExporter;
 import io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter;
 import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
@@ -21,10 +25,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class OtlpAuthenticationCustomizer {
   private final ExporterAuthenticationProvider provider;
+  private final AuthenticationExportGate gate;
   private final AtomicInteger authenticatedSignals = new AtomicInteger();
 
   public OtlpAuthenticationCustomizer(ExporterAuthenticationProvider provider) {
     this.provider = provider;
+    this.gate = new AuthenticationExportGate(provider);
   }
 
   public void register(AutoConfiguredOpenTelemetrySdkBuilder builder) {
@@ -52,7 +58,7 @@ public final class OtlpAuthenticationCustomizer {
       throw failure;
     }
     authenticatedSignals.incrementAndGet();
-    return replacement;
+    return new AuthenticatedSpanExporter(replacement, gate);
   }
 
   MetricExporter metrics(MetricExporter original, ConfigProperties properties) {
@@ -76,7 +82,7 @@ public final class OtlpAuthenticationCustomizer {
       throw failure;
     }
     authenticatedSignals.incrementAndGet();
-    return replacement;
+    return new AuthenticatedMetricExporter(replacement, gate);
   }
 
   LogRecordExporter logs(LogRecordExporter original, ConfigProperties properties) {
@@ -94,7 +100,7 @@ public final class OtlpAuthenticationCustomizer {
       throw failure;
     }
     authenticatedSignals.incrementAndGet();
-    return replacement;
+    return new AuthenticatedLogRecordExporter(replacement, gate);
   }
 
   private void validate(ConfigProperties properties, String signal) {
