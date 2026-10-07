@@ -197,6 +197,36 @@ public class OpenTelemetryConnection implements TraceContextHandler,
     this.openTelemetry = openTelemetry;
   }
 
+  /**
+   * Returns the owned SDK for artifact-loader integration tests without
+   * private-field access.
+   *
+   * @return the connection-owned SDK
+   */
+  public OpenTelemetrySdk _getSdkForTest() {
+    return sdk;
+  }
+
+  /**
+   * Returns the connection-local authentication provider for artifact-loader
+   * integration tests.
+   *
+   * @return the configured authentication provider, or null when authentication
+   *         is not configured
+   */
+  public ExporterAuthenticationProvider _getAuthenticationProviderForTest() {
+    return authenticationProvider;
+  }
+
+  /**
+   * Indicates whether connection cleanup has begun.
+   *
+   * @return true once cleanup has begun
+   */
+  public boolean isClosed() {
+    return closed.get();
+  }
+
   private void configureLogParameters(Map<String, String> configMap) {
     configMap.put("otel.blrp.max.queue.size", "4096");
     configMap.put("otel.blrp.max.export.batch.size", "2048");

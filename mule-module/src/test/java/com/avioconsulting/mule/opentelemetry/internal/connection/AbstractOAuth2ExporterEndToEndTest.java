@@ -169,7 +169,7 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
     assertThat(oauth.requests()).isEqualTo(2);
     verifyCredentials(2);
     assertThat(config.getOpenTelemetryConnection()).isSameAs(connection);
-    assertThat(OAuthSdkProbe.field(connection, "sdk")).isSameAs(probe.sdk);
+    assertThat(OAuthSdkProbe.invoke(connection, "_getSdkForTest")).isSameAs(probe.sdk);
     assertThat(collector.exports()).extracting(value -> value.signal).contains("traces", "metrics", "logs");
     collector.exports().forEach(value -> {
       assertThat(value.authorization).containsExactly("Bearer dummy-token-B");

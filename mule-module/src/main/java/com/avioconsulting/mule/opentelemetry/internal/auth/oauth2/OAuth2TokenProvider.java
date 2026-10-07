@@ -42,10 +42,16 @@ public final class OAuth2TokenProvider implements ExporterAuthenticationProvider
   }
 
   /**
-   * Test-only instance seam, usable only before the first acquisition; never a
+   * Test-only instance seam across the Mule artifact loader, usable only before
+   * the first acquisition; never a
    * global override.
+   *
+   * @param clock
+   *            monotonic time source in nanoseconds
+   * @param jitter
+   *            renewal jitter source
    */
-  synchronized void useTimeSourcesForTest(LongSupplier clock, DoubleSupplier jitter) {
+  public synchronized void _useTimeSourcesForTest(LongSupplier clock, DoubleSupplier jitter) {
     checkOpen();
     if (state != null || inFlight != null || failures != 0) {
       throw new IllegalStateException("Authentication time sources cannot change after acquisition starts");

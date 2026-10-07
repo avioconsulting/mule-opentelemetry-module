@@ -1,8 +1,8 @@
 package com.avioconsulting.mule.opentelemetry.test.util.auth;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.DoubleSupplier;
@@ -18,12 +18,9 @@ public final class OAuthSdkProbe {
   public final Object provider;
 
   public OAuthSdkProbe(Object connection, AtomicLong clock) throws Exception {
-    sdk = field(connection, "sdk");
-    provider = field(connection, "authenticationProvider");
-    Method hook = provider.getClass().getDeclaredMethod("useTimeSourcesForTest", LongSupplier.class,
-        DoubleSupplier.class);
-    hook.setAccessible(true);
-    hook.invoke(provider, (LongSupplier) clock::get, (DoubleSupplier) () -> 0.5);
+    sdk = invoke(connection, "_getSdkForTest");
+    provider = invoke(connection, "_getAuthenticationProviderForTest");
+    invoke(provider, "_useTimeSourcesForTest", (LongSupplier) clock::get, (DoubleSupplier) () -> 0.5);
   }
 
   public void emit(String marker) throws Exception {
@@ -51,37 +48,59 @@ public final class OAuthSdkProbe {
     assertThat(invoke(result, "isDone")).as("SDK flush must complete within its budget").isEqualTo(true);
   }
 
-  public static Object field(Object target, String name) throws Exception {
-    Field field = target.getClass().getDeclaredField(name);
-    field.setAccessible(true);
-    return field.get(target);
+  /**
+   * Calls only public methods declared by public API types, never private SDK
+   * implementation members.
+   */
+  public static Object invoke(Object target, String name, Object... args) throws Exception {
+    Method method = publicMethod(target.getClass(), name, args);
+    if (method == null) {
+      throw new NoSuchMethodException(target.getClass().getName() + "." + name);
+    }
+    try {
+      return method.invoke(target, args);
+    } catch (InvocationTargetException failure) {
+      if (failure.getCause() instanceof Exception) {
+        throw (Exception) failure.getCause();
+      }
+      throw failure;
+    }
   }
 
-  public static Object invoke(Object target, String name, Object... args) throws Exception {
-    for (Method method : target.getClass().getMethods()) {
-      if (!method.getName().equals(name) || method.getParameterCount() != args.length) {
-        continue;
-      }
-      Class<?>[] parameters = method.getParameterTypes();
-      boolean match = true;
-      for (int i = 0; i < parameters.length; i++) {
-        if (!parameters[i].isInstance(args[i]) && !(parameters[i] == long.class && args[i] instanceof Long)) {
-          match = false;
-          break;
+  private static Method publicMethod(Class<?> type, String name, Object[] args) {
+    if (type == null) {
+      return null;
+    }
+    if (Modifier.isPublic(type.getModifiers())) {
+      for (Method method : type.getMethods()) {
+        if (!Modifier.isPublic(method.getDeclaringClass().getModifiers())) {
+          continue;
         }
-      }
-      if (match) {
-        method.setAccessible(true);
-        try {
-          return method.invoke(target, args);
-        } catch (InvocationTargetException failure) {
-          if (failure.getCause() instanceof Exception) {
-            throw (Exception) failure.getCause();
+        if (!method.getName().equals(name) || method.getParameterCount() != args.length) {
+          continue;
+        }
+        Class<?>[] parameters = method.getParameterTypes();
+        boolean match = true;
+        for (int i = 0; i < parameters.length; i++) {
+          if (!parameters[i].isInstance(args[i])
+              && !(parameters[i] == long.class && args[i] instanceof Long)) {
+            match = false;
+            break;
           }
-          throw failure;
+        }
+        if (match) {
+          return method;
         }
       }
     }
-    throw new NoSuchMethodException(target.getClass().getName() + "." + name);
+    // SDK implementations can be package-private. Invoke their public interface
+    // declarations instead.
+    for (Class<?> contract : type.getInterfaces()) {
+      Method method = publicMethod(contract, name, args);
+      if (method != null) {
+        return method;
+      }
+    }
+    return publicMethod(type.getSuperclass(), name, args);
   }
 }

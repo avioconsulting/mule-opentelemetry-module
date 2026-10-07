@@ -106,9 +106,7 @@ public class MuleOAuth2TokenClientTest {
   @Test
   public void boundsWaitingAndClosesLateResponse() throws Exception {
     OAuth2Auth auth = configuration();
-    java.lang.reflect.Field timeout = OAuth2Auth.class.getDeclaredField("requestTimeoutMillis");
-    timeout.setAccessible(true);
-    timeout.setInt(auth, 10);
+    auth.setRequestTimeoutMillis(10);
     CompletableFuture<HttpResponse> response = new CompletableFuture<>();
     MuleOAuth2TokenClient client = client(auth, 200, "{}");
     when(http.sendAsync(any(HttpRequest.class), any(HttpRequestOptions.class))).thenReturn(response);
@@ -135,9 +133,7 @@ public class MuleOAuth2TokenClientTest {
   @Test
   public void streamingBodyCannotOutliveOverallBudget() throws Exception {
     OAuth2Auth auth = configuration();
-    java.lang.reflect.Field timeout = OAuth2Auth.class.getDeclaredField("requestTimeoutMillis");
-    timeout.setAccessible(true);
-    timeout.setInt(auth, 40);
+    auth.setRequestTimeoutMillis(40);
     java.util.concurrent.CountDownLatch closed = new java.util.concurrent.CountDownLatch(1);
     java.io.InputStream stream = new java.io.InputStream() {
       @Override

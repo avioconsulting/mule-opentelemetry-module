@@ -138,10 +138,7 @@ public class OpenTelemetryExtensionConfigurationTest extends AbstractInternalTes
     doThrow(new IllegalStateException("startup failure")).when(traceLevelConfiguration).initMuleComponentsMap();
     org.assertj.core.api.Assertions.assertThatThrownBy(extensionConfiguration::start)
         .isInstanceOf(IllegalStateException.class).hasMessage("startup failure");
-    java.lang.reflect.Field closed = OpenTelemetryConnection.class.getDeclaredField("closed");
-    closed.setAccessible(true);
-    assertThat(((java.util.concurrent.atomic.AtomicBoolean) closed
-        .get(extensionConfiguration.getOpenTelemetryConnection())).get()).isTrue();
+    assertThat(extensionConfiguration.getOpenTelemetryConnection().isClosed()).isTrue();
     extensionConfiguration.stop();
   }
 }

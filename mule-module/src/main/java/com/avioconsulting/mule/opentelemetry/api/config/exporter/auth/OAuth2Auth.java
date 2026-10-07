@@ -76,6 +76,19 @@ public class OAuth2Auth implements ExporterAuthentication {
     return requestTimeoutMillis;
   }
 
+  /**
+   * Sets the bounded token-request timeout; validation runs before connection
+   * creation.
+   *
+   * @param requestTimeoutMillis
+   *            token-request budget in milliseconds, from 1 to 60000
+   * @return this configuration
+   */
+  public OAuth2Auth setRequestTimeoutMillis(int requestTimeoutMillis) {
+    this.requestTimeoutMillis = requestTimeoutMillis;
+    return this;
+  }
+
   public OAuth2Auth setCredentialPlacement(CredentialPlacement placement) {
     this.credentialPlacement = placement;
     return this;
