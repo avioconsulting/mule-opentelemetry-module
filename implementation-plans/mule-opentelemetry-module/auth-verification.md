@@ -2,7 +2,7 @@
 
 ## Focused evidence (2026-10-07)
 
-46 tests pass across the new authentication suites and existing exporter/connection/configuration regression suites. Commands use `-Dspotless.check.skip=true` only to bypass the pre-existing untracked SPI stub's formatting violation; changed-file formatting is applied separately.
+The initial focused run passed 46 tests across the new authentication suites and existing exporter/connection/configuration regression suites. Additional regression tests cover interrupted waiters, stalled streamed bodies, credential metadata and extension-startup cleanup. Commands use `-Dspotless.check.skip=true` only to bypass the pre-existing untracked SPI stub's formatting violation; changed-file formatting is applied separately.
 
 - `ExporterAuthenticationTest`: opaque credentials, unsafe header rejection, HTTPS URL validation.
 - `ExporterAuthenticationXmlTest`: actual Mule DSL loading for all three types, independent headers. All artifact tests use the repository's shared class-loader runner configuration.
@@ -17,6 +17,18 @@
 
 ## Remaining verification notes
 
-The focused evidence is not a claim that every acceptance-matrix permutation has a dedicated automated test. Environment-variable precedence, collector retry timing, all aggregation choices, expired renewal with interrupted waiters, host-name mismatch/untrusted token certificates, streaming-body stalls, and captured end-to-end Mule-flow logs/redeploy still warrant additional coverage. Java 8 source/target is retained; test fixtures use public APIs but the full release gate also requires dependency and full-repository verification below.
+The focused evidence is not a claim that every acceptance-matrix permutation has a dedicated automated test. Environment-variable precedence, collector retry timing, all aggregation choices, host-name mismatch/untrusted token certificates, and captured end-to-end Mule-flow logs/redeploy still warrant additional coverage. Existing SDK precedence and transport settings are retained via standard autoconfiguration and public `toBuilder()` methods; application code contains no internal SDK imports.
 
-Default repository verification, full tests, generated docs and dependency verification results are recorded during AUTH-09. Existing unrelated AsciiDoc include errors and the untracked customizer formatting violation must not be silently repaired or included in feature commits.
+## AUTH-09 release checks
+
+- Actual build JDK: Zulu OpenJDK **1.8.0_382**. Compilation, focused tests, local collectors, actual Mule HTTP service and the full reactor build run on Java 8, not just Java 8 source/target settings.
+- `./mvnw -o verify`: fails at the existing untracked `CustomAutoConfigurationCustomizer.java` formatting violation. That stub remains byte-for-byte unchanged and uncommitted.
+- `./mvnw -o verify -Dspotless.check.skip=true`: final full reactor rerun succeeds after all regression/doc changes, including plugin packaging and generated documentation. Surefire reports total **461 tests**, **0 failures**, **0 errors**, **12 existing skipped tests** across the two batch adapters and Mule module.
+- `./mvnw -o -pl mule-module dependency:tree -Dincludes=com.google.code.gson:gson,io.grpc`: Gson resolves to direct compile dependency **2.10.1**; gRPC collector dependencies resolve to **1.65.1**, test scope only. The real Mule-service token test proves parser visibility in the plugin class loader.
+- `./mvnw -o -pl mule-module enforcer:enforce -Drules=dependencyConvergence`: fails only for existing `kotlin-stdlib-jdk8` **1.9.10 vs 1.8.21**, inherited through the unchanged OpenTelemetry OkHttp sender. Running the same check against the original module POM produces the same conflict. No unrelated dependency upgrade is applied.
+- `jreleaser.yml` generates release notes from conventional commits; feature/fix/test/docs commits follow that existing convention, without creating an unrelated changelog or publishing a release.
+- Existing AsciiDoc errors concern the missing `elastic.adoc`, `dynatrace.adoc`, and `splunk.adoc` includes in `apm-tests/apmTesting.adoc`. The authentication configuration page itself is generated successfully.
+- Generated `mule-module/target/docs/module-config.html` includes the authentication examples and timeout/renewal guidance; JavaDoc generation succeeds. Captured final verification output contains none of the dummy token/credential markers used by the authentication fixtures.
+- Formatting is applied only to changed files using `spotlessFiles`, preserving unrelated working-tree content. `git diff --check` passes.
+
+These baseline limitations and remaining coverage permutations mean the strict completion gate is not represented as an unconditional clean release gate. No remote push, release or deployment is performed.

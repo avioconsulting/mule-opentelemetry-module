@@ -251,6 +251,79 @@ NOTE: For example, `http(s)://localhost:4318` when configuring the OTLP Exporter
 
 image::module-otel-exporter-config.png[alt="OTEL OTLP Exporter configuration"]
 
+===== Exporter Authentication
+
+The optional `authentication` element supports a static bearer token, an API key, or OAuth2 client credentials for the standard `otlp` exporter. Authentication applies to traces, metrics and logs over both gRPC and HTTP/protobuf. Existing configurations without authentication are unchanged, including manually configured authorization headers and unauthenticated localhost collectors.
+
+Authenticated collector endpoints and OAuth token endpoints must use HTTPS. Authentication credentials are configuration-time values: event-dependent expressions are not supported. Store credentials in Mule Secure Configuration Properties or the deployment platform's protected properties, not in source control. The `${secure::...}` examples assume that secure properties are already configured by the application.
+
+.Static bearer token with independent headers
+[source,xml]
+----
+<opentelemetry:config name="OpenTelemetry_Config" serviceName="orders-api">
+    <opentelemetry:exporter>
+        <opentelemetry:otlp-exporter collectorEndpoint="https://collector.example.com:4317">
+            <opentelemetry:headers>
+                <opentelemetry:header key="X-Tenant" value="${telemetry.tenant}"/>
+            </opentelemetry:headers>
+            <opentelemetry:authentication>
+                <opentelemetry:bearer-token-auth token="${secure::telemetry.token}"/>
+            </opentelemetry:authentication>
+        </opentelemetry:otlp-exporter>
+    </opentelemetry:exporter>
+</opentelemetry:config>
+----
+
+.API-key authentication (inside an OTLP exporter)
+[source,xml]
+----
+<opentelemetry:otlp-exporter collectorEndpoint="https://collector.example.com:4318"
+                             protocol="HTTP_PROTOBUF">
+    <opentelemetry:headers>
+        <opentelemetry:header key="X-Tenant" value="${telemetry.tenant}"/>
+    </opentelemetry:headers>
+    <opentelemetry:authentication>
+        <opentelemetry:api-key-auth headerName="X-Api-Key" value="${secure::telemetry.apiKey}"/>
+    </opentelemetry:authentication>
+</opentelemetry:otlp-exporter>
+----
+
+.OAuth2 client credentials (inside an OTLP exporter)
+[source,xml]
+----
+<opentelemetry:otlp-exporter collectorEndpoint="https://collector.example.com:4317">
+    <opentelemetry:headers>
+        <opentelemetry:header key="X-Tenant" value="${telemetry.tenant}"/>
+    </opentelemetry:headers>
+    <opentelemetry:authentication>
+        <opentelemetry:oauth2-auth tokenUrl="https://identity.example.com/oauth2/token"
+                                  clientId="${secure::telemetry.clientId}"
+                                  clientSecret="${secure::telemetry.clientSecret}"
+                                  scopes="telemetry.write"
+                                  credentialPlacement="CLIENT_SECRET_POST"
+                                  refreshSkewSeconds="60"
+                                  requestTimeoutMillis="8000"/>
+    </opentelemetry:authentication>
+</opentelemetry:otlp-exporter>
+----
+
+`headers` remains an independent collection with every authentication option. In SDK-generated XML it precedes `authentication`; `config-properties`, if present, follows authentication. Bearer and OAuth2 authentication own `Authorization`; API-key authentication owns its configured header name. A case-insensitive collision with an effective OTLP header property is a startup configuration error, including signal-specific properties and system/environment overrides. Other headers are retained exactly once. Header names must be HTTP tokens, cannot be gRPC binary metadata names (`-bin`), and authentication header values must be nonblank printable ASCII without CR/LF. Opaque credential values are never trimmed.
+
+====== OAuth2 Transport and Renewal
+
+* `CLIENT_SECRET_POST` is the default. It places `client_id` and `client_secret` in a UTF-8 form body with `grant_type=client_credentials`. `CLIENT_SECRET_BASIC` percent-encodes each credential before Base64-encoding the HTTP Basic value. `scopes` is an optional space-separated scope string; absent/blank scope is omitted.
+* `requestTimeoutMillis` defaults to 8000 and accepts 1 through 60000. It bounds waiting for the token response and its streamed body; the minimum Mule HTTP API does not expose separate connect/read timeout fields here. Responses are limited to 64 KiB. Redirects are never followed.
+* Each OAuth-enabled connection creates its own dedicated Mule HTTP service client lazily, on first token acquisition. Token traffic uses the platform's default validating TLS/trust configuration and no application-specific proxy. No collector TLS/mTLS settings or HTTP Request configuration are inherited. There are no token-client TLS/proxy parameter overrides in this version; establish the required platform trust and direct token-endpoint connectivity before deployment. Certificate and hostname validation are not disabled.
+* One token cache is shared by all enabled authenticated signals in that connection, never globally across applications/connections. Token lifetimes come from positive integral `expires_in`; `access_token` remains opaque, `token_type` must be Bearer, and JWT claims are not decoded.
+* `refreshSkewSeconds` defaults to 60 (range 0 through 3600), capped at half the token lifetime. Expiration is calculated conservatively from the acquisition request's start using monotonic time. One exporter performs renewal; concurrent exporters may use the previous token only while it remains valid. Callers without a token have a bounded wait.
+* Renewal requests a new access token using client credentials. No refresh-token grant or dedicated periodic renewal scheduler is used. Failed renewal retains a still-valid previous token; failures use a jittered exponential cooldown from approximately one second up to 30 seconds.
+* Token-service failures skip telemetry exports, return an unsuccessful SDK export result, and emit a rate-limited diagnostic without credentials or response bodies. They do not throw expected authentication failures into Mule business processing. Expired/missing tokens are not sent. Later exports can recover automatically when token acquisition succeeds.
+* Failed telemetry is not durably stored or replayed. Collector HTTP 401/gRPC `UNAUTHENTICATED` does not trigger an additional token refresh or replay; standard SDK transport retry behavior remains unchanged.
+* SDK exporter names and property precedence are unchanged. Authentication is not applied to logging/noop/third-party exporters selected by overrides. When no supported OTLP exporters remain, a sanitized warning is emitted and no token request/client is created.
+* Application stop closes metric producers and performs bounded SDK shutdown before closing the shared token provider/client. Failed SDK initialization also releases owned resources.
+
+For Azure Entra ID, a provider-specific token URL commonly has the form `https://login.microsoftonline.com/${azure.tenantId}/oauth2/v2.0/token`, with a scope such as `api://<collector-application-id>/.default`. Use the scope and credential placement required by your provider and collector; this example does not provision Azure resources or add signal-endpoint fields.
+
 ===== Configuring TLS for Exporter Endpoint
 
 If OTLP collector endpoint is using HTTPS, this exporter may require additional configuration when non-public CA certified certificates are used.
