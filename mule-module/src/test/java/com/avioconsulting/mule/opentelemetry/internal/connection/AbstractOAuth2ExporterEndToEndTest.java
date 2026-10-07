@@ -18,11 +18,14 @@ import static org.assertj.core.api.Assertions.*;
 public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArtifactTraceTest {
   protected AuthenticationTlsFixture tls;
   protected WireMockOAuthServer oauth;
+  protected WireMockOAuthServer untrustedOauth;
   protected LocalOtlpCollector collector;
   protected OpenTelemetryExtensionConfiguration config;
   protected OAuthSdkProbe probe;
   protected final AtomicLong clock = new AtomicLong();
   private final Map<String, String> previous = new HashMap<>();
+  @org.junit.Rule
+  public final org.junit.rules.TestName testName = new org.junit.rules.TestName();
 
   protected abstract LocalOtlpCollector.Protocol protocol();
 
@@ -44,13 +47,16 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
     try {
       tls = new AuthenticationTlsFixture();
       oauth = new WireMockOAuthServer();
+      untrustedOauth = new WireMockOAuthServer(false);
       collector = new LocalOtlpCollector(protocol(), tls);
       set("javax.net.ssl.trustStore", AuthenticationTlsFixture.keyStorePath());
       set("javax.net.ssl.trustStorePassword", AuthenticationTlsFixture.PASSWORD);
       set("javax.net.ssl.trustStoreType", "PKCS12");
       set("oauth.e2e.collector", collector.endpoint());
       set("oauth.e2e.protocol", protocol().name());
-      set("oauth.e2e.tokenUrl", oauth.tokenUrl());
+      set("oauth.e2e.tokenUrl", "tokenTlsDoesNotInheritCollectorTrust".equals(testName.getMethodName())
+          ? untrustedOauth.tokenUrl()
+          : oauth.tokenUrl());
       set("oauth.e2e.certificate", tls.certificatePath());
       set("oauth.e2e.key", tls.privateKeyPath());
       set("oauth.e2e.placement", placement());
@@ -108,6 +114,9 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
         if (oauth != null) {
           oauth.close();
         }
+        if (untrustedOauth != null) {
+          untrustedOauth.close();
+        }
       } finally {
         try {
           if (collector != null) {
@@ -140,10 +149,15 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
     verifyCredentials(1);
     assertThat(collector.failures()).isEmpty();
     assertThat(collector.exports()).extracting(value -> value.signal).contains("traces", "metrics", "logs");
+    assertThat(probe.provider.toString()).doesNotContain("dummy-secret", "dummy-token", "dummy-id");
     collector.exports().forEach(value -> {
       assertThat(value.authorization).containsExactly("Bearer dummy-token-A");
       assertThat(value.tenant).containsExactly("dummy-tenant");
       assertThat(value.compressed).isTrue();
+      if ("traces".equals(value.signal)) {
+        assertThat(value.contains(WireMockOAuthServer.PATH))
+            .as("Token HTTP calls must not recursively create processor spans").isFalse();
+      }
     });
   }
 
@@ -269,6 +283,41 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
     probe.emit("timeout");
     probe.flush();
     assertThat(oauth.requests()).isEqualTo(3);
+    assertThat(collector.exports()).isEmpty();
+  }
+
+  @Test
+  public void stopIsIdempotentAndRecreationAcquiresFreshCredentials() throws Exception {
+    probe.emit("beforeStop");
+    probe.flush();
+    Object oldConnection = config.getOpenTelemetryConnection();
+    Object oldSdk = probe.sdk;
+    Object oldProvider = probe.provider;
+    config.stop();
+    config.stop();
+    int stoppedRequests = oauth.requests();
+    probe.emit("afterStop");
+    assertThat(oauth.requests()).isEqualTo(stoppedRequests);
+    assertThatThrownBy(() -> OAuthSdkProbe.invoke(oldProvider, "headers")).hasMessageContaining("CLOSED");
+    config.start();
+    assertThat(config.getOpenTelemetryConnection()).isNotSameAs(oldConnection);
+    probe = new OAuthSdkProbe(config.getOpenTelemetryConnection(), clock);
+    assertThat(probe.sdk).isNotSameAs(oldSdk);
+    assertThat(probe.provider).isNotSameAs(oldProvider);
+    collector.reset();
+    oauth.token("dummy-token-C");
+    probe.emit("fresh");
+    probe.flush();
+    assertThat(oauth.requests()).isEqualTo(stoppedRequests + 1);
+    collector.exports().forEach(value -> assertThat(value.authorization).containsExactly("Bearer dummy-token-C"));
+  }
+
+  @Test
+  public void tokenTlsDoesNotInheritCollectorTrust() throws Exception {
+    probe.emit("untrusted");
+    probe.flush();
+    assertThat(untrustedOauth.requests()).isZero();
+    assertThat(oauth.requests()).isZero();
     assertThat(collector.exports()).isEmpty();
   }
 
