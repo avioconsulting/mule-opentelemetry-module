@@ -131,4 +131,41 @@ public class MuleOAuth2TokenClientTest {
         .hasMessageNotContaining("secret").hasCause(null);
     verify(http).stop();
   }
+
+  @Test
+  public void streamingBodyCannotOutliveOverallBudget() throws Exception {
+    OAuth2Auth auth = configuration();
+    java.lang.reflect.Field timeout = OAuth2Auth.class.getDeclaredField("requestTimeoutMillis");
+    timeout.setAccessible(true);
+    timeout.setInt(auth, 40);
+    java.util.concurrent.CountDownLatch closed = new java.util.concurrent.CountDownLatch(1);
+    java.io.InputStream stream = new java.io.InputStream() {
+      @Override
+      public int read() throws java.io.IOException {
+        try {
+          if (!closed.await(2, java.util.concurrent.TimeUnit.SECONDS)) {
+            throw new java.io.IOException("dummy-secret");
+          }
+          return -1;
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new java.io.IOException("dummy-secret");
+        }
+      }
+
+      @Override
+      public void close() {
+        closed.countDown();
+      }
+    };
+    org.mule.runtime.http.api.domain.entity.HttpEntity entity = mock(
+        org.mule.runtime.http.api.domain.entity.HttpEntity.class);
+    when(entity.getContent()).thenReturn(stream);
+    try (MuleOAuth2TokenClient client = client(auth, 200, "{}")) {
+      when(http.sendAsync(any(HttpRequest.class), any(HttpRequestOptions.class))).thenReturn(
+          CompletableFuture.completedFuture(HttpResponse.builder().statusCode(200).entity(entity).build()));
+      assertThatThrownBy(client::acquire).hasMessageContaining("TIMEOUT").hasMessageNotContaining("dummy-secret");
+      assertThat(closed.getCount()).isZero();
+    }
+  }
 }

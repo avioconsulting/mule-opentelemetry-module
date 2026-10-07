@@ -71,6 +71,32 @@ public class OAuth2TokenProviderTest {
   }
 
   @Test
+  public void interruptedWaitPreservesInterruptStatus() throws Exception {
+    CountDownLatch started = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    when(client.acquire()).thenAnswer(invocation -> {
+      started.countDown();
+      release.await(2, TimeUnit.SECONDS);
+      return new OAuth2AccessToken("A", 10);
+    });
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      Future<?> winner = executor.submit(provider::ensureUsable);
+      assertThat(started.await(1, TimeUnit.SECONDS)).isTrue();
+      Thread.currentThread().interrupt();
+      assertThatThrownBy(provider::ensureUsable).hasMessageContaining("INTERRUPTED");
+      assertThat(Thread.currentThread().isInterrupted()).isTrue();
+      Thread.interrupted();
+      release.countDown();
+      winner.get(1, TimeUnit.SECONDS);
+    } finally {
+      Thread.interrupted();
+      release.countDown();
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
   public void cachesAndRotatesAtHalfShortLifetime() {
     when(client.acquire()).thenReturn(new OAuth2AccessToken("A", 10), new OAuth2AccessToken("B", 10));
     assertThat(provider.headers()).isEmpty();
