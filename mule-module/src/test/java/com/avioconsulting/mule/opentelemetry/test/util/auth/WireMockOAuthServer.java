@@ -19,6 +19,7 @@ public final class WireMockOAuthServer implements AutoCloseable {
   public static final String PATH = "/oauth2/token";
   private final AtomicReference<ResponseDefinition> response = new AtomicReference<>();
   private final WireMockServer server;
+  private final String tokenUrl;
   private volatile CountDownLatch entered;
   private volatile CountDownLatch release;
 
@@ -71,6 +72,7 @@ public final class WireMockOAuthServer implements AutoCloseable {
     token("dummy-token-A");
     try {
       server.start();
+      tokenUrl = "https://localhost:" + server.httpsPort() + PATH;
       server.stubFor(post(urlEqualTo(PATH)).willReturn(aResponse().withTransformers("local-oauth-response")));
     } catch (RuntimeException failure) {
       server.stop();
@@ -79,7 +81,7 @@ public final class WireMockOAuthServer implements AutoCloseable {
   }
 
   public String tokenUrl() {
-    return "https://localhost:" + server.httpsPort() + PATH;
+    return tokenUrl;
   }
 
   public WireMockServer server() {
