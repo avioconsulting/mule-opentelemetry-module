@@ -29,6 +29,7 @@ public class MuleOAuth2TokenTransportTest extends com.avioconsulting.mule.opente
     /* Token service traffic does not generate processor spans. */ }
 
   private final Map<String, String> previous = new HashMap<>();
+  private SSLContext previousTls;
 
   @Override
   protected String getConfigFile() {
@@ -42,6 +43,17 @@ public class MuleOAuth2TokenTransportTest extends com.avioconsulting.mule.opente
         new File(getClass().getResource("/authentication/localhost.p12").toURI()).getPath());
     set("javax.net.ssl.trustStorePassword", "dummy-password");
     set("javax.net.ssl.trustStoreType", "PKCS12");
+    previousTls = SSLContext.getDefault();
+    KeyStore trust = KeyStore.getInstance("PKCS12");
+    try (InputStream input = getClass().getResourceAsStream("/authentication/localhost.p12")) {
+      trust.load(input, "dummy-password".toCharArray());
+    }
+    javax.net.ssl.TrustManagerFactory managers = javax.net.ssl.TrustManagerFactory.getInstance(
+        javax.net.ssl.TrustManagerFactory.getDefaultAlgorithm());
+    managers.init(trust);
+    SSLContext context = SSLContext.getInstance("TLS");
+    context.init(null, managers.getTrustManagers(), null);
+    SSLContext.setDefault(context);
     super.doSetUpBeforeMuleContextCreation();
   }
 
@@ -52,6 +64,9 @@ public class MuleOAuth2TokenTransportTest extends com.avioconsulting.mule.opente
 
   @After
   public void restoreProperties() {
+    if (previousTls != null) {
+      SSLContext.setDefault(previousTls);
+    }
     previous.forEach((key, value) -> {
       if (value == null) {
         System.clearProperty(key);

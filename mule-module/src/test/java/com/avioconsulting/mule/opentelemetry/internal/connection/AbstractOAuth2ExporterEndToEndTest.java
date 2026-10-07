@@ -24,6 +24,7 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
   protected OAuthSdkProbe probe;
   protected final AtomicLong clock = new AtomicLong();
   private final Map<String, String> previous = new HashMap<>();
+  private javax.net.ssl.SSLContext previousTls;
   @org.junit.Rule
   public final org.junit.rules.TestName testName = new org.junit.rules.TestName();
 
@@ -52,6 +53,8 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
       set("javax.net.ssl.trustStore", AuthenticationTlsFixture.keyStorePath());
       set("javax.net.ssl.trustStorePassword", AuthenticationTlsFixture.PASSWORD);
       set("javax.net.ssl.trustStoreType", "PKCS12");
+      previousTls = javax.net.ssl.SSLContext.getDefault();
+      javax.net.ssl.SSLContext.setDefault(tls.serverContext());
       set("oauth.e2e.collector", collector.endpoint());
       set("oauth.e2e.protocol", protocol().name());
       set("oauth.e2e.tokenUrl", "tokenTlsDoesNotInheritCollectorTrust".equals(testName.getMethodName())
@@ -128,6 +131,9 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
               tls.close();
             }
           } finally {
+            if (previousTls != null) {
+              javax.net.ssl.SSLContext.setDefault(previousTls);
+            }
             previous.forEach((key, value) -> {
               if (value == null) {
                 System.clearProperty(key);
