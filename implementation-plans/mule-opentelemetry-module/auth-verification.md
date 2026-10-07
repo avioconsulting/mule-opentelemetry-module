@@ -30,6 +30,15 @@ The focused evidence is not a claim that every acceptance-matrix permutation has
 - Focused command: `./mvnw -o -q -pl mule-module -am test '-Dtest=OAuth2*ExporterEndToEndTest' -DfailIfNoTests=false -Dsurefire.failIfNoSpecifiedTests=false -Dspotless.check.skip=true`.
 - Final full reactor command: `./mvnw -o verify -Dspotless.check.skip=true`, on Zulu Java **1.8.0_382**, succeeds with **490 tests, 0 failures, 0 errors, 12 existing skips**. New and existing suites execute together. Evidence: `tmp/oauth-e2e-full-verify.log` and reactor Surefire XML reports. The full log contains none of the E2E dummy client ID, client secret or A/B/C token markers. Changed-file formatting and `git diff --check` pass. The baseline formatting, dependency-convergence and AsciiDoc limitations below still apply.
 
+### Follow-up: exporter property isolation
+
+The initial passing full build still contained attempted metric exports to the SDK default `localhost:4317` endpoint. Passing tests alone did not establish collector isolation.
+
+- OAuth overrides now use `ScopedSystemProperties`, a JUnit rule that restores original values (including absent values) after all inherited teardown methods. The fixture also remembers superclass-modified batch delay, timeout and HTTP host properties before superclass setup.
+- `ScopedSystemPropertiesTest` verifies restoration after superclass teardown and startup failure, preserving an existing non-OTLP exporter and removing a previously absent endpoint.
+- Surefire explicitly defaults unconfigured metrics/log exporters to `none`, so standard trace-logging fixtures do not fall back to the SDK's OTLP defaults. OAuth tests override these defaults with `otlp` and restore them afterward. Production exporter defaults are unchanged.
+- Final follow-up verification: `./mvnw -o verify -Dspotless.check.skip=true` succeeds on Java 8 with **492 tests, 0 failures, 0 errors, 12 existing skips**. `tmp/oauth-property-isolation-verify.log` contains **zero** default-collector `localhost:4317` connection diagnostics or failed metric/log export messages. Changed-file formatting and `git diff --check` pass.
+
 ## AUTH-09 release checks
 
 - Actual build JDK: Zulu OpenJDK **1.8.0_382**. Compilation, focused tests, local collectors, actual Mule HTTP service and the full reactor build run on Java 8, not just Java 8 source/target settings.

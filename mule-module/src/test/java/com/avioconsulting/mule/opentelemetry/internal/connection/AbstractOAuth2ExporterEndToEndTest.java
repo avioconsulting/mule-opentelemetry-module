@@ -3,8 +3,6 @@ package com.avioconsulting.mule.opentelemetry.internal.connection;
 import com.avioconsulting.mule.opentelemetry.AbstractMuleArtifactTraceTest;
 import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration;
 import com.avioconsulting.mule.opentelemetry.test.util.auth.*;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.After;
 import org.junit.Test;
@@ -23,7 +21,8 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
   protected OpenTelemetryExtensionConfiguration config;
   protected OAuthSdkProbe probe;
   protected final AtomicLong clock = new AtomicLong();
-  private final Map<String, String> previous = new HashMap<>();
+  @org.junit.Rule
+  public final ScopedSystemProperties properties = new ScopedSystemProperties();
   private javax.net.ssl.SSLContext previousTls;
   @org.junit.Rule
   public final org.junit.rules.TestName testName = new org.junit.rules.TestName();
@@ -46,6 +45,10 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
   @Override
   protected void doSetUpBeforeMuleContextCreation() throws Exception {
     try {
+      // Remember values before the superclass changes them, not after its setup.
+      properties.remember("otel.bsp.schedule.delay");
+      properties.remember(TEST_TIMEOUT_SYSTEM_PROPERTY);
+      properties.remember("http.host");
       tls = new AuthenticationTlsFixture();
       oauth = new WireMockOAuthServer();
       untrustedOauth = new WireMockOAuthServer(false);
@@ -96,14 +99,7 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
   }
 
   protected void set(String key, String value) {
-    if (!previous.containsKey(key)) {
-      previous.put(key, System.getProperty(key));
-    }
-    if (value == null) {
-      System.clearProperty(key);
-    } else {
-      System.setProperty(key, value);
-    }
+    properties.set(key, value);
   }
 
   @After
@@ -134,13 +130,6 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
             if (previousTls != null) {
               javax.net.ssl.SSLContext.setDefault(previousTls);
             }
-            previous.forEach((key, value) -> {
-              if (value == null) {
-                System.clearProperty(key);
-              } else {
-                System.setProperty(key, value);
-              }
-            });
           }
         }
       }

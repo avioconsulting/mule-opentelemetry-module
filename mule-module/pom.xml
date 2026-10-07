@@ -355,6 +355,17 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <!-- Logging fixtures configure traces in XML. Unconfigured signals must not dial the SDK's default collector. -->
+            <otel.metrics.exporter>none</otel.metrics.exporter>
+            <otel.logs.exporter>none</otel.logs.exporter>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
         <configuration>
