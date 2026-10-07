@@ -26,6 +26,10 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
 
   protected abstract LocalOtlpCollector.Protocol protocol();
 
+  protected String placement() {
+    return "CLIENT_SECRET_POST";
+  }
+
   @Override
   protected String getConfigFile() {
     return "oauth2-exporter-e2e.xml";
@@ -49,7 +53,7 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
       set("oauth.e2e.tokenUrl", oauth.tokenUrl());
       set("oauth.e2e.certificate", tls.certificatePath());
       set("oauth.e2e.key", tls.privateKeyPath());
-      set("oauth.e2e.placement", "CLIENT_SECRET_POST");
+      set("oauth.e2e.placement", placement());
       set("oauth.e2e.timeout", "8000");
       set("otel.sdk.disabled", "false");
       for (String signal : new String[] { "traces", "metrics", "logs" }) {
@@ -133,6 +137,7 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
     probe.emit("initial");
     probe.flush();
     assertThat(oauth.requests()).isEqualTo(1);
+    verifyCredentials(1);
     assertThat(collector.failures()).isEmpty();
     assertThat(collector.exports()).extracting(value -> value.signal).contains("traces", "metrics", "logs");
     collector.exports().forEach(value -> {
@@ -140,5 +145,57 @@ public abstract class AbstractOAuth2ExporterEndToEndTest extends AbstractMuleArt
       assertThat(value.tenant).containsExactly("dummy-tenant");
       assertThat(value.compressed).isTrue();
     });
+  }
+
+  @Test
+  public void rotatesAllSignalsWithoutReplacingConnectionOrSdk() throws Exception {
+    Object connection = config.getOpenTelemetryConnection();
+    probe.emit("tokenA");
+    probe.flush();
+    collector.reset();
+    oauth.token("dummy-token-B");
+    clock.set(java.util.concurrent.TimeUnit.SECONDS.toNanos(70));
+    probe.emit("tokenB");
+    probe.flush();
+    assertThat(oauth.requests()).isEqualTo(2);
+    verifyCredentials(2);
+    assertThat(config.getOpenTelemetryConnection()).isSameAs(connection);
+    assertThat(OAuthSdkProbe.field(connection, "sdk")).isSameAs(probe.sdk);
+    assertThat(collector.exports()).extracting(value -> value.signal).contains("traces", "metrics", "logs");
+    collector.exports().forEach(value -> {
+      assertThat(value.authorization).containsExactly("Bearer dummy-token-B");
+      assertThat(value.tenant).containsExactly("dummy-tenant");
+    });
+    for (String signal : new String[] { "traces", "metrics", "logs" }) {
+      assertThat(collector.exports().stream()
+          .anyMatch(value -> value.signal.equals(signal) && value.contains("tokenB"))).isTrue();
+    }
+  }
+
+  private void verifyCredentials(int count) {
+    com.github.tomakehurst.wiremock.matching.RequestPatternBuilder request = com.github.tomakehurst.wiremock.client.WireMock
+        .postRequestedFor(
+            com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo(WireMockOAuthServer.PATH))
+        .withHeader("Content-Type",
+            com.github.tomakehurst.wiremock.client.WireMock.containing("application/x-www-form-urlencoded"))
+        .withRequestBody(
+            com.github.tomakehurst.wiremock.client.WireMock.containing("grant_type=client_credentials"))
+        .withRequestBody(com.github.tomakehurst.wiremock.client.WireMock
+            .containing("scope=telemetry.write+telemetry.read"));
+    if ("CLIENT_SECRET_POST".equals(placement())) {
+      request.withHeader("Authorization", com.github.tomakehurst.wiremock.client.WireMock.absent())
+          .withRequestBody(
+              com.github.tomakehurst.wiremock.client.WireMock.containing("client_id=dummy-id%3A%2B"))
+          .withRequestBody(com.github.tomakehurst.wiremock.client.WireMock
+              .containing("client_secret=dummy-secret+%26"));
+    } else {
+      String encoded = java.util.Base64.getEncoder().encodeToString(
+          "dummy-id%3A%2B:dummy-secret+%26".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+      request.withHeader("Authorization",
+          com.github.tomakehurst.wiremock.client.WireMock.equalTo("Basic " + encoded))
+          .withRequestBody(com.github.tomakehurst.wiremock.client.WireMock.notContaining("client_secret="))
+          .withRequestBody(com.github.tomakehurst.wiremock.client.WireMock.notContaining("client_id="));
+    }
+    oauth.server().verify(count, request);
   }
 }
