@@ -18,8 +18,8 @@ import static com.avioconsulting.mule.opentelemetry.internal.auth.oauth2.OAuth2A
  */
 public final class OAuth2TokenProvider implements ExporterAuthenticationProvider {
   private final OAuth2TokenClient client;
-  private final LongSupplier clock;
-  private final DoubleSupplier jitter;
+  private volatile LongSupplier clock;
+  private volatile DoubleSupplier jitter;
   private final long skewNanos;
   private final int waitMillis;
   private volatile State state;
@@ -39,6 +39,19 @@ public final class OAuth2TokenProvider implements ExporterAuthenticationProvider
     this.waitMillis = waitMillis;
     this.clock = clock;
     this.jitter = jitter;
+  }
+
+  /**
+   * Test-only instance seam, usable only before the first acquisition; never a
+   * global override.
+   */
+  synchronized void useTimeSourcesForTest(LongSupplier clock, DoubleSupplier jitter) {
+    checkOpen();
+    if (state != null || inFlight != null || failures != 0) {
+      throw new IllegalStateException("Authentication time sources cannot change after acquisition starts");
+    }
+    this.clock = java.util.Objects.requireNonNull(clock, "clock");
+    this.jitter = java.util.Objects.requireNonNull(jitter, "jitter");
   }
 
   @Override
