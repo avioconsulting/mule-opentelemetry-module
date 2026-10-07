@@ -8,9 +8,11 @@ import com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtens
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.OtlpExporter;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ArtifactClassLoaderRunnerConfig(exportPluginClasses = { OpenTelemetryExtensionConfiguration.class,
-    OtlpExporter.class, ExporterAuthentication.class, BearerTokenAuth.class, ApiKeyAuth.class, OAuth2Auth.class })
-public class ExporterAuthenticationXmlTest extends MuleArtifactFunctionalTestCase {
+public class ExporterAuthenticationXmlTest extends com.avioconsulting.mule.opentelemetry.AbstractMuleArtifactTraceTest {
+  @Override
+  public void clearSpansQueue() {
+    /* This configuration-only fixture does not generate spans. */ }
+
   private String previousDisabled;
 
   @Override

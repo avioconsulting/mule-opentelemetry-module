@@ -231,12 +231,12 @@ public class OtlpExporter extends AbstractExporter {
       return false;
     OtlpExporter that = (OtlpExporter) o;
     return Objects.equals(collectorEndpoint, that.collectorEndpoint) && protocol == that.protocol
-        && Objects.equals(headers, that.headers);
+        && Objects.equals(headers, that.headers) && Objects.equals(authentication, that.authentication);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(collectorEndpoint, protocol, headers);
+    return Objects.hash(collectorEndpoint, protocol, headers, authentication);
   }
 
   public static enum Protocol {

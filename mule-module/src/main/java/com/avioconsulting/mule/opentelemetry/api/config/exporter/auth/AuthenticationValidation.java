@@ -2,6 +2,7 @@ package com.avioconsulting.mule.opentelemetry.api.config.exporter.auth;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Locale;
 
 /** Shared validation; messages contain field names only, never values. */
 public final class AuthenticationValidation {
@@ -16,7 +17,7 @@ public final class AuthenticationValidation {
 
   public static void headerName(String name) {
     nonblank(name, "headerName");
-    if (!name.matches("[!#$%&'*+.^_`|~0-9A-Za-z-]+") || name.endsWith("-bin")) {
+    if (!name.matches("[!#$%&'*+.^_`|~0-9A-Za-z-]+") || name.toLowerCase(Locale.ROOT).endsWith("-bin")) {
       throw new IllegalArgumentException("Invalid exporter authentication headerName");
     }
   }

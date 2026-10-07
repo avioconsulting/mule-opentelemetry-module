@@ -215,7 +215,7 @@ public final class MuleOAuth2TokenClient implements OAuth2TokenClient {
     if (stream != null) {
       try {
         stream.close();
-      } catch (IOException ignored) {
+      } catch (IOException | RuntimeException ignored) {
         /* Never retain sensitive causes. */ }
     }
   }

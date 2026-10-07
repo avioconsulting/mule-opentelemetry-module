@@ -65,4 +65,40 @@ public class OtlpAuthenticationCustomizerTest {
     assertThat(customizer.metrics(unrelated, properties())).isSameAs(unrelated);
     assertThat(customizer.isUsed()).isFalse();
   }
+
+  @Test
+  public void systemOverridesCanDisableEveryAuthenticatedExporterWithoutAcquisition() {
+    com.avioconsulting.mule.opentelemetry.internal.auth.ExporterAuthenticationProvider provider = mock(
+        com.avioconsulting.mule.opentelemetry.internal.auth.ExporterAuthenticationProvider.class);
+    OtlpAuthenticationCustomizer callbacks = new OtlpAuthenticationCustomizer(provider);
+    java.util.Map<String, String> defaults = new java.util.HashMap<>();
+    defaults.put("otel.traces.exporter", "otlp");
+    defaults.put("otel.metrics.exporter", "otlp");
+    defaults.put("otel.logs.exporter", "otlp");
+    defaults.put("otel.exporter.otlp.endpoint", "https://localhost:4317");
+    java.util.Map<String, String> previous = new java.util.HashMap<>();
+    for (String key : new String[] { "otel.traces.exporter", "otel.metrics.exporter", "otel.logs.exporter" }) {
+      previous.put(key, System.getProperty(key));
+      System.setProperty(key, "none");
+    }
+    try {
+      io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder builder = io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
+          .builder()
+          .addPropertiesSupplier(() -> defaults).disableShutdownHook();
+      callbacks.register(builder);
+      try (io.opentelemetry.sdk.OpenTelemetrySdk sdk = builder.build().getOpenTelemetrySdk()) {
+        assertThat(callbacks.isUsed()).isFalse();
+        verify(provider, never()).ensureUsable();
+        verify(provider, never()).headers();
+      }
+    } finally {
+      previous.forEach((key, value) -> {
+        if (value == null) {
+          System.clearProperty(key);
+        } else {
+          System.setProperty(key, value);
+        }
+      });
+    }
+  }
 }

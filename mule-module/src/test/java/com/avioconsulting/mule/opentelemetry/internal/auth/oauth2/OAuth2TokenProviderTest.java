@@ -16,6 +16,61 @@ public class OAuth2TokenProviderTest {
   }
 
   @Test
+  public void concurrentSignalsShareOneSuccessfulAcquisition() throws Exception {
+    CountDownLatch started = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    when(client.acquire()).thenAnswer(invocation -> {
+      started.countDown();
+      assertThat(release.await(2, TimeUnit.SECONDS)).isTrue();
+      return new OAuth2AccessToken("A", 10);
+    });
+    OAuth2TokenProvider concurrent = new OAuth2TokenProvider(client, 60, 1000, time::get, () -> 0.5);
+    ExecutorService executor = Executors.newFixedThreadPool(8);
+    try {
+      java.util.List<Future<?>> calls = new java.util.ArrayList<>();
+      for (int i = 0; i < 8; i++) {
+        calls.add(executor.submit(concurrent::ensureUsable));
+      }
+      assertThat(started.await(1, TimeUnit.SECONDS)).isTrue();
+      release.countDown();
+      for (Future<?> call : calls) {
+        call.get(2, TimeUnit.SECONDS);
+      }
+      verify(client, times(1)).acquire();
+    } finally {
+      release.countDown();
+      concurrent.close();
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  public void concurrentCallersUseValidTokenDuringProactiveRenewal() throws Exception {
+    CountDownLatch started = new CountDownLatch(1);
+    CountDownLatch release = new CountDownLatch(1);
+    when(client.acquire()).thenReturn(new OAuth2AccessToken("A", 10)).thenAnswer(invocation -> {
+      started.countDown();
+      assertThat(release.await(2, TimeUnit.SECONDS)).isTrue();
+      return new OAuth2AccessToken("B", 10);
+    });
+    provider.ensureUsable();
+    seconds(5);
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    try {
+      Future<?> renewal = executor.submit(provider::ensureUsable);
+      assertThat(started.await(1, TimeUnit.SECONDS)).isTrue();
+      provider.ensureUsable();
+      assertThat(provider.headers()).containsEntry("Authorization", "Bearer A");
+      release.countDown();
+      renewal.get(1, TimeUnit.SECONDS);
+      assertThat(provider.headers()).containsEntry("Authorization", "Bearer B");
+    } finally {
+      release.countDown();
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
   public void cachesAndRotatesAtHalfShortLifetime() {
     when(client.acquire()).thenReturn(new OAuth2AccessToken("A", 10), new OAuth2AccessToken("B", 10));
     assertThat(provider.headers()).isEmpty();
