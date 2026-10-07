@@ -2,6 +2,9 @@ package com.avioconsulting.mule.opentelemetry.api.config.exporter;
 
 import com.avioconsulting.mule.opentelemetry.api.config.Header;
 import com.avioconsulting.mule.opentelemetry.api.config.KeyValuePair;
+import com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.ExporterAuthentication;
+import org.mule.runtime.api.meta.ExpressionSupport;
+import org.mule.runtime.extension.api.annotation.Expression;
 import org.mule.runtime.api.meta.model.display.PathModel;
 import org.mule.runtime.extension.api.annotation.param.NullSafe;
 import org.mule.runtime.extension.api.annotation.param.Optional;
@@ -78,6 +81,20 @@ public class OtlpExporter extends AbstractExporter {
   @NullSafe
   @Summary("Key-value pairs separated by commas to pass as request headers on OTLP trace, metric, and log requests.")
   private List<Header> headers;
+
+  @Parameter
+  @Optional
+  @Expression(ExpressionSupport.NOT_SUPPORTED)
+  private ExporterAuthentication authentication;
+
+  public ExporterAuthentication getAuthentication() {
+    return authentication;
+  }
+
+  public OtlpExporter setAuthentication(ExporterAuthentication authentication) {
+    this.authentication = authentication;
+    return this;
+  }
 
   public List<Header> getHeaders() {
     return headers;
@@ -165,6 +182,9 @@ public class OtlpExporter extends AbstractExporter {
   }
 
   public Map<String, String> getExporterProperties() {
+    if (authentication != null) {
+      authentication.validate();
+    }
     Map<String, String> config = super.getExporterProperties();
     config.put(OTEL_TRACES_EXPORTER_KEY, OTLP);
     config.put(OTEL_METRICS_EXPORTER_KEY, OTLP);
