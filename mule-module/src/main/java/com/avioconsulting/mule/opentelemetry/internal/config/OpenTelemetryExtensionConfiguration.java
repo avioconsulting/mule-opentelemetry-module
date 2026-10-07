@@ -214,35 +214,40 @@ public class OpenTelemetryExtensionConfiguration
     appIdentifier = AppIdentifier.fromEnvironment(expressionManager);
     openTelemetryConnection = OpenTelemetryConnection
         .getInstance(new OpenTelemetryConfigWrapper(this));
-    openTelemetryConnection
-        .setComponentRegistryService(muleNotificationProcessor.getComponentRegistryService());
-    getTraceLevelConfiguration().initMuleComponentsMap();
-    muleNotificationProcessor.init(openTelemetryConnection,
-        getTraceLevelConfiguration());
+    try {
+      openTelemetryConnection
+          .setComponentRegistryService(muleNotificationProcessor.getComponentRegistryService());
+      getTraceLevelConfiguration().initMuleComponentsMap();
+      muleNotificationProcessor.init(openTelemetryConnection,
+          getTraceLevelConfiguration());
 
-    if (isTurnOffTracing()) {
-      if (logger.isInfoEnabled()) {
-        logger.info("Tracing has been turned off. No listener will be registered.");
+      if (isTurnOffTracing()) {
+        if (logger.isInfoEnabled()) {
+          logger.info("Tracing has been turned off. No listener will be registered.");
+        }
+      } else {
+        notificationListenerRegistry.registerListener(
+            new MuleMessageProcessorNotificationListener(muleNotificationProcessor));
+        notificationListenerRegistry.registerListener(
+            new MulePipelineMessageNotificationListener(muleNotificationProcessor));
+        notificationListenerRegistry
+            .registerListener(new AsyncMessageNotificationListener(muleNotificationProcessor));
+        prepareBatchListener();
       }
-    } else {
-      notificationListenerRegistry.registerListener(
-          new MuleMessageProcessorNotificationListener(muleNotificationProcessor));
-      notificationListenerRegistry.registerListener(
-          new MulePipelineMessageNotificationListener(muleNotificationProcessor));
-      notificationListenerRegistry
-          .registerListener(new AsyncMessageNotificationListener(muleNotificationProcessor));
-      prepareBatchListener();
-    }
 
-    if (isTurnOffMetrics()) {
-      if (logger.isInfoEnabled()) {
-        logger.info("Metrics has been turned off. No listener will be registered.");
+      if (isTurnOffMetrics()) {
+        if (logger.isInfoEnabled()) {
+          logger.info("Metrics has been turned off. No listener will be registered.");
+        }
+      } else {
+        notificationListenerRegistry.registerListener(
+            new MetricEventNotificationListener(muleNotificationProcessor),
+            extensionNotification -> METRIC_NOTIFICATION_DATA_TYPE
+                .isCompatibleWith(extensionNotification.getData().getDataType()));
       }
-    } else {
-      notificationListenerRegistry.registerListener(
-          new MetricEventNotificationListener(muleNotificationProcessor),
-          extensionNotification -> METRIC_NOTIFICATION_DATA_TYPE
-              .isCompatibleWith(extensionNotification.getData().getDataType()));
+    } catch (RuntimeException failure) {
+      openTelemetryConnection.invalidate();
+      throw failure;
     }
   }
 
