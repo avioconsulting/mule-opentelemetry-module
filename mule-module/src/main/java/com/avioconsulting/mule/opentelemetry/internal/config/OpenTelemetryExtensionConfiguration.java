@@ -290,6 +290,8 @@ public class OpenTelemetryExtensionConfiguration
 
   @Override
   public void stop() throws MuleException {
-
+    if (openTelemetryConnection != null) {
+      openTelemetryConnection.invalidate();
+    }
   }
 }
