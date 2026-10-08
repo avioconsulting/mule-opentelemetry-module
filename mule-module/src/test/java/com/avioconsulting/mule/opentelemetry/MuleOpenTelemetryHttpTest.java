@@ -395,4 +395,24 @@ public class MuleOpenTelemetryHttpTest extends AbstractMuleArtifactTraceTest {
         .containsEntry("server.address", "localhost");
   }
 
+  @Test
+  public void testHTTPAttributes_Port_withUnresolvableExpression() throws Exception {
+    // GitHub# issues/328
+    // Port expression fails to evaluate, the request span must still be captured
+    // without the raw expression text as an attribute value.
+    Throwable throwable = catchThrowable(() -> flowRunner("flow-call-remote-with-unresolvable-port-expression")
+        .run());
+    assertThat(throwable).isNotNull();
+    await().untilAsserted(() -> assertThat(DelegatedLoggingSpanTestExporter.spanQueue)
+        .anySatisfy(span -> assertThat(span)
+            .extracting("spanName", "spanKind")
+            .containsOnly("/test/remote/unresolvable", "CLIENT")));
+    DelegatedLoggingSpanTestExporter.Span client = getSpan("CLIENT", "/test/remote/unresolvable");
+    assertThat(client).isNotNull()
+        .extracting("attributes", as(InstanceOfAssertFactories.map(String.class, Object.class)))
+        .containsEntry("http.route", "/test/remote/unresolvable")
+        .doesNotContainKey("server.port")
+        .allSatisfy((key, value) -> assertThat(String.valueOf(value)).doesNotStartWith("#["));
+  }
+
 }

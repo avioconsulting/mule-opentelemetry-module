@@ -14,6 +14,9 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 	<http:request-config name="SELF_EXPRESSION_HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="c18eed36-eb42-4c29-abc9-9e7a2c6049e1" >
 		<http:request-connection host="#[vars.hostname]" port="${http.port}" />
 	</http:request-config>
+	<http:request-config name="UNRESOLVABLE_PORT_EXPRESSION_HTTP_Request_configuration" doc:name="HTTP Request configuration" >
+		<http:request-connection host="0.0.0.0" port="#[vars.missingConfig.port as Number]" />
+	</http:request-config>
 	<flow name="http-json-number-status"  >
 		<http:listener doc:name="Listener"  config-ref="HTTP_Listener_config" path="/test-json-number-status"/>
 		<logger level="INFO" doc:name="Logger"  />
@@ -166,5 +169,8 @@ http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema
 	<flow name="flow-call-remote-with-host-dynamic-json-expression"  >
 		<set-variable variableName="hostname" value='#[output json --- Mule::p("http.host")]'/>
 		<http:request method="GET" doc:name="Request" config-ref="SELF_EXPRESSION_HTTP_Request_configuration" path="#[vars.resourcePath]"/>
+	</flow>
+	<flow name="flow-call-remote-with-unresolvable-port-expression"  >
+		<http:request method="GET" doc:name="Request" config-ref="UNRESOLVABLE_PORT_EXPRESSION_HTTP_Request_configuration" path="/test/remote/unresolvable"/>
 	</flow>
 </mule>

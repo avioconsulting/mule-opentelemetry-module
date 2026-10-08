@@ -133,14 +133,25 @@ public class OpenTelemetryUtil {
           traceComponent.withSpanName(value);
         }
       }
+      List<String> unresolvedTags = new ArrayList<>();
       traceComponent.forEachTagEntry(entry -> {
         if (expressionManager.isExpression(entry.getValue())) {
           try {
             entry.setValue(resolveExpression(entry.getValue(), expressionManager, event));
-          } catch (Exception ignored) {
+          } catch (Exception ex) {
+            unresolvedTags.add(entry.getKey());
           }
         }
       });
+      // An expression that could not be evaluated is not a meaningful attribute
+      // value, so drop it instead of exporting the raw #[...] text.
+      for (String key : unresolvedTags) {
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug("Failed to resolve expression '{}' for attribute '{}', attribute will be skipped",
+              traceComponent.getTag(key), key);
+        }
+        traceComponent.removeTag(key);
+      }
     } catch (Exception ignored) {
     }
   }
@@ -183,7 +194,10 @@ public class OpenTelemetryUtil {
     }
     traceComponent.forEachTagEntry(entry -> {
       AttributeKey attributeKey = attributesKeyCache.getAttributeKey(entry.getKey());
-      spanBuilder.setAttribute(attributeKey, attributesKeyCache.convertValue(attributeKey, entry.getValue()));
+      Object value = attributesKeyCache.convertValue(attributeKey, entry.getValue());
+      if (value != null) {
+        spanBuilder.setAttribute(attributeKey, value);
+      }
     });
   }
 
@@ -193,7 +207,10 @@ public class OpenTelemetryUtil {
     }
     traceComponent.forEachTagEntry(entry -> {
       AttributeKey attributeKey = attributesKeyCache.getAttributeKey(entry.getKey());
-      span.setAttribute(attributeKey, attributesKeyCache.convertValue(attributeKey, entry.getValue()));
+      Object value = attributesKeyCache.convertValue(attributeKey, entry.getValue());
+      if (value != null) {
+        span.setAttribute(attributeKey, value);
+      }
     });
   }
 }

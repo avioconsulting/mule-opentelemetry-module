@@ -65,6 +65,17 @@ public class AttributesKeyCache {
     return key;
   }
 
+  /**
+   * Converts the given String value to the type expected by the attribute key.
+   *
+   * @param key
+   *            {@link AttributeKey} to convert the value for
+   * @param value
+   *            String value to convert
+   * @return Converted value, or {@code null} when the value is null or cannot be
+   *         converted to the numeric type of the key (eg. an unresolved
+   *         {@code #[...]} expression for {@code server.port}).
+   */
   @SuppressWarnings("unchecked")
   public <T> T convertValue(AttributeKey<T> key, String value) {
     if (value == null) {
@@ -74,17 +85,29 @@ public class AttributesKeyCache {
       case STRING:
         return (T) value;
       case LONG:
-        return (T) stringToLong.apply(value);
+        try {
+          return (T) stringToLong.apply(value);
+        } catch (NumberFormatException e) {
+          return (T) null;
+        }
       case DOUBLE:
-        return (T) stringToDouble.apply(value);
+        try {
+          return (T) stringToDouble.apply(value);
+        } catch (NumberFormatException e) {
+          return (T) null;
+        }
       case BOOLEAN:
         return (T) Boolean.valueOf(value);
       case STRING_ARRAY:
         return (T) new String[] { value };
-      case LONG_ARRAY:
-        return (T) new Long[] { convertValue(AttributeKey.longKey("temp"), value) };
-      case DOUBLE_ARRAY:
-        return (T) new Double[] { convertValue(AttributeKey.doubleKey("temp"), value) };
+      case LONG_ARRAY: {
+        Long converted = convertValue(AttributeKey.longKey("temp"), value);
+        return converted == null ? null : (T) new Long[] { converted };
+      }
+      case DOUBLE_ARRAY: {
+        Double converted = convertValue(AttributeKey.doubleKey("temp"), value);
+        return converted == null ? null : (T) new Double[] { converted };
+      }
       case BOOLEAN_ARRAY:
         return (T) new Boolean[] { convertValue(AttributeKey.booleanKey("temp"), value) };
       default:
