@@ -71,3 +71,4 @@ out/
 
 .beads
 .vscode
+.playwright-mcp
