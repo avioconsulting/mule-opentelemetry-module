@@ -301,7 +301,11 @@ image::module-otel-exporter-config.png[alt="OTEL OTLP Exporter configuration"]
 
 ===== Signal-Specific Endpoints
 
-Use the optional `tracesEndpoint`, `metricsEndpoint`, and `logsEndpoint` attributes when a backend requires different ingestion URLs for each signal. Each attribute specifies a *complete OTLP endpoint URL*: the module does not append `/v1`, a signal name, or any other path. Paths, trailing slashes, and query parameters are preserved. These attributes work with both `HTTP_PROTOBUF` and `GRPC`; all signals use the configured protocol.
+Use the optional `tracesEndpoint`, `metricsEndpoint`, and `logsEndpoint` attributes when a backend requires different endpoints for each signal. Each attribute specifies a *complete OTLP endpoint URL*: the module does not append `/v1`, a signal name, or any other path.
+
+With `HTTP_PROTOBUF`, custom ingestion paths and trailing slashes are supported. With `GRPC`, endpoints must have an empty path or `/`; custom ingestion paths are not supported. Query strings and fragments are not supported by the bundled SDK for either protocol.
+
+All signals use the configured protocol unless overridden through SDK configuration.
 
 .Direct-backend HTTP/protobuf endpoints
 [source,xml]

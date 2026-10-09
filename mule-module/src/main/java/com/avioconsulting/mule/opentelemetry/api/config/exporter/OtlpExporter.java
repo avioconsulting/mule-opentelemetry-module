@@ -47,21 +47,21 @@ public class OtlpExporter extends AbstractExporter {
   @Optional
   @Expression(ExpressionSupport.NOT_SUPPORTED)
   @DisplayName("Traces Endpoint")
-  @Summary("Complete OTLP traces URL, overriding the collector endpoint for traces. No path is appended. System properties and environment variables can override this value.")
+  @Summary("Complete OTLP traces URL, overriding the collector endpoint for traces. No path is appended. HTTP_PROTOBUF supports custom paths; GRPC requires an empty path or /. Query strings and fragments are not supported. System properties and environment variables can override this value.")
   private String tracesEndpoint;
 
   @Parameter
   @Optional
   @Expression(ExpressionSupport.NOT_SUPPORTED)
   @DisplayName("Metrics Endpoint")
-  @Summary("Complete OTLP metrics URL, overriding the collector endpoint for metrics. No path is appended. System properties and environment variables can override this value.")
+  @Summary("Complete OTLP metrics URL, overriding the collector endpoint for metrics. No path is appended. HTTP_PROTOBUF supports custom paths; GRPC requires an empty path or /. Query strings and fragments are not supported. System properties and environment variables can override this value.")
   private String metricsEndpoint;
 
   @Parameter
   @Optional
   @Expression(ExpressionSupport.NOT_SUPPORTED)
   @DisplayName("Logs Endpoint")
-  @Summary("Complete OTLP logs URL, overriding the collector endpoint for logs. No path is appended. System properties and environment variables can override this value.")
+  @Summary("Complete OTLP logs URL, overriding the collector endpoint for logs. No path is appended. HTTP_PROTOBUF supports custom paths; GRPC requires an empty path or /. Query strings and fragments are not supported. System properties and environment variables can override this value.")
   private String logsEndpoint;
 
   @Parameter

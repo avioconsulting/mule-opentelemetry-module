@@ -1,6 +1,10 @@
 package com.avioconsulting.mule.opentelemetry.api.config.exporter;
 
 import com.avioconsulting.mule.opentelemetry.api.config.Header;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
+import io.opentelemetry.sdk.autoconfigure.spi.ConfigurationException;
 import org.junit.Test;
 
 import java.nio.file.Paths;
@@ -11,6 +15,7 @@ import java.util.Objects;
 
 import static com.avioconsulting.mule.opentelemetry.api.config.exporter.OtlpExporter.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class OtlpExporterTest {
 
@@ -18,9 +23,11 @@ public class OtlpExporterTest {
   public void explicitSignalEndpointsArePreservedForBothProtocols() {
     for (Protocol protocol : Protocol.values()) {
       OtlpExporter exporter = exporter("https://collector.example.com", protocol)
-          .setTracesEndpoint("https://traces.example.com/custom/trace?api-version=1&tenant=example")
-          .setMetricsEndpoint("https://metrics.example.com/custom/metric/")
-          .setLogsEndpoint("https://logs.example.com/custom/log?api-version=2");
+          .setTracesEndpoint(
+              "https://traces.example.com" + (protocol == Protocol.GRPC ? "" : "/custom/trace"))
+          .setMetricsEndpoint(
+              "https://metrics.example.com" + (protocol == Protocol.GRPC ? "/" : "/custom/metric/"))
+          .setLogsEndpoint("https://logs.example.com" + (protocol == Protocol.GRPC ? "" : "/custom/log"));
       assertThat(exporter.getExporterProperties())
           .containsEntry(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, exporter.getTracesEndpoint())
           .containsEntry(OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, exporter.getMetricsEndpoint())
@@ -75,9 +82,9 @@ public class OtlpExporterTest {
   public void collectorCanBeOmittedWithExplicitSignalEndpoints() {
     for (Protocol protocol : Protocol.values()) {
       OtlpExporter exporter = exporter(null, protocol)
-          .setTracesEndpoint("https://traces.example.com/custom")
-          .setMetricsEndpoint("https://metrics.example.com/custom")
-          .setLogsEndpoint("https://logs.example.com/custom");
+          .setTracesEndpoint("https://traces.example.com" + (protocol == Protocol.GRPC ? "" : "/custom"))
+          .setMetricsEndpoint("https://metrics.example.com" + (protocol == Protocol.GRPC ? "" : "/custom"))
+          .setLogsEndpoint("https://logs.example.com" + (protocol == Protocol.GRPC ? "" : "/custom"));
       assertThat(exporter.getCollectorEndpoint()).isNull();
       assertThat(exporter.getExporterProperties())
           .doesNotContainKey(OTEL_EXPORTER_OTLP_ENDPOINT)
@@ -116,6 +123,61 @@ public class OtlpExporterTest {
     assertThat(first).isNotEqualTo(second);
     second.setLogsEndpoint(first.getLogsEndpoint());
     assertThat(first).isEqualTo(second).hasSameHashCodeAs(second);
+  }
+
+  @Test
+  public void sdkAutoconfigurationAcceptsHttpCustomPathsAndGrpcRootEndpoints() {
+    for (Protocol protocol : Protocol.values()) {
+      for (String signal : new String[] { "traces", "metrics", "logs" }) {
+        for (String path : protocol == Protocol.GRPC ? new String[] { "", "/" }
+            : new String[] { "/custom/ingestion", "/custom/ingestion/" }) {
+          try (OpenTelemetrySdk sdk = endpointBuilder(protocol, signal, "https://localhost:12345" + path)
+              .build().getOpenTelemetrySdk()) {
+            assertThat(sdk).isNotNull();
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  public void sdkAutoconfigurationRejectsQueriesAndFragmentsForBothProtocols() {
+    for (Protocol protocol : Protocol.values()) {
+      for (String signal : new String[] { "traces", "metrics", "logs" }) {
+        assertEndpointRejected(protocol, signal, "https://localhost:12345/?api-version=1", "query string");
+        assertEndpointRejected(protocol, signal, "https://localhost:12345/#section", "fragment");
+      }
+    }
+  }
+
+  @Test
+  public void sdkAutoconfigurationRejectsGrpcCustomPaths() {
+    for (String signal : new String[] { "traces", "metrics", "logs" }) {
+      assertEndpointRejected(Protocol.GRPC, signal, "https://localhost:12345/custom/ingestion", "path");
+    }
+  }
+
+  private void assertEndpointRejected(Protocol protocol, String signal, String endpoint, String reason) {
+    assertThatThrownBy(() -> {
+      try (OpenTelemetrySdk sdk = endpointBuilder(protocol, signal, endpoint).build().getOpenTelemetrySdk()) {
+        // Close the SDK if the unsupported endpoint is unexpectedly accepted.
+      }
+    }).isInstanceOf(ConfigurationException.class).hasMessageContaining(reason);
+  }
+
+  private AutoConfiguredOpenTelemetrySdkBuilder endpointBuilder(Protocol protocol, String signal, String endpoint) {
+    OtlpExporter exporter = exporter(null, protocol)
+        .setTracesEndpoint(endpoint).setMetricsEndpoint(endpoint).setLogsEndpoint(endpoint);
+    Map<String, String> configuration = exporter.getExporterProperties();
+    for (String configuredSignal : new String[] { "traces", "metrics", "logs" }) {
+      configuration.put("otel." + configuredSignal + ".exporter",
+          configuredSignal.equals(signal) ? "otlp" : "none");
+      configuration.put("otel.exporter.otlp." + configuredSignal + ".protocol", protocol.getValue());
+    }
+    // Exercise real exporters even though Surefire disables metrics and logs by
+    // default.
+    return AutoConfiguredOpenTelemetrySdk.builder()
+        .addPropertiesCustomizer(properties -> configuration).disableShutdownHook();
   }
 
   @Test

@@ -17,6 +17,7 @@ import io.opentelemetry.sdk.autoconfigure.spi.ConfigProperties;
 import io.opentelemetry.sdk.trace.export.SpanExporter;
 import io.opentelemetry.sdk.metrics.export.MetricExporter;
 import io.opentelemetry.sdk.logs.export.LogRecordExporter;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -110,10 +111,12 @@ public final class OtlpAuthenticationCustomizer {
       endpoint = properties.getString(prefix + "endpoint");
     }
     AuthenticationValidation.httpsUrl(endpoint, "collectorEndpoint");
-    String headersProperty = properties.getString(prefix + signal + ".headers") != null
-        ? prefix + signal + ".headers"
-        : prefix + "headers";
-    for (String header : properties.getMap(headersProperty).keySet()) {
+    Map<String, String> headers = properties.getMap(prefix + signal + ".headers");
+    // Match the SDK: an empty signal-specific map falls back to shared headers.
+    if (headers.isEmpty()) {
+      headers = properties.getMap(prefix + "headers");
+    }
+    for (String header : headers.keySet()) {
       if (header.equalsIgnoreCase(provider.getHeaderName())) {
         throw new IllegalArgumentException("Exporter authentication conflicts with configured OTLP headers");
       }
