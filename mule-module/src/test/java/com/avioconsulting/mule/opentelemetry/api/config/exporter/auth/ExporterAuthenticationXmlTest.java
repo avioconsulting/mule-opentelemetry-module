@@ -44,10 +44,29 @@ public class ExporterAuthenticationXmlTest extends com.avioconsulting.mule.opent
   }
 
   private ExporterAuthentication authentication(String name) {
+    return exporter(name).getAuthentication();
+  }
+
+  @Test
+  public void loadsSignalEndpointsForHttpAndGrpcWithAuthentication() {
+    OtlpExporter http = exporter("bearer");
+    assertThat(http.getCollectorEndpoint()).isNull();
+    assertThat(http.getTracesEndpoint())
+        .isEqualTo("https://localhost:4318/custom/traces?api-version=1&tenant=example");
+    assertThat(http.getMetricsEndpoint()).isEqualTo("https://localhost:4318/custom/metrics");
+    assertThat(http.getLogsEndpoint()).isEqualTo("https://localhost:4318/custom/logs");
+    OtlpExporter grpc = exporter("apiKey");
+    assertThat(grpc.getCollectorEndpoint()).isEqualTo("https://localhost:4317");
+    assertThat(grpc.getTracesEndpoint()).isEqualTo("https://localhost:5317");
+    assertThat(grpc.getMetricsEndpoint()).isEqualTo("https://localhost:6317");
+    assertThat(grpc.getLogsEndpoint()).isEqualTo("https://localhost:7317");
+  }
+
+  private OtlpExporter exporter(String name) {
     org.mule.runtime.extension.api.runtime.config.ConfigurationProvider provider = (org.mule.runtime.extension.api.runtime.config.ConfigurationProvider) registry
         .lookupByName(name).get();
     OpenTelemetryExtensionConfiguration config = (OpenTelemetryExtensionConfiguration) provider.get(null)
         .getValue();
-    return ((OtlpExporter) config.getExporterConfiguration().getExporter()).getAuthentication();
+    return (OtlpExporter) config.getExporterConfiguration().getExporter();
   }
 }

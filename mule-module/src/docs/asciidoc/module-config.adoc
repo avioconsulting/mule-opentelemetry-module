@@ -299,6 +299,46 @@ NOTE: For example, `http(s)://localhost:4318` when configuring the OTLP Exporter
 
 image::module-otel-exporter-config.png[alt="OTEL OTLP Exporter configuration"]
 
+===== Signal-Specific Endpoints
+
+Use the optional `tracesEndpoint`, `metricsEndpoint`, and `logsEndpoint` attributes when a backend requires different ingestion URLs for each signal. Each attribute specifies a *complete OTLP endpoint URL*: the module does not append `/v1`, a signal name, or any other path. Paths, trailing slashes, and query parameters are preserved. These attributes work with both `HTTP_PROTOBUF` and `GRPC`; all signals use the configured protocol.
+
+.Direct-backend HTTP/protobuf endpoints
+[source,xml]
+----
+<opentelemetry:config name="OpenTelemetry_Config" serviceName="orders-api">
+    <opentelemetry:exporter>
+        <opentelemetry:otlp-exporter protocol="HTTP_PROTOBUF"
+                                     tracesEndpoint="${telemetry.tracesEndpoint}"
+                                     metricsEndpoint="${telemetry.metricsEndpoint}"
+                                     logsEndpoint="${telemetry.logsEndpoint}">
+            <opentelemetry:authentication>
+                <opentelemetry:oauth2-auth tokenUrl="${telemetry.tokenUrl}"
+                                          clientId="${secure::telemetry.clientId}"
+                                          clientSecret="${secure::telemetry.clientSecret}"
+                                          scopes="${telemetry.scopes}"/>
+            </opentelemetry:authentication>
+        </opentelemetry:otlp-exporter>
+    </opentelemetry:exporter>
+</opentelemetry:config>
+----
+
+Each signal endpoint is independently optional. Retain `collectorEndpoint` as a shared fallback if only some signals need custom URLs. Without a signal override, HTTP/protobuf retains the existing `{collectorEndpoint}/v1/{signal}` behavior (or `{collectorEndpoint}/{signal}` when the collector endpoint already ends in `/v1`); gRPC uses the shared collector endpoint without appending a signal path. `collectorEndpoint` can be omitted when endpoints are supplied by signal attributes or SDK configuration. Unconfigured signals then use SDK endpoint defaults, so disable any signals you do not intend to export with the corresponding `otel.{signal}.exporter=none` setting.
+
+[cols="1,2,2",options="header"]
+|===
+|Attribute |SDK system property / `config-properties` key |Environment variable
+|`tracesEndpoint` |`otel.exporter.otlp.traces.endpoint` |`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
+|`metricsEndpoint` |`otel.exporter.otlp.metrics.endpoint` |`OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`
+|`logsEndpoint` |`otel.exporter.otlp.logs.endpoint` |`OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`
+|===
+
+For each signal-specific property, precedence is: JVM system property, environment variable, explicit signal attribute, `config-properties` entry, then the endpoint derived from `collectorEndpoint`. A general SDK endpoint property does not override a signal-specific property. Signal attributes are configuration-time values; event-dependent expressions are not supported.
+
+All signal endpoints share the exporter's authentication, headers, and TLS configuration. Authenticated effective endpoints must use HTTPS; this also applies to signal-specific overrides supplied through system properties or environment variables. Configure destinations that accept the same credentials/token audience; separate token audiences are not supported by a single exporter configuration.
+
+NOTE: Custom URLs change routing, not the payload format. Confirm that the direct backend accepts OTLP for each enabled signal and the selected protocol.
+
 [#otlp-exporter-authentication]
 ===== Exporter Authentication
 
@@ -396,7 +436,70 @@ To configure authentication:
 * SDK exporter names and property precedence are unchanged. Authentication is not applied to logging/noop/third-party exporters selected by overrides. When no supported OTLP exporters remain, a sanitized warning is emitted and no token request/client is created.
 * Application stop closes metric producers and performs bounded SDK shutdown before closing the shared token provider/client. Failed SDK initialization also releases owned resources.
 
-For Azure Entra ID, a provider-specific token URL commonly has the form `https://login.microsoftonline.com/${azure.tenantId}/oauth2/v2.0/token`, with a scope such as `api://<collector-application-id>/.default`. Use the scope and credential placement required by your provider and collector; this example does not provision Azure resources or add signal-endpoint fields.
+For a custom collector protected by Microsoft Entra ID, use the collector application's audience, such as `api://<collector-application-id>/.default`. Direct Azure Monitor ingestion uses a different audience, as shown below.
+
+[#azure-monitor-oauth2]
+====== Azure Monitor OTLP Ingestion with OAuth2
+
+The following example sends OTLP directly to Azure Monitor's cloud ingestion endpoints using a Microsoft Entra service principal and the OAuth2 client-credentials grant. It targets Azure public cloud and requires Azure Monitor *OTLP ingestion* resources, not a classic Application Insights connection string. See https://learn.microsoft.com/en-us/azure/azure-monitor/containers/opentelemetry-protocol-ingestion[Microsoft's OTLP ingestion setup] for resource provisioning and https://learn.microsoft.com/en-us/azure/azure-monitor/containers/collect-use-observability-data[Azure Monitor OTLP capabilities and preview limitations].
+
+Before configuring the Mule application:
+
+. Provision an Application Insights resource with OTLP support enabled, or manually provision the required Data Collection Endpoint (DCE), Data Collection Rule (DCR), and destination workspaces. Copy the complete traces, metrics, and logs URLs from *OTLP Connection Info* when available.
+. Create an Entra app registration/service principal and a client secret. Record the tenant ID, application (client) ID, and secret *value*, not the secret ID.
+. Assign the service principal the *Monitoring Metrics Publisher* Azure RBAC role on the ingestion DCR. If the endpoints use different DCRs, grant access to each. Obtaining an Entra token alone does not grant ingestion permission.
+. Configure Mule Secure Configuration Properties for `azure.clientId` and `azure.clientSecret`, or use the deployment platform's protected properties. Ensure outbound HTTPS access to the Entra token endpoint and the ingestion endpoints.
+
+.Azure Monitor exporter with Entra client credentials
+[source,xml]
+----
+<opentelemetry:config name="Azure_Monitor_OpenTelemetry" serviceName="orders-api">
+    <opentelemetry:exporter>
+        <opentelemetry:otlp-exporter protocol="HTTP_PROTOBUF"
+                                     tracesEndpoint="${azure.monitor.tracesEndpoint}"
+                                     metricsEndpoint="${azure.monitor.metricsEndpoint}"
+                                     logsEndpoint="${azure.monitor.logsEndpoint}">
+            <opentelemetry:authentication>
+                <opentelemetry:oauth2-auth
+                    tokenUrl="https://login.microsoftonline.com/${azure.tenantId}/oauth2/v2.0/token"
+                    clientId="${secure::azure.clientId}"
+                    clientSecret="${secure::azure.clientSecret}"
+                    scopes="https://monitor.azure.com/.default"
+                    credentialPlacement="CLIENT_SECRET_POST"
+                    refreshSkewSeconds="60"
+                    requestTimeoutMillis="8000"/>
+            </opentelemetry:authentication>
+            <opentelemetry:config-properties>
+                <opentelemetry:config-property
+                    key="otel.exporter.otlp.metrics.temporality.preference" value="DELTA"/>
+                <opentelemetry:config-property
+                    key="otel.exporter.otlp.metrics.default.histogram.aggregation"
+                    value="base2_exponential_bucket_histogram"/>
+            </opentelemetry:config-properties>
+        </opentelemetry:otlp-exporter>
+    </opentelemetry:exporter>
+</opentelemetry:config>
+----
+
+Load these non-secret properties through the application's existing property loader. The following values illustrate the URL structure only; replace them with your provisioned endpoints, tenant ID, and DCR *immutable ID* (`dcr-...`, not the DCR name or Azure resource ID):
+
+.Example Azure public-cloud endpoint properties
+[source,properties]
+----
+azure.tenantId=00000000-0000-0000-0000-000000000000
+azure.monitor.tracesEndpoint=https://<traces-dce-host>/datacollectionRules/dcr-${azure.tenantId}/streams/Microsoft-OTLP-Traces/otlp/v1/traces
+azure.monitor.logsEndpoint=https://<logs-dce-host>/datacollectionRules/dcr-${azure.tenantId}/streams/Microsoft-OTLP-Logs/otlp/v1/logs
+azure.monitor.metricsEndpoint=https://<metrics-dce-host>/datacollectionRules/dcr-${azure.tenantId}/streams/Custom-Metrics-Otel/otlp/v1/metrics
+----
+
+* Traces and logs use the DCE's `logsEndpoint`; metrics use `metricsEndpoint`. Stream names must match the DCR exactly, including case. `Custom-Metrics-Otel` is an example metrics stream, not a universal value; prefer the complete URLs provided by Azure.
+* Use `HTTP_PROTOBUF` for direct cloud ingestion. `collectorEndpoint` is intentionally omitted: the signal URLs already include the DCR, stream, and `/otlp/v1/{signal}` path and must not be extended by the module.
+* Use `https://monitor.azure.com/.default` for the Azure public-cloud token audience, not the ingestion hostname or an `api://...` collector audience. Sovereign clouds require their corresponding Entra authority, Monitor audience, and ingestion endpoints.
+* MUST turn off (set to NONE, the default) compression in the exporter. Compressed requests were rejected with HTTP 400 in testing.
+* The module obtains and renews the token automatically on export and adds `Authorization: Bearer ...`. Do not add a separate `Authorization` header. This example uses a client secret; it does not configure managed identity or workload-identity federation.
+* Application Insights OTLP experiences require delta metric temporality and exponential histogram aggregation. The SDK properties above configure exporter defaults; verify that any explicitly configured metric views also produce compatible histograms.
+
+After deployment, generate telemetry and verify it reaches the configured Azure destinations. For token acquisition errors, see link:#otlp-auth-troubleshooting[OAuth2 authentication troubleshooting]. If token acquisition succeeds but ingestion returns HTTP 403, check the DCR role assignment and token audience; for HTTP 404, check the complete endpoint, immutable ID, and stream name. Correlate exporter diagnostics with Azure diagnostics rather than logging tokens or HTTP bodies.
 
 ===== Configuring TLS for Exporter Endpoint
 
@@ -430,7 +533,7 @@ This is most likely caused due to incorrect value set for `collectorEndpoint`. S
 
 A few APMs may not have the OTEL standard endpoint format of `{collectorEndpoint}/{signal}`. In that case, the default config property of `collectorEndpoint` may not work to auto-build the single endpoints.
 
-In such cases, `opentelemetry-config-properties` can be used to define trace endpoint with `otel.exporter.otlp.{signal}.endpoint` property where signal can be `traces` or `metrics`.
+In such cases, use `tracesEndpoint`, `metricsEndpoint`, or `logsEndpoint` to supply the complete signal URL. Alternatively, `config-properties` can define `otel.exporter.otlp.{signal}.endpoint`, where signal is `traces`, `metrics`, or `logs`. Explicit signal attributes take precedence over matching `config-properties` entries; system properties and environment variables can override both.
 
 .Example OTEL exporter with Traces endpoint
 [source,xml]

@@ -60,6 +60,47 @@ public class OtlpAuthenticationCustomizerTest {
   }
 
   @Test
+  public void validatesEffectiveSignalEndpointsInsteadOfSharedEndpoint() {
+    ConfigProperties properties = properties();
+    when(properties.getString("otel.exporter.otlp.endpoint")).thenReturn("http://localhost:4318");
+    when(properties.getString("otel.exporter.otlp.metrics.endpoint"))
+        .thenReturn("https://metrics.example.com/custom?api-version=1");
+    OtlpHttpMetricExporter original = OtlpHttpMetricExporter.builder()
+        .setEndpoint("https://metrics.example.com/custom?api-version=1").build();
+    MetricExporter replacement = customizer.metrics(original, properties);
+    try {
+      assertThat(customizer.isUsed()).isTrue();
+    } finally {
+      replacement.shutdown();
+    }
+  }
+
+  @Test
+  public void rejectsInsecureSignalOverridesEvenWithSecureSharedEndpoint() {
+    ConfigProperties properties = properties();
+    when(properties.getString("otel.exporter.otlp.traces.endpoint"))
+        .thenReturn("http://traces.example.com/custom");
+    when(properties.getString("otel.exporter.otlp.metrics.endpoint"))
+        .thenReturn("http://metrics.example.com/custom");
+    when(properties.getString("otel.exporter.otlp.logs.endpoint"))
+        .thenReturn("http://logs.example.com/custom");
+    io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter spans = io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter
+        .builder().build();
+    OtlpHttpMetricExporter metrics = OtlpHttpMetricExporter.builder().build();
+    io.opentelemetry.exporter.otlp.http.logs.OtlpHttpLogRecordExporter logs = io.opentelemetry.exporter.otlp.http.logs.OtlpHttpLogRecordExporter
+        .builder().build();
+    try {
+      assertThatThrownBy(() -> customizer.spans(spans, properties)).hasMessageContaining("secure");
+      assertThatThrownBy(() -> customizer.metrics(metrics, properties)).hasMessageContaining("secure");
+      assertThatThrownBy(() -> customizer.logs(logs, properties)).hasMessageContaining("secure");
+    } finally {
+      spans.shutdown();
+      metrics.shutdown();
+      logs.shutdown();
+    }
+  }
+
+  @Test
   public void leavesUnrelatedExportersUnchanged() {
     MetricExporter unrelated = mock(MetricExporter.class);
     assertThat(customizer.metrics(unrelated, properties())).isSameAs(unrelated);
