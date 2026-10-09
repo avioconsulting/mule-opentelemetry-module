@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.auth.oauth2;
 
 import org.junit.Test;
+import org.slf4j.Logger;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import static org.assertj.core.api.Assertions.*;
@@ -13,6 +14,84 @@ public class OAuth2TokenProviderTest {
 
   private void seconds(long seconds) {
     time.set(TimeUnit.SECONDS.toNanos(seconds));
+  }
+
+  @Test
+  public void preservesHttpFailureThroughCooldownAndLogsRecovery() {
+    Logger logger = mock(Logger.class);
+    when(logger.isWarnEnabled()).thenReturn(true);
+    when(logger.isInfoEnabled()).thenReturn(true);
+    when(logger.isDebugEnabled()).thenReturn(true);
+    OAuth2TokenProvider observed = new OAuth2TokenProvider(client, 60, 100, time::get, () -> 0.5, logger);
+    when(client.acquire()).thenThrow(OAuth2AuthenticationException.http(401))
+        .thenThrow(OAuth2AuthenticationException.http(503))
+        .thenReturn(new OAuth2AccessToken("secret-token", 10));
+    for (int i = 0; i < 2; i++) {
+      assertThatThrownBy(observed::ensureUsable).isInstanceOfSatisfying(OAuth2AuthenticationException.class,
+          failure -> {
+            assertThat(failure.getCategory()).isEqualTo(OAuth2AuthenticationException.Category.COOLDOWN);
+            assertThat(failure.getFailureCategory()).isEqualTo(OAuth2AuthenticationException.Category.HTTP);
+            assertThat(failure.getHttpStatus()).isEqualTo(401);
+            assertThat(failure.getCause()).isNull();
+          });
+    }
+    verify(client, times(1)).acquire();
+    seconds(1);
+    assertThatThrownBy(observed::ensureUsable).hasMessageContaining("httpStatus=503");
+    verify(logger, times(1)).warn(anyString(), any(), any(), any(), any(), any());
+    verify(logger).warn(anyString(), eq(OAuth2AuthenticationException.Category.HTTP),
+        eq(OAuth2AuthenticationException.Reason.UNSPECIFIED), eq(401), eq(false), eq(1000L));
+    seconds(3);
+    observed.ensureUsable();
+    verify(logger).info("OAuth2 exporter authentication recovered; token acquisition succeeded");
+    verify(logger).debug(anyString(), eq("acquisition"), eq(0L), eq(10000L), eq(5000L));
+    verify(logger).debug(anyString(), eq(OAuth2AuthenticationException.Category.HTTP),
+        eq(OAuth2AuthenticationException.Reason.UNSPECIFIED), eq(503), eq(2000L));
+    observed.ensureUsable();
+    verify(logger, times(1)).info(anyString());
+    for (org.mockito.invocation.Invocation invocation : mockingDetails(logger).getInvocations()) {
+      assertThat(java.util.Arrays.deepToString(invocation.getRawArguments())).doesNotContain("secret-token");
+    }
+  }
+
+  @Test
+  public void warningAppenderCanReenterProviderWithoutAnotherAcquisition() {
+    Logger logger = mock(Logger.class);
+    when(logger.isWarnEnabled()).thenReturn(true);
+    OAuth2TokenProvider observed = new OAuth2TokenProvider(client, 60, 100, time::get, () -> 0.5, logger);
+    when(client.acquire()).thenThrow(OAuth2AuthenticationException.http(401));
+    doAnswer(invocation -> {
+      assertThatThrownBy(observed::ensureUsable).hasMessageContaining("COOLDOWN").hasMessageContaining("401");
+      return null;
+    }).when(logger).warn(anyString(), any(), any(), any(), any(), any());
+    assertThatThrownBy(observed::ensureUsable).hasMessageContaining("COOLDOWN");
+    verify(client, times(1)).acquire();
+    verify(logger, times(1)).warn(anyString(), any(), any(), any(), any(), any());
+  }
+
+  @Test
+  public void logsRefreshFailureEvenWhileCachedTokenIsUsableAndThrottlesWarnings() {
+    Logger logger = mock(Logger.class);
+    when(logger.isWarnEnabled()).thenReturn(true);
+    OAuth2TokenProvider observed = new OAuth2TokenProvider(client, 60, 100, time::get, () -> 0.5, logger);
+    when(client.acquire()).thenReturn(new OAuth2AccessToken("secret-token", 100))
+        .thenThrow(new IllegalStateException("secret-client-secret"));
+    observed.ensureUsable();
+    seconds(50);
+    observed.ensureUsable();
+    verify(logger).warn(anyString(), eq(OAuth2AuthenticationException.Category.TRANSPORT),
+        eq(OAuth2AuthenticationException.Reason.UNSPECIFIED), eq(0), eq(true), eq(1000L));
+    seconds(51);
+    observed.ensureUsable();
+    verify(logger, times(1)).warn(anyString(), any(), any(), any(), any(), any());
+    seconds(80);
+    observed.ensureUsable();
+    verify(logger, times(2)).warn(anyString(), any(), any(), any(), any(), any());
+    assertThat(observed.headers()).containsEntry("Authorization", "Bearer secret-token");
+    for (org.mockito.invocation.Invocation invocation : mockingDetails(logger).getInvocations()) {
+      assertThat(java.util.Arrays.deepToString(invocation.getRawArguments()))
+          .doesNotContain("secret-token", "secret-client-secret");
+    }
   }
 
   @Test

@@ -11,7 +11,7 @@ public final class OAuth2AccessToken {
   public OAuth2AccessToken(String value, long lifetimeSeconds) {
     AuthenticationValidation.headerValue(value);
     if (lifetimeSeconds <= 0 || lifetimeSeconds > Long.MAX_VALUE / TimeUnit.SECONDS.toNanos(1) / 2) {
-      throw new OAuth2AuthenticationException(OAuth2AuthenticationException.Category.INVALID_RESPONSE);
+      throw OAuth2AuthenticationException.invalidResponse(OAuth2AuthenticationException.Reason.EXPIRES_IN);
     }
     this.value = value;
     this.lifetimeNanos = TimeUnit.SECONDS.toNanos(lifetimeSeconds);

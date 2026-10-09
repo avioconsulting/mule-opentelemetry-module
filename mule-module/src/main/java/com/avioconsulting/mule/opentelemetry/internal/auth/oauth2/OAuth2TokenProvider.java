@@ -1,6 +1,8 @@
 package com.avioconsulting.mule.opentelemetry.internal.auth.oauth2;
 
 import com.avioconsulting.mule.opentelemetry.internal.auth.ExporterAuthenticationProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -17,6 +19,8 @@ import static com.avioconsulting.mule.opentelemetry.internal.auth.oauth2.OAuth2A
  * cooldown.
  */
 public final class OAuth2TokenProvider implements ExporterAuthenticationProvider {
+  private static final Logger LOGGER = LoggerFactory.getLogger(OAuth2TokenProvider.class);
+  private final Logger logger;
   private final OAuth2TokenClient client;
   private volatile LongSupplier clock;
   private volatile DoubleSupplier jitter;
@@ -27,6 +31,9 @@ public final class OAuth2TokenProvider implements ExporterAuthenticationProvider
   private CompletableFuture<Void> inFlight;
   private long retryAt;
   private int failures;
+  private volatile OAuth2AuthenticationException lastFailure;
+  private boolean warned;
+  private long lastWarning;
 
   public OAuth2TokenProvider(OAuth2TokenClient client, int skewSeconds, int waitMillis) {
     this(client, skewSeconds, waitMillis, System::nanoTime, () -> ThreadLocalRandom.current().nextDouble());
@@ -34,11 +41,17 @@ public final class OAuth2TokenProvider implements ExporterAuthenticationProvider
 
   public OAuth2TokenProvider(OAuth2TokenClient client, int skewSeconds, int waitMillis,
       LongSupplier clock, DoubleSupplier jitter) {
+    this(client, skewSeconds, waitMillis, clock, jitter, LOGGER);
+  }
+
+  OAuth2TokenProvider(OAuth2TokenClient client, int skewSeconds, int waitMillis,
+      LongSupplier clock, DoubleSupplier jitter, Logger logger) {
     this.client = client;
     this.skewNanos = TimeUnit.SECONDS.toNanos(skewSeconds);
     this.waitMillis = waitMillis;
     this.clock = clock;
     this.jitter = jitter;
+    this.logger = logger;
   }
 
   /**
@@ -87,7 +100,7 @@ public final class OAuth2TokenProvider implements ExporterAuthenticationProvider
           if (valid(cached, now)) {
             return;
           }
-          throw new OAuth2AuthenticationException(COOLDOWN);
+          throw OAuth2AuthenticationException.cooldown(lastFailure);
         }
         flight = new CompletableFuture<>();
         inFlight = flight;
@@ -109,15 +122,22 @@ public final class OAuth2TokenProvider implements ExporterAuthenticationProvider
     }
     checkOpen();
     if (!valid(state, clock.getAsLong())) {
-      throw new OAuth2AuthenticationException(COOLDOWN);
+      OAuth2AuthenticationException failure = lastFailure;
+      throw failure == null ? new OAuth2AuthenticationException(COOLDOWN)
+          : OAuth2AuthenticationException.cooldown(failure);
     }
   }
 
   private void renew(CompletableFuture<Void> flight) {
     long start = clock.getAsLong();
+    boolean refreshing = state != null;
+    boolean recovered = false;
+    OAuth2AuthenticationException diagnostic = null;
+    long retryDelay = 0;
+    long lifetime = 0;
     try {
       OAuth2AccessToken token = client.acquire();
-      long lifetime = token.getLifetimeNanos();
+      lifetime = token.getLifetimeNanos();
       State replacement = new State(token, start + lifetime,
           start + lifetime - Math.min(skewNanos, lifetime / 2));
       synchronized (this) {
@@ -126,17 +146,25 @@ public final class OAuth2TokenProvider implements ExporterAuthenticationProvider
           throw new OAuth2AuthenticationException(TIMEOUT);
         }
         state = replacement;
+        recovered = failures > 0;
         failures = 0;
+        lastFailure = null;
         flight.complete(null);
       }
     } catch (RuntimeException failure) {
+      diagnostic = OAuth2AuthenticationException.transport(failure);
       synchronized (this) {
+        if (closed) {
+          throw new OAuth2AuthenticationException(CLOSED);
+        }
         failures = Math.min(6, failures + 1);
         long base = TimeUnit.SECONDS.toNanos(Math.min(30, 1L << (failures - 1)));
         double noise = Math.max(0, Math.min(1, jitter.getAsDouble()));
-        retryAt = clock.getAsLong() + Math.min(TimeUnit.SECONDS.toNanos(30),
+        retryDelay = Math.min(TimeUnit.SECONDS.toNanos(30),
             (long) (base * (0.8 + noise * 0.4)));
-        flight.completeExceptionally(new OAuth2AuthenticationException(COOLDOWN));
+        retryAt = clock.getAsLong() + retryDelay;
+        lastFailure = diagnostic;
+        flight.completeExceptionally(OAuth2AuthenticationException.cooldown(diagnostic));
       }
     } finally {
       synchronized (this) {
@@ -144,6 +172,46 @@ public final class OAuth2TokenProvider implements ExporterAuthenticationProvider
           inFlight = null;
         }
       }
+    }
+    // Log only after releasing the single-flight slot and locks. Appenders may
+    // themselves export telemetry.
+    if (diagnostic != null) {
+      logFailure(diagnostic, retryDelay);
+    } else {
+      if (recovered && logger.isInfoEnabled()) {
+        logger.info("OAuth2 exporter authentication recovered; token acquisition succeeded");
+      }
+      if (logger.isDebugEnabled()) {
+        logger.debug("OAuth2 token {} succeeded: durationMillis={}, lifetimeMillis={}, refreshAfterMillis={}",
+            refreshing ? "refresh" : "acquisition",
+            TimeUnit.NANOSECONDS.toMillis(clock.getAsLong() - start),
+            TimeUnit.NANOSECONDS.toMillis(lifetime),
+            TimeUnit.NANOSECONDS.toMillis(lifetime - Math.min(skewNanos, lifetime / 2)));
+      }
+    }
+  }
+
+  private void logFailure(OAuth2AuthenticationException failure, long retryDelay) {
+    boolean emitWarning;
+    boolean cachedTokenUsable;
+    synchronized (this) {
+      long now = clock.getAsLong();
+      cachedTokenUsable = valid(state, now);
+      emitWarning = !warned || now - lastWarning >= TimeUnit.SECONDS.toNanos(30);
+      if (emitWarning) {
+        warned = true;
+        lastWarning = now;
+      }
+    }
+    if (emitWarning && logger.isWarnEnabled()) {
+      logger.warn("OAuth2 token acquisition/refresh failed: failure={}, reason={}, httpStatus={}, "
+          + "cachedTokenUsable={}, retryDelayMillis={}", failure.getFailureCategory(), failure.getReason(),
+          failure.getHttpStatus(), cachedTokenUsable, TimeUnit.NANOSECONDS.toMillis(retryDelay));
+    }
+    if (logger.isDebugEnabled()) {
+      logger.debug("OAuth2 token retry scheduled: failure={}, reason={}, httpStatus={}, retryDelayMillis={}",
+          failure.getFailureCategory(), failure.getReason(), failure.getHttpStatus(),
+          TimeUnit.NANOSECONDS.toMillis(retryDelay));
     }
   }
 

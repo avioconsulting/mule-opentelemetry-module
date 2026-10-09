@@ -88,6 +88,54 @@ The following example shows an OpenTelemetry Config with OTLP Exporter configure
 
 When additional properties from SDK Auto-configuration are needed for exporter, `config-properties` can be used to add those. Environment and System properties will still override those entries.
 
+[#otlp-auth-troubleshooting]
+==== Troubleshooting OTLP Exporter OAuth2 Authentication
+
+OAuth2 token failures do not fail Mule business flows. When no usable token is available, telemetry exports fail locally.
+Token acquisition is lazy: diagnostics appear when an enabled OTLP exporter first attempts to export, not necessarily at application startup.
+
+The authentication logger namespace is `com.avioconsulting.mule.opentelemetry.internal.auth`.
+For temporary detailed diagnostics, add the following logger inside the application's `log4j2.xml` `Loggers` element:
+
+[source,xml]
+----
+<Logger name="com.avioconsulting.mule.opentelemetry.internal.auth" level="DEBUG"/>
+----
+
+Ensure these logs reach a local console/file or platform runtime appender, not only the OTLP log exporter that is experiencing the outage.
+Return the logger to `INFO` after troubleshooting.
+
+* `WARN`: acquisition/refresh failure with sanitized failure category, reason, HTTP status, whether the cached token remains usable, and retry delay. The export gate separately warns when exports are skipped. Each warning source is limited to once per 30 seconds per connection.
+* `INFO`: successful token acquisition after a failed acquisition/refresh.
+* `DEBUG`: successful acquisition/refresh duration, token lifetime and refresh interval; failed-attempt classification and retry delay.
+
+.Example export warning
+[source,text]
+----
+OTLP export skipped because authentication is unavailable (state=COOLDOWN, failure=HTTP, reason=UNSPECIFIED, httpStatus=401)
+----
+
+`COOLDOWN` describes retry backoff, not the root cause; use the separate `failure`, `reason`, and `httpStatus` fields.
+Retries are attempted on subsequent exports after the delay, not by a background timer.
+`httpStatus=0` means there was no HTTP error status captured. `UNSPECIFIED` means no more specific safe classification is available.
+
+[cols="1,3",options="header"]
+|===
+|Diagnostic |Checks
+|`HTTP`, status 400/401/403 |Check client credentials, allowed scopes, client-credentials grant support, credential placement (POST body versus Basic), and authorization-server logs. Status alone does not establish the exact cause.
+|`HTTP`, status 302/other 3xx |Configure the final token URL; token requests do not follow redirects.
+|`HTTP`, status 429/5xx |Check authorization-server throttling, availability, and server-side logs.
+|`TRANSPORT`, reason `TLS` |Check certificate validity, trust chain, and hostname matching. Do not disable TLS validation.
+|`TRANSPORT`, reason `DNS`/`CONNECTION` |Check DNS, token endpoint address, outbound connectivity, and firewall rules. The token client does not implicitly inherit an application proxy.
+|`TIMEOUT` |Check endpoint latency/connectivity and request timeout; a concurrent caller can also time out waiting for token acquisition.
+|`INVALID_RESPONSE` |Use the reason to check JSON, response size, `access_token`, bearer `token_type`, or a positive integer `expires_in`.
+|`INTERRUPTED`/`CLOSED` |Check application shutdown/redeployment and thread interruption.
+|===
+
+WARNING: Authentication diagnostics deliberately omit credentials, tokens, scopes, token URLs, HTTP bodies, and original exception messages/stack traces. Do not enable HTTP wire/body logging to debug authentication: it can disclose secrets. Correlate sanitized diagnostics with authorization-server logs instead.
+
+These messages diagnose token acquisition/refresh, not collector rejection of an otherwise usable token. Check OTLP exporter/collector diagnostics for downstream HTTP 401/403 or gRPC authentication failures.
+
 === Resource Attributes
 ==== Common Resource Attributes
 Extension uses the OpenTelemetry SDK's https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure#resource-provider-spi[Resource Provider SPI] to gather data of common resources such as Host, OS, Processes of the Mule runtime Server and host. SDK supported all common resources providers are configured by this module.
@@ -251,11 +299,28 @@ NOTE: For example, `http(s)://localhost:4318` when configuring the OTLP Exporter
 
 image::module-otel-exporter-config.png[alt="OTEL OTLP Exporter configuration"]
 
+[#otlp-exporter-authentication]
 ===== Exporter Authentication
 
 The optional `authentication` element supports a static bearer token, an API key, or OAuth2 client credentials for the standard `otlp` exporter. Authentication applies to traces, metrics and logs over both gRPC and HTTP/protobuf. Existing configurations without authentication are unchanged, including manually configured authorization headers and unauthenticated localhost collectors.
 
 Authenticated collector endpoints and OAuth token endpoints must use HTTPS. Authentication credentials are configuration-time values: event-dependent expressions are not supported. Store credentials in Mule Secure Configuration Properties or the deployment platform's protected properties, not in source control. The `${secure::...}` examples assume that secure properties are already configured by the application.
+
+To configure authentication:
+
+. Choose the authentication method required by your collector from the table below.
+. Configure the collector's HTTPS endpoint and select `GRPC` (the default) or `HTTP_PROTOBUF` to match its listener.
+. Add one authentication option inside `opentelemetry:authentication` under `opentelemetry:otlp-exporter`. Replace the example endpoints and property names with your deployment values.
+. Remove any manually configured header owned by that authentication option, including headers supplied through SDK system properties or environment variables. Keep unrelated headers, such as tenant identifiers.
+. Deploy and generate telemetry to verify export. OAuth2 token acquisition occurs on the first enabled OTLP export, not at startup; see link:#otlp-auth-troubleshooting[OAuth2 authentication troubleshooting] if acquisition fails.
+
+[cols="1,2,2",options="header"]
+|===
+|Option |Required attributes |Behavior
+|`bearer-token-auth` |`token` |Sends `Authorization: Bearer <token>`. Supply the raw token; an existing exact `Bearer ` prefix is also accepted. The module does not renew static tokens.
+|`api-key-auth` |`headerName`, `value` |Sends the value unchanged in the collector's required header, for example `X-Api-Key`. The module does not renew API keys.
+|`oauth2-auth` |`tokenUrl`, `clientId`, `clientSecret` |Obtains and renews a bearer token using the OAuth2 client-credentials grant. Requires an authorization server that supports this grant and a collector that accepts its tokens.
+|===
 
 .Static bearer token with independent headers
 [source,xml]
@@ -310,6 +375,15 @@ Authenticated collector endpoints and OAuth token endpoints must use HTTPS. Auth
 `headers` remains an independent collection with every authentication option. In SDK-generated XML it precedes `authentication`; `config-properties`, if present, follows authentication. Bearer and OAuth2 authentication own `Authorization`; API-key authentication owns its configured header name. A case-insensitive collision with an effective OTLP header property is a startup configuration error, including signal-specific properties and system/environment overrides. Other headers are retained exactly once. Header names must be HTTP tokens, cannot be gRPC binary metadata names (`-bin`), and authentication header values must be nonblank printable ASCII without CR/LF. Opaque credential values are never trimmed.
 
 ====== OAuth2 Transport and Renewal
+
+[cols="1,1,3",options="header"]
+|===
+|Optional attribute |Default |Configuration
+|`scopes` |Omitted |Space-separated scopes required by the authorization server. Blank values are omitted from the token request.
+|`credentialPlacement` |`CLIENT_SECRET_POST` |Use `CLIENT_SECRET_POST` for credentials in the form body or `CLIENT_SECRET_BASIC` for HTTP Basic authentication, as required by the authorization server.
+|`refreshSkewSeconds` |`60` |Renew before expiration, from 0 through 3600 seconds. The effective skew is capped at half the token lifetime.
+|`requestTimeoutMillis` |`8000` |Token-request timeout in milliseconds, from 1 through 60000. This is not the collector export timeout.
+|===
 
 * `CLIENT_SECRET_POST` is the default. It places `client_id` and `client_secret` in a UTF-8 form body with `grant_type=client_credentials`. `CLIENT_SECRET_BASIC` percent-encodes each credential before Base64-encoding the HTTP Basic value. `scopes` is an optional space-separated scope string; absent/blank scope is omitted.
 * `requestTimeoutMillis` defaults to 8000 and accepts 1 through 60000. It bounds waiting for the token response and its streamed body; the minimum Mule HTTP API does not expose separate connect/read timeout fields here. Responses are limited to 64 KiB. Redirects are never followed.

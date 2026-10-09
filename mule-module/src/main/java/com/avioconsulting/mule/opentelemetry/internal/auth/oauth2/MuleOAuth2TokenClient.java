@@ -59,7 +59,7 @@ public final class MuleOAuth2TokenClient implements OAuth2TokenClient {
         client.stop();
       } catch (RuntimeException ignored) {
         /* No sensitive causes. */ }
-      throw new OAuth2AuthenticationException(TRANSPORT);
+      throw OAuth2AuthenticationException.transport(e);
     }
   }
 
@@ -97,15 +97,9 @@ public final class MuleOAuth2TokenClient implements OAuth2TokenClient {
     } catch (TimeoutException e) {
       throw new OAuth2AuthenticationException(TIMEOUT);
     } catch (ExecutionException e) {
-      if (e.getCause() instanceof OAuth2AuthenticationException) {
-        throw (OAuth2AuthenticationException) e.getCause();
-      }
-      throw new OAuth2AuthenticationException(TRANSPORT);
+      throw OAuth2AuthenticationException.transport(e);
     } catch (RuntimeException e) {
-      if (e instanceof OAuth2AuthenticationException) {
-        throw e;
-      }
-      throw new OAuth2AuthenticationException(TRANSPORT);
+      throw OAuth2AuthenticationException.transport(e);
     } finally {
       request.close();
       synchronized (this) {
@@ -146,46 +140,59 @@ public final class MuleOAuth2TokenClient implements OAuth2TokenClient {
   private OAuth2AccessToken parseResponse(HttpResponse response, InputStream stream) {
     try (InputStream input = stream) {
       if (response.getStatusCode() < 200 || response.getStatusCode() >= 300) {
-        throw new OAuth2AuthenticationException(HTTP);
+        throw OAuth2AuthenticationException.http(response.getStatusCode());
       }
       ByteArrayOutputStream output = new ByteArrayOutputStream();
       byte[] buffer = new byte[4096];
       int count;
       while ((count = input.read(buffer)) != -1) {
         if (output.size() + count > MAX_RESPONSE_BYTES) {
-          throw new OAuth2AuthenticationException(INVALID_RESPONSE);
+          throw OAuth2AuthenticationException
+              .invalidResponse(OAuth2AuthenticationException.Reason.RESPONSE_TOO_LARGE);
         }
         output.write(buffer, 0, count);
       }
       JsonElement element = JsonParser.parseString(new String(output.toByteArray(), StandardCharsets.UTF_8));
       if (!element.isJsonObject()) {
-        throw new OAuth2AuthenticationException(INVALID_RESPONSE);
+        throw OAuth2AuthenticationException
+            .invalidResponse(OAuth2AuthenticationException.Reason.MALFORMED_JSON);
       }
       JsonObject object = element.getAsJsonObject();
       String token = string(object, "access_token");
       if (!"bearer".equalsIgnoreCase(string(object, "token_type"))) {
-        throw new OAuth2AuthenticationException(INVALID_RESPONSE);
+        throw OAuth2AuthenticationException.invalidResponse(OAuth2AuthenticationException.Reason.TOKEN_TYPE);
       }
       JsonElement expires = object.get("expires_in");
       if (expires == null || !expires.isJsonPrimitive() || !expires.getAsJsonPrimitive().isNumber()) {
-        throw new OAuth2AuthenticationException(INVALID_RESPONSE);
+        throw OAuth2AuthenticationException.invalidResponse(OAuth2AuthenticationException.Reason.EXPIRES_IN);
       }
-      long seconds = expires.getAsBigDecimal().longValueExact();
-      return new OAuth2AccessToken(token, seconds);
+      long seconds;
+      try {
+        seconds = expires.getAsBigDecimal().longValueExact();
+      } catch (ArithmeticException | NumberFormatException e) {
+        throw OAuth2AuthenticationException.invalidResponse(OAuth2AuthenticationException.Reason.EXPIRES_IN);
+      }
+      try {
+        return new OAuth2AccessToken(token, seconds);
+      } catch (IllegalArgumentException e) {
+        throw OAuth2AuthenticationException.invalidResponse(OAuth2AuthenticationException.Reason.ACCESS_TOKEN);
+      }
     } catch (IOException e) {
-      throw new OAuth2AuthenticationException(TRANSPORT);
+      throw OAuth2AuthenticationException.transport(e);
     } catch (RuntimeException e) {
       if (e instanceof OAuth2AuthenticationException) {
-        throw e;
+        throw OAuth2AuthenticationException.transport(e);
       }
-      throw new OAuth2AuthenticationException(INVALID_RESPONSE);
+      throw OAuth2AuthenticationException.invalidResponse(OAuth2AuthenticationException.Reason.MALFORMED_JSON);
     }
   }
 
   private static String string(JsonObject object, String key) {
     JsonElement value = object.get(key);
     if (value == null || !value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) {
-      throw new OAuth2AuthenticationException(INVALID_RESPONSE);
+      throw OAuth2AuthenticationException.invalidResponse("access_token".equals(key)
+          ? OAuth2AuthenticationException.Reason.ACCESS_TOKEN
+          : OAuth2AuthenticationException.Reason.TOKEN_TYPE);
     }
     return value.getAsString();
   }
@@ -207,7 +214,7 @@ public final class MuleOAuth2TokenClient implements OAuth2TokenClient {
     try {
       client.stop();
     } catch (RuntimeException e) {
-      throw new OAuth2AuthenticationException(TRANSPORT);
+      throw OAuth2AuthenticationException.transport(e);
     }
   }
 

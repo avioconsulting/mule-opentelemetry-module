@@ -17,7 +17,12 @@ public final class StaticAuthenticationProvider implements ExporterAuthenticatio
     headerName = authentication.getHeaderName();
     String value;
     if (authentication instanceof BearerTokenAuth) {
-      value = "Bearer " + ((BearerTokenAuth) authentication).getToken();
+      String token = ((BearerTokenAuth) authentication).getToken();
+      if(token.startsWith("Bearer ")) {
+        value = token;
+      } else {
+        value = "Bearer " + token;
+      }
     } else if (authentication instanceof ApiKeyAuth) {
       value = ((ApiKeyAuth) authentication).getValue();
     } else {

@@ -41,6 +41,93 @@ public class MuleOAuth2TokenClientTest {
   }
 
   @Test
+  public void doesNotRetainSensitiveSuppressedStreamCloseFailure() {
+    java.io.InputStream stream = new java.io.ByteArrayInputStream(new byte[0]) {
+      @Override
+      public void close() throws java.io.IOException {
+        throw new java.io.IOException("secret-close-message");
+      }
+    };
+    org.mule.runtime.http.api.domain.entity.HttpEntity entity = mock(
+        org.mule.runtime.http.api.domain.entity.HttpEntity.class);
+    when(entity.getContent()).thenReturn(stream);
+    try (MuleOAuth2TokenClient client = client(configuration(), 401, "{}")) {
+      when(http.sendAsync(any(HttpRequest.class), any(HttpRequestOptions.class))).thenReturn(
+          CompletableFuture.completedFuture(HttpResponse.builder().statusCode(401).entity(entity).build()));
+      assertThatThrownBy(client::acquire).isInstanceOfSatisfying(OAuth2AuthenticationException.class, failure -> {
+        assertThat(failure.getHttpStatus()).isEqualTo(401);
+        assertThat(failure.getCause()).isNull();
+        assertThat(failure.getSuppressed()).isEmpty();
+        assertThat(failure.getMessage()).doesNotContain("secret");
+      });
+    }
+  }
+
+  @Test
+  public void preservesHttpStatusWithoutRetainingErrorBody() {
+    for (int status : new int[] { 400, 401, 403, 429, 503 }) {
+      try (MuleOAuth2TokenClient client = client(configuration(), status,
+          "{\"error\":\"invalid_client\",\"error_description\":\"secret &\"}")) {
+        assertThatThrownBy(client::acquire).isInstanceOfSatisfying(OAuth2AuthenticationException.class,
+            failure -> {
+              assertThat(failure.getCategory()).isEqualTo(OAuth2AuthenticationException.Category.HTTP);
+              assertThat(failure.getHttpStatus()).isEqualTo(status);
+              assertThat(failure.getMessage()).doesNotContain("secret", "invalid_client");
+              assertThat(failure.getCause()).isNull();
+            });
+      }
+    }
+  }
+
+  @Test
+  public void classifiesTransportFailuresWithoutRetainingSensitiveCauses() {
+    Throwable[] causes = { new javax.net.ssl.SSLHandshakeException("secret-tls"),
+        new java.net.UnknownHostException("secret-host"), new java.net.ConnectException("secret-host"),
+        new java.net.SocketTimeoutException("secret-timeout") };
+    OAuth2AuthenticationException.Reason[] reasons = { OAuth2AuthenticationException.Reason.TLS,
+        OAuth2AuthenticationException.Reason.DNS, OAuth2AuthenticationException.Reason.CONNECTION,
+        OAuth2AuthenticationException.Reason.UNSPECIFIED };
+    for (int i = 0; i < causes.length; i++) {
+      try (MuleOAuth2TokenClient client = client(configuration(), 200, "{}")) {
+        CompletableFuture<HttpResponse> failed = new CompletableFuture<>();
+        failed.completeExceptionally(new java.util.concurrent.CompletionException(causes[i]));
+        when(http.sendAsync(any(HttpRequest.class), any(HttpRequestOptions.class))).thenReturn(failed);
+        OAuth2AuthenticationException.Reason expected = reasons[i];
+        assertThatThrownBy(client::acquire).isInstanceOfSatisfying(OAuth2AuthenticationException.class,
+            failure -> {
+              assertThat(failure.getReason()).isEqualTo(expected);
+              assertThat(failure.getMessage()).doesNotContain("secret");
+              assertThat(failure.getCause()).isNull();
+              assertThat(failure.getCategory())
+                  .isEqualTo(expected == OAuth2AuthenticationException.Reason.UNSPECIFIED
+                      ? OAuth2AuthenticationException.Category.TIMEOUT
+                      : OAuth2AuthenticationException.Category.TRANSPORT);
+            });
+      }
+    }
+  }
+
+  @Test
+  public void identifiesInvalidResponseFieldWithoutExposingValues() {
+    String[] bodies = { "secret response", "{}",
+        "{\"access_token\":\"secret\",\"token_type\":\"mac\",\"expires_in\":10}",
+        "{\"access_token\":\"secret\",\"token_type\":\"bearer\",\"expires_in\":1.5}" };
+    OAuth2AuthenticationException.Reason[] reasons = { OAuth2AuthenticationException.Reason.MALFORMED_JSON,
+        OAuth2AuthenticationException.Reason.ACCESS_TOKEN, OAuth2AuthenticationException.Reason.TOKEN_TYPE,
+        OAuth2AuthenticationException.Reason.EXPIRES_IN };
+    for (int i = 0; i < bodies.length; i++) {
+      try (MuleOAuth2TokenClient client = client(configuration(), 200, bodies[i])) {
+        OAuth2AuthenticationException.Reason expected = reasons[i];
+        assertThatThrownBy(client::acquire).isInstanceOfSatisfying(OAuth2AuthenticationException.class,
+            failure -> {
+              assertThat(failure.getReason()).isEqualTo(expected);
+              assertThat(failure.getMessage()).doesNotContain("secret");
+            });
+      }
+    }
+  }
+
+  @Test
   public void encodesPostCredentialsAndOmitsAbsentScope() throws Exception {
     try (MuleOAuth2TokenClient client = client(configuration(), 200,
         "{\"access_token\":\"dummy\",\"token_type\":\"BeArEr\",\"expires_in\":120,\"ignored\":true}")) {
