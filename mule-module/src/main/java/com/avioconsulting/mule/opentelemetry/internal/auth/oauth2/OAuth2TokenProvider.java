@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.auth.oauth2;
 
 import com.avioconsulting.mule.opentelemetry.internal.auth.ExporterAuthenticationProvider;
+import com.avioconsulting.mule.opentelemetry.internal.util.logger.PeriodicLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Collections;
@@ -32,8 +33,7 @@ public final class OAuth2TokenProvider implements ExporterAuthenticationProvider
   private long retryAt;
   private int failures;
   private volatile OAuth2AuthenticationException lastFailure;
-  private boolean warned;
-  private long lastWarning;
+  private final PeriodicLogger warningLogger;
 
   public OAuth2TokenProvider(OAuth2TokenClient client, int skewSeconds, int waitMillis) {
     this(client, skewSeconds, waitMillis, System::nanoTime, () -> ThreadLocalRandom.current().nextDouble());
@@ -52,6 +52,9 @@ public final class OAuth2TokenProvider implements ExporterAuthenticationProvider
     this.clock = clock;
     this.jitter = jitter;
     this.logger = logger;
+    this.warningLogger = PeriodicLogger.builder().interval(30, TimeUnit.SECONDS)
+        .includeSuppressionCount(false)
+        .clockMillis(() -> TimeUnit.NANOSECONDS.toMillis(this.clock.getAsLong())).build();
   }
 
   /**
@@ -192,22 +195,14 @@ public final class OAuth2TokenProvider implements ExporterAuthenticationProvider
   }
 
   private void logFailure(OAuth2AuthenticationException failure, long retryDelay) {
-    boolean emitWarning;
     boolean cachedTokenUsable;
     synchronized (this) {
       long now = clock.getAsLong();
       cachedTokenUsable = valid(state, now);
-      emitWarning = !warned || now - lastWarning >= TimeUnit.SECONDS.toNanos(30);
-      if (emitWarning) {
-        warned = true;
-        lastWarning = now;
-      }
     }
-    if (emitWarning && logger.isWarnEnabled()) {
-      logger.warn("OAuth2 token acquisition/refresh failed: failure={}, reason={}, httpStatus={}, "
-          + "cachedTokenUsable={}, retryDelayMillis={}", failure.getFailureCategory(), failure.getReason(),
-          failure.getHttpStatus(), cachedTokenUsable, TimeUnit.NANOSECONDS.toMillis(retryDelay));
-    }
+    warningLogger.warn(logger, "OAuth2 token acquisition/refresh failed: failure={}, reason={}, httpStatus={}, "
+        + "cachedTokenUsable={}, retryDelayMillis={}", failure.getFailureCategory(), failure.getReason(),
+        failure.getHttpStatus(), cachedTokenUsable, TimeUnit.NANOSECONDS.toMillis(retryDelay));
     if (logger.isDebugEnabled()) {
       logger.debug("OAuth2 token retry scheduled: failure={}, reason={}, httpStatus={}, retryDelayMillis={}",
           failure.getFailureCategory(), failure.getReason(), failure.getHttpStatus(),

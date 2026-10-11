@@ -1,6 +1,7 @@
 package com.avioconsulting.mule.opentelemetry.internal.auth;
 
 import com.avioconsulting.mule.opentelemetry.internal.auth.oauth2.OAuth2AuthenticationException;
+import com.avioconsulting.mule.opentelemetry.internal.util.logger.PeriodicLogger;
 import io.opentelemetry.sdk.common.CompletableResultCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +17,7 @@ public final class AuthenticationExportGate {
   private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationExportGate.class);
   private final ExporterAuthenticationProvider provider;
   private final Logger logger;
-  private final LongSupplier clock;
-  private boolean warned;
-  private long lastWarning;
+  private final PeriodicLogger warningLogger;
 
   public AuthenticationExportGate(ExporterAuthenticationProvider provider) {
     this(provider, LOGGER, System::nanoTime);
@@ -27,7 +26,9 @@ public final class AuthenticationExportGate {
   AuthenticationExportGate(ExporterAuthenticationProvider provider, Logger logger, LongSupplier clock) {
     this.provider = provider;
     this.logger = logger;
-    this.clock = clock;
+    this.warningLogger = PeriodicLogger.builder().interval(30, TimeUnit.SECONDS)
+        .includeSuppressionCount(false)
+        .clockMillis(() -> TimeUnit.NANOSECONDS.toMillis(clock.getAsLong())).build();
   }
 
   public CompletableResultCode export(Supplier<CompletableResultCode> delegate) {
@@ -40,18 +41,11 @@ public final class AuthenticationExportGate {
     }
   }
 
-  private synchronized void warn(OAuth2AuthenticationException failure) {
-    long now = clock.getAsLong();
-    if (!warned || now - lastWarning >= TimeUnit.SECONDS.toNanos(30)) {
-      // Advance before logging: an appender-triggered reentrant export cannot log
-      // again.
-      warned = true;
-      lastWarning = now;
-      if (logger.isWarnEnabled()) {
-        logger.warn("OTLP export skipped because authentication is unavailable "
-            + "(state={}, failure={}, reason={}, httpStatus={})", failure.getCategory(),
-            failure.getFailureCategory(), failure.getReason(), failure.getHttpStatus());
-      }
-    }
+  private void warn(OAuth2AuthenticationException failure) {
+    // PeriodicLogger advances its timestamp before logging, preventing an
+    // appender-triggered reentrant export from repeating this warning.
+    warningLogger.warn(logger, "OTLP export skipped because authentication is unavailable "
+        + "(state={}, failure={}, reason={}, httpStatus={})", failure.getCategory(),
+        failure.getFailureCategory(), failure.getReason(), failure.getHttpStatus());
   }
 }
