@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <import file="global-common.xml"/>
+
+    <http:request-config name="DYNAMIC_HTTP_Request_configuration">
+        <http:request-connection host="#[ 'local' ++ vars.region ]" port="#[vars.dynamicConfig.port default 443]"/>
+    </http:request-config>
+    <http:request-config name="DYNAMIC_HOST_HTTP_Request_configuration">
+        <http:request-connection host="#[ 'local' ++ vars.region ]" port="#[Mule::p('http.port') as Number]"/>
+    </http:request-config>
+
+    <flow name="dynamic-http-target">
+        <http:listener config-ref="HTTP_Listener_config" path="/dynamic-http-target"/>
+        <set-payload value="dynamic HTTP target reached"/>
+    </flow>
+    <flow name="dynamic-http-explicit-method">
+        <http:request config-ref="DYNAMIC_HTTP_Request_configuration" method="GET" path="/dynamic-http-target"/>
+        <set-payload value="#[payload as String]"/>
+    </flow>
+    <flow name="dynamic-http-explicit-url">
+        <http:request config-ref="DYNAMIC_HTTP_Request_configuration"
+                      url="#[ 'http://local' ++ vars.region ++ ':' ++ (vars.dynamicConfig.port as String) ++ '/dynamic-http-target' ]"/>
+    </flow>
+    <flow name="dynamic-http-default-method">
+        <http:request config-ref="DYNAMIC_HTTP_Request_configuration" path="/dynamic-http-target"/>
+        <set-payload value="#[payload as String]"/>
+    </flow>
+    <flow name="dynamic-http-host-default-method">
+        <http:request config-ref="DYNAMIC_HOST_HTTP_Request_configuration" path="/dynamic-http-target"/>
+        <set-payload value="#[payload as String]"/>
+    </flow>
+</mule>

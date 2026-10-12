@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <import file="global-common.xml"/>
+    <http:listener-config name="URL_TARGET_LISTENER">
+        <http:listener-connection host="127.0.0.1" port="${request.url.target.port}"/>
+    </http:listener-config>
+    <http:request-config name="URL_CONFLICTING_CONNECTION" basePath="/ignored-base">
+        <http:request-connection host="configured.invalid" port="9"/>
+    </http:request-config>
+    <flow name="request-url-target">
+        <http:listener config-ref="URL_TARGET_LISTENER" path="/actual/*"/>
+        <set-payload value="#[attributes.requestPath]"/>
+    </flow>
+    <flow name="request-url-literal">
+        <http:request config-ref="URL_CONFLICTING_CONNECTION"
+                      url="http://127.0.0.1:${request.url.target.port}/actual/literal?token=literal-secret"/>
+        <set-payload value="#[payload as String]"/>
+    </flow>
+    <flow name="request-url-dynamic">
+        <http:request config-ref="URL_CONFLICTING_CONNECTION" url="#[vars.targetUrl]"/>
+        <set-payload value="#[payload as String]"/>
+    </flow>
+</mule>

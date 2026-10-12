@@ -17,12 +17,16 @@ import org.mule.runtime.api.component.ComponentIdentifier;
 import org.mule.runtime.api.event.Event;
 import org.mule.runtime.api.message.Error;
 import org.mule.runtime.api.message.Message;
+import org.mule.runtime.api.metadata.DataType;
 import org.mule.runtime.api.metadata.TypedValue;
 import org.mule.runtime.api.notification.EnrichedServerNotification;
+import org.mule.runtime.core.api.el.ExpressionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static io.opentelemetry.semconv.HttpAttributes.*;
@@ -37,6 +41,16 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpProcessorComponent.class);
   private static final char DOUBLE_QUOTE = '"';
+
+  @Override
+  public HttpProcessorComponent withExpressionManager(ExpressionManager expressionManager) {
+    // Request and listener identifiers share this handler. Listener lookup can
+    // supply null; it must not clear the manager needed by subsequent requests.
+    if (expressionManager != null) {
+      super.withExpressionManager(expressionManager);
+    }
+    return this;
+  }
 
   @Override
   protected String getNamespace() {
@@ -127,12 +141,18 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
   @Override
   public TraceComponent getStartTraceComponent(Component component, Event event) {
     TraceComponent traceComponent = super.getStartTraceComponent(component, event);
-    addAttributes(component,
-        event.getMessage().getAttributes(), traceComponent);
+    ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
+    boolean hasUrl = isRequester(component.getIdentifier())
+        && componentWrapper.getParameters().containsKey("url");
+    if (hasUrl) {
+      // The superclass adds attributes already; resolve URLs only here, where the
+      // current event is available, and never cache an event's destination.
+      getRequesterUrlTags(componentWrapper, event, traceComponent);
+    }
 
     return traceComponent.setName(component.getLocation().getRootContainerName())
         .withLocation(component.getLocation().getLocation())
-        .withSpanName(traceComponent.getTag(HTTP_ROUTE.getKey()));
+        .withSpanName(traceComponent.getTag(hasUrl ? HTTP_REQUEST_METHOD.getKey() : HTTP_ROUTE.getKey()));
   }
 
   @Override
@@ -140,11 +160,86 @@ public class HttpProcessorComponent extends AbstractProcessorComponent {
       final TraceComponent collector) {
     ComponentWrapper componentWrapper = componentRegistryService.getComponentWrapper(component);
     if (isRequester(component.getIdentifier())) {
-      getRequesterTags(componentWrapper, collector);
+      // A URL overrides all connection/path parameters, even if it cannot be
+      // resolved.
+      if (!componentWrapper.getParameters().containsKey("url")) {
+        getRequesterTags(componentWrapper, collector);
+      }
     } else {
       HttpRequestAttributes attr = (HttpRequestAttributes) attributes.getValue();
       attributesToTags(attr, collector);
     }
+  }
+
+  private void getRequesterUrlTags(ComponentWrapper componentWrapper, Event event,
+      final TraceComponent collector) {
+    String method = componentWrapper.getParameters().get("method");
+    collector.addTag(HTTP_REQUEST_METHOD.getKey(), method == null || method.isEmpty() ? "GET" : method);
+    try {
+      String url = componentWrapper.getParameters().get("url");
+      if (url == null) {
+        return;
+      }
+      if (expressionManager != null && expressionManager.isExpression(url)) {
+        TypedValue<?> resolved = expressionManager.evaluate(url, DataType.STRING, event.asBindingContext());
+        if (resolved == null || resolved.getValue() == null) {
+          return;
+        }
+        url = OpenTelemetryUtil.typedValueToString(resolved);
+      }
+      URI uri = new URI(url);
+      String scheme = uri.getScheme();
+      String host = uri.getHost();
+      if (scheme == null || host == null || host.isEmpty()
+          || !("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))
+          || uri.getPort() > 65535) {
+        return;
+      }
+      scheme = scheme.toLowerCase(Locale.ROOT);
+      String path = uri.getRawPath();
+      if (path == null || path.isEmpty()) {
+        path = "/";
+      }
+      String query = redactQuery(uri.getRawQuery());
+      // Java 8 URI retains brackets for IPv6 hosts. Ensure exactly one pair in
+      // url.full.
+      String authority = host.indexOf(':') >= 0 && !host.startsWith("[") ? "[" + host + "]" : host;
+      if (uri.getPort() != -1) {
+        authority += ":" + uri.getPort();
+      }
+      String sanitizedUrl = scheme + "://" + authority + path + (query == null ? "" : "?" + query);
+      collector.addTag(URL_SCHEME.getKey(), scheme);
+      collector.addTag(ServerAttributes.SERVER_ADDRESS.getKey(), host);
+      collector.addTag(SERVER_PORT.getKey(), Integer.toString(uri.getPort() == -1
+          ? ("https".equals(scheme) ? 443 : 80)
+          : uri.getPort()));
+      collector.addTag(URL_PATH.getKey(), path);
+      if (query != null) {
+        collector.addTag(URL_QUERY.getKey(), query);
+      }
+      collector.addTag(URL_FULL.getKey(), sanitizedUrl);
+    } catch (Exception ignored) {
+      // URLs and expression/parser error messages may contain credentials. Do not
+      // log them or fall back to a configured destination that Mule will not use.
+    }
+  }
+
+  private String redactQuery(String query) {
+    if (query == null || query.isEmpty()) {
+      return query;
+    }
+    // Conservatively redact every value, not just known secret parameters. Keep
+    // encoded keys and duplicates without decoding/re-encoding URL components.
+    StringBuilder sanitized = new StringBuilder();
+    for (String parameter : query.split("&", -1)) {
+      if (sanitized.length() > 0) {
+        sanitized.append('&');
+      }
+      int separator = parameter.indexOf('=');
+      sanitized.append(separator < 0 ? parameter : parameter.substring(0, separator));
+      sanitized.append("=REDACTED");
+    }
+    return sanitized.toString();
   }
 
   private void getRequesterTags(ComponentWrapper componentWrapper, final TraceComponent collector) {

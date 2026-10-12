@@ -126,23 +126,23 @@ public class OpenTelemetryUtil {
   public static void resolveExpressions(TraceComponent traceComponent, ExpressionManager expressionManager,
       Event event) {
     try {
-      if (expressionManager
-          .isExpression(traceComponent.getSpanName())) {
+      if (traceComponent.getSpanName() != null
+          && expressionManager.isExpression(traceComponent.getSpanName())) {
         String value = resolveExpression(traceComponent.getSpanName(), expressionManager, event);
         if (value != null) {
           traceComponent.withSpanName(value);
         }
       }
-      traceComponent.forEachTagEntry(entry -> {
-        if (expressionManager.isExpression(entry.getValue())) {
-          try {
-            entry.setValue(resolveExpression(entry.getValue(), expressionManager, event));
-          } catch (Exception ignored) {
-          }
-        }
-      });
     } catch (Exception ignored) {
     }
+    traceComponent.forEachTagEntry(entry -> {
+      try {
+        if (entry.getValue() != null && expressionManager.isExpression(entry.getValue())) {
+          entry.setValue(resolveExpression(entry.getValue(), expressionManager, event));
+        }
+      } catch (Exception ignored) {
+      }
+    });
   }
 
   public static String resolveExpression(String expression, ExpressionManager expressionManager, Event event)
