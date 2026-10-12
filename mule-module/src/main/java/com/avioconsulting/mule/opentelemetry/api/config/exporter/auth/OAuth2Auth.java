@@ -5,37 +5,45 @@ import org.mule.runtime.extension.api.annotation.Expression;
 import org.mule.runtime.extension.api.annotation.Alias;
 import org.mule.runtime.extension.api.annotation.param.Optional;
 import org.mule.runtime.extension.api.annotation.param.Parameter;
+import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Password;
 
 /** OAuth2 client credentials; renewal always requests a new access token. */
-@Alias("oauth2-auth")
+@Alias("oauth2")
 public class OAuth2Auth implements ExporterAuthentication {
   @Parameter
   @Expression(ExpressionSupport.NOT_SUPPORTED)
+  @DisplayName(value = "Token URL")
   private String tokenUrl;
   @Parameter
   @Password
   @Expression(ExpressionSupport.NOT_SUPPORTED)
+  @DisplayName(value = "Client ID")
   private String clientId;
   @Parameter
   @Password
   @Expression(ExpressionSupport.NOT_SUPPORTED)
+  @DisplayName(value = "Client Secret")
   private String clientSecret;
   @Parameter
   @Optional
   @Expression(ExpressionSupport.NOT_SUPPORTED)
+  @DisplayName(value = "Scopes")
   private String scopes;
   @Parameter
   @Optional(defaultValue = "CLIENT_SECRET_POST")
   @Expression(ExpressionSupport.NOT_SUPPORTED)
+  @DisplayName(value = "Credential Placement")
   private CredentialPlacement credentialPlacement = CredentialPlacement.CLIENT_SECRET_POST;
   @Parameter
   @Optional(defaultValue = "60")
   @Expression(ExpressionSupport.NOT_SUPPORTED)
-  private int refreshSkewSeconds = 60;
+  @DisplayName(value = "Refresh Before Expiry (Seconds)")
+  private int refreshBeforeExpirySeconds = 60;
   @Parameter
   @Optional(defaultValue = "8000")
   @Expression(ExpressionSupport.NOT_SUPPORTED)
+  @DisplayName(value = "Request Timeout Millis")
   private int requestTimeoutMillis = 8000;
 
   public OAuth2Auth() {
@@ -68,8 +76,8 @@ public class OAuth2Auth implements ExporterAuthentication {
     return credentialPlacement;
   }
 
-  public int getRefreshSkewSeconds() {
-    return refreshSkewSeconds;
+  public int getRefreshBeforeExpirySeconds() {
+    return refreshBeforeExpirySeconds;
   }
 
   public int getRequestTimeoutMillis() {
@@ -104,7 +112,7 @@ public class OAuth2Auth implements ExporterAuthentication {
     AuthenticationValidation.httpsUrl(tokenUrl, "tokenUrl");
     AuthenticationValidation.nonblank(clientId, "clientId");
     AuthenticationValidation.nonblank(clientSecret, "clientSecret");
-    if (credentialPlacement == null || refreshSkewSeconds < 0 || refreshSkewSeconds > 3600
+    if (credentialPlacement == null || refreshBeforeExpirySeconds < 0 || refreshBeforeExpirySeconds > 3600
         || requestTimeoutMillis < 1 || requestTimeoutMillis > 60000) {
       throw new IllegalArgumentException("Invalid exporter OAuth2 advanced options");
     }

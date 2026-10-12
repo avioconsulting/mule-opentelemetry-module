@@ -10,7 +10,7 @@
         metricsEndpoint="https://localhost:4318/custom/metrics"
         logsEndpoint="https://localhost:4318/custom/logs">
       <opentelemetry:headers><opentelemetry:header key="X-Tenant" value="dummy-tenant"/></opentelemetry:headers>
-      <opentelemetry:authentication><opentelemetry:bearer-token-auth token="dummy-bearer"/></opentelemetry:authentication>
+      <opentelemetry:authentication><opentelemetry:bearer-token token="dummy-bearer"/></opentelemetry:authentication>
     </opentelemetry:otlp-exporter></opentelemetry:exporter>
   </opentelemetry:config>
   <opentelemetry:config name="apiKey" serviceName="auth-test">
@@ -18,12 +18,12 @@
         tracesEndpoint="https://localhost:5317"
         metricsEndpoint="https://localhost:6317"
         logsEndpoint="https://localhost:7317">
-      <opentelemetry:authentication><opentelemetry:api-key-auth headerName="X-Api-Key" value="dummy-key"/></opentelemetry:authentication>
+      <opentelemetry:authentication><opentelemetry:api-key headerName="X-Api-Key" value="dummy-key"/></opentelemetry:authentication>
     </opentelemetry:otlp-exporter></opentelemetry:exporter>
   </opentelemetry:config>
   <opentelemetry:config name="oauth" serviceName="auth-test">
     <opentelemetry:exporter><opentelemetry:otlp-exporter collectorEndpoint="https://localhost:4317">
-      <opentelemetry:authentication><opentelemetry:oauth2-auth tokenUrl="https://localhost/token" clientId="dummy-id" clientSecret="dummy-secret" scopes="telemetry"/></opentelemetry:authentication>
+      <opentelemetry:authentication><opentelemetry:oauth2 tokenUrl="https://localhost/token" clientId="dummy-id" clientSecret="dummy-secret" scopes="telemetry" refreshBeforeExpirySeconds="90"/></opentelemetry:authentication>
     </opentelemetry:otlp-exporter></opentelemetry:exporter>
   </opentelemetry:config>
 </mule>

@@ -40,6 +40,7 @@ public class OtlpExporter extends AbstractExporter {
       +
       "GRPC Protocol may have URL like http://localhost:4317 and HTTP_PROTOBUF be like http://localhost:4318.")
   @Example(value = "http://localhost:4317")
+  @DisplayName(value = "Collector Endpoint")
   private String collectorEndpoint;
   private String computedCollectorEndpoint;
 

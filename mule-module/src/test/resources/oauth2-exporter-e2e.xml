@@ -11,7 +11,7 @@
           clientCertPath="${oauth.e2e.certificate}" clientCertKeyPath="${oauth.e2e.key}">
         <opentelemetry:headers><opentelemetry:header key="X-Tenant" value="dummy-tenant"/></opentelemetry:headers>
         <opentelemetry:authentication>
-          <opentelemetry:oauth2-auth tokenUrl="${oauth.e2e.tokenUrl}" clientId="dummy-id:+"
+          <opentelemetry:oauth2 tokenUrl="${oauth.e2e.tokenUrl}" clientId="dummy-id:+"
               clientSecret="dummy-secret &amp;" scopes="telemetry.write telemetry.read"
               credentialPlacement="${oauth.e2e.placement}" requestTimeoutMillis="${oauth.e2e.timeout}"/>
         </opentelemetry:authentication>

@@ -1,15 +1,19 @@
 package com.avioconsulting.mule.opentelemetry.api.config.exporter.auth;
 
 import org.mule.runtime.api.meta.ExpressionSupport;
+import org.mule.runtime.extension.api.annotation.Alias;
 import org.mule.runtime.extension.api.annotation.Expression;
 import org.mule.runtime.extension.api.annotation.param.Parameter;
+import org.mule.runtime.extension.api.annotation.param.display.DisplayName;
 import org.mule.runtime.extension.api.annotation.param.display.Password;
 
 /** A static opaque bearer token. */
+@Alias("bearer-token")
 public class BearerTokenAuth implements ExporterAuthentication {
   @Parameter
   @Password
   @Expression(ExpressionSupport.NOT_SUPPORTED)
+  @DisplayName(value = "Token")
   private String token;
 
   public BearerTokenAuth() {

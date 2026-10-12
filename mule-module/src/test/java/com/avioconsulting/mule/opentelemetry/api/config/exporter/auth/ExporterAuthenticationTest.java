@@ -33,6 +33,33 @@ public class ExporterAuthenticationTest {
   }
 
   @Test
+  public void refreshBeforeExpirySecondsRetainsDefaultAndDisplayName() throws Exception {
+    OAuth2Auth auth = new OAuth2Auth("https://localhost/token", "id", "secret", null);
+    assertThat(auth.getRefreshBeforeExpirySeconds()).isEqualTo(60);
+    java.lang.reflect.Field field = OAuth2Auth.class.getDeclaredField("refreshBeforeExpirySeconds");
+    assertThat(field.getAnnotation(org.mule.runtime.extension.api.annotation.param.display.DisplayName.class)
+        .value()).isEqualTo("Refresh Before Expiry (Seconds)");
+    assertThat(field.getAnnotation(org.mule.runtime.extension.api.annotation.param.Optional.class)
+        .defaultValue()).isEqualTo("60");
+  }
+
+  @Test
+  public void refreshBeforeExpirySecondsRetainsValidationBounds() throws Exception {
+    OAuth2Auth auth = new OAuth2Auth("https://localhost/token", "id", "secret", null);
+    java.lang.reflect.Field field = OAuth2Auth.class.getDeclaredField("refreshBeforeExpirySeconds");
+    field.setAccessible(true);
+    for (int value : new int[] { 0, 3600 }) {
+      field.setInt(auth, value);
+      auth.validate();
+      assertThat(auth.getRefreshBeforeExpirySeconds()).isEqualTo(value);
+    }
+    for (int value : new int[] { -1, 3601 }) {
+      field.setInt(auth, value);
+      assertThatThrownBy(auth::validate).isInstanceOf(IllegalArgumentException.class);
+    }
+  }
+
+  @Test
   public void rejectsUnsafeHeadersWithoutExposingValues() {
     assertThatThrownBy(() -> new BearerTokenAuth("secret\r\nheader").validate())
         .isInstanceOf(IllegalArgumentException.class).hasMessageNotContaining("secret");

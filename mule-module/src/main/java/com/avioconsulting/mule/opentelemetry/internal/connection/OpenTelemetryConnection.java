@@ -138,7 +138,7 @@ public class OpenTelemetryConnection implements TraceContextHandler,
               OAuth2Auth oauth = (OAuth2Auth) authentication;
               authenticationProvider = new OAuth2TokenProvider(new LazyMuleOAuth2TokenClient(
                   openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getHttpService(), oauth),
-                  oauth.getRefreshSkewSeconds(), oauth.getRequestTimeoutMillis());
+                  oauth.getRefreshBeforeExpirySeconds(), oauth.getRequestTimeoutMillis());
             } else {
               authenticationProvider = new StaticAuthenticationProvider(authentication);
             }

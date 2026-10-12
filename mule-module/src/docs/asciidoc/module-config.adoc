@@ -317,7 +317,7 @@ All signals use the configured protocol unless overridden through SDK configurat
                                      metricsEndpoint="${telemetry.metricsEndpoint}"
                                      logsEndpoint="${telemetry.logsEndpoint}">
             <opentelemetry:authentication>
-                <opentelemetry:oauth2-auth tokenUrl="${telemetry.tokenUrl}"
+                <opentelemetry:oauth2 tokenUrl="${telemetry.tokenUrl}"
                                           clientId="${secure::telemetry.clientId}"
                                           clientSecret="${secure::telemetry.clientSecret}"
                                           scopes="${telemetry.scopes}"/>
@@ -376,7 +376,7 @@ To configure authentication:
                 <opentelemetry:header key="X-Tenant" value="${telemetry.tenant}"/>
             </opentelemetry:headers>
             <opentelemetry:authentication>
-                <opentelemetry:bearer-token-auth token="${secure::telemetry.token}"/>
+                <opentelemetry:bearer-token token="${secure::telemetry.token}"/>
             </opentelemetry:authentication>
         </opentelemetry:otlp-exporter>
     </opentelemetry:exporter>
@@ -392,7 +392,7 @@ To configure authentication:
         <opentelemetry:header key="X-Tenant" value="${telemetry.tenant}"/>
     </opentelemetry:headers>
     <opentelemetry:authentication>
-        <opentelemetry:api-key-auth headerName="X-Api-Key" value="${secure::telemetry.apiKey}"/>
+        <opentelemetry:api-key headerName="X-Api-Key" value="${secure::telemetry.apiKey}"/>
     </opentelemetry:authentication>
 </opentelemetry:otlp-exporter>
 ----
@@ -405,12 +405,12 @@ To configure authentication:
         <opentelemetry:header key="X-Tenant" value="${telemetry.tenant}"/>
     </opentelemetry:headers>
     <opentelemetry:authentication>
-        <opentelemetry:oauth2-auth tokenUrl="https://identity.example.com/oauth2/token"
+        <opentelemetry:oauth2 tokenUrl="https://identity.example.com/oauth2/token"
                                   clientId="${secure::telemetry.clientId}"
                                   clientSecret="${secure::telemetry.clientSecret}"
                                   scopes="telemetry.write"
                                   credentialPlacement="CLIENT_SECRET_POST"
-                                  refreshSkewSeconds="60"
+                                  refreshBeforeExpirySeconds="60"
                                   requestTimeoutMillis="8000"/>
     </opentelemetry:authentication>
 </opentelemetry:otlp-exporter>
@@ -425,7 +425,7 @@ To configure authentication:
 |Optional attribute |Default |Configuration
 |`scopes` |Omitted |Space-separated scopes required by the authorization server. Blank values are omitted from the token request.
 |`credentialPlacement` |`CLIENT_SECRET_POST` |Use `CLIENT_SECRET_POST` for credentials in the form body or `CLIENT_SECRET_BASIC` for HTTP Basic authentication, as required by the authorization server.
-|`refreshSkewSeconds` |`60` |Renew before expiration, from 0 through 3600 seconds. The effective skew is capped at half the token lifetime.
+|`refreshBeforeExpirySeconds` |`60` |Refresh Before Expiry (Seconds): renew this many seconds before expiration, from 0 through 3600. The effective buffer is capped at half the token lifetime.
 |`requestTimeoutMillis` |`8000` |Token-request timeout in milliseconds, from 1 through 60000. This is not the collector export timeout.
 |===
 
@@ -433,7 +433,7 @@ To configure authentication:
 * `requestTimeoutMillis` defaults to 8000 and accepts 1 through 60000. It bounds waiting for the token response and its streamed body; the minimum Mule HTTP API does not expose separate connect/read timeout fields here. Responses are limited to 64 KiB. Redirects are never followed.
 * Each OAuth-enabled connection creates its own dedicated Mule HTTP service client lazily, on first token acquisition. Token traffic uses the platform's default validating TLS/trust configuration and no application-specific proxy. No collector TLS/mTLS settings or HTTP Request configuration are inherited. There are no token-client TLS/proxy parameter overrides in this version; establish the required platform trust and direct token-endpoint connectivity before deployment. Certificate and hostname validation are not disabled.
 * One token cache is shared by all enabled authenticated signals in that connection, never globally across applications/connections. Token lifetimes come from positive integral `expires_in`; `access_token` remains opaque, `token_type` must be Bearer, and JWT claims are not decoded.
-* `refreshSkewSeconds` defaults to 60 (range 0 through 3600), capped at half the token lifetime. Expiration is calculated conservatively from the acquisition request's start using monotonic time. One exporter performs renewal; concurrent exporters may use the previous token only while it remains valid. Callers without a token have a bounded wait.
+* `refreshBeforeExpirySeconds` defaults to 60 (range 0 through 3600), capped at half the token lifetime. Expiration is calculated conservatively from the acquisition request's start using monotonic time. One exporter performs renewal; concurrent exporters may use the previous token only while it remains valid. Callers without a token have a bounded wait.
 * Renewal requests a new access token using client credentials. No refresh-token grant or dedicated periodic renewal scheduler is used. Failed renewal retains a still-valid previous token; failures use a jittered exponential cooldown from approximately one second up to 30 seconds.
 * Token-service failures skip telemetry exports, return an unsuccessful SDK export result, and emit a rate-limited diagnostic without credentials or response bodies. They do not throw expected authentication failures into Mule business processing. Expired/missing tokens are not sent. Later exports can recover automatically when token acquisition succeeds.
 * Failed telemetry is not durably stored or replayed. Collector HTTP 401/gRPC `UNAUTHENTICATED` does not trigger an additional token refresh or replay; standard SDK transport retry behavior remains unchanged.
@@ -464,13 +464,13 @@ Before configuring the Mule application:
                                      metricsEndpoint="${azure.monitor.metricsEndpoint}"
                                      logsEndpoint="${azure.monitor.logsEndpoint}">
             <opentelemetry:authentication>
-                <opentelemetry:oauth2-auth
+                <opentelemetry:oauth2
                     tokenUrl="https://login.microsoftonline.com/${azure.tenantId}/oauth2/v2.0/token"
                     clientId="${secure::azure.clientId}"
                     clientSecret="${secure::azure.clientSecret}"
                     scopes="https://monitor.azure.com/.default"
                     credentialPlacement="CLIENT_SECRET_POST"
-                    refreshSkewSeconds="60"
+                    refreshBeforeExpirySeconds="60"
                     requestTimeoutMillis="8000"/>
             </opentelemetry:authentication>
             <opentelemetry:config-properties>

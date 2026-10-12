@@ -43,6 +43,11 @@ public class ExporterAuthenticationXmlTest extends com.avioconsulting.mule.opent
     assertThat(authentication("oauth")).isInstanceOf(OAuth2Auth.class);
   }
 
+  @Test
+  public void loadsRefreshBeforeExpirySeconds() {
+    assertThat(((OAuth2Auth) authentication("oauth")).getRefreshBeforeExpirySeconds()).isEqualTo(90);
+  }
+
   private ExporterAuthentication authentication(String name) {
     return exporter(name).getAuthentication();
   }
