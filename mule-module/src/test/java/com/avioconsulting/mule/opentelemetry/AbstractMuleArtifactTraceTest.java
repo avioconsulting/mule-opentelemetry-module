@@ -4,6 +4,7 @@ import com.avioconsulting.mule.opentelemetry.internal.connection.OpenTelemetryCo
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporterProvider;
 import com.avioconsulting.mule.opentelemetry.internal.opentelemetry.sdk.test.DelegatedLoggingSpanTestExporter;
 import com.avioconsulting.mule.opentelemetry.internal.processor.util.TraceComponentManager;
+import com.avioconsulting.mule.opentelemetry.internal.processor.service.ProcessorComponentService;
 import com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUtil;
 import com.avioconsulting.mule.opentelemetry.test.util.TestLoggerHandler;
 import org.apache.http.HttpEntity;
@@ -42,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ArtifactClassLoaderRunnerConfig(exportPluginClasses = { OpenTelemetryConnection.class,
     DelegatedLoggingSpanTestExporterProvider.class, BatchHelperUtil.class,
-    TraceComponentManager.class }, applicationSharedRuntimeLibs = {
+    TraceComponentManager.class, ProcessorComponentService.class }, applicationSharedRuntimeLibs = {
         "org.apache.derby:derby", "com.avioconsulting.mule:mule-opentelemetry-batch-legacy-adapter",
         "com.avioconsulting.mule:mule-opentelemetry-module-api" })
 public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunctionalTestCase {
@@ -81,6 +82,7 @@ public abstract class AbstractMuleArtifactTraceTest extends MuleArtifactFunction
   protected void doSetUpBeforeMuleContextCreation() throws Exception {
     OpenTelemetryConnection._resetForTest();
     BatchHelperUtil._resetForTesting();
+    ProcessorComponentService._resetForTesting();
     super.doSetUpBeforeMuleContextCreation();
     System.setProperty(TEST_TIMEOUT_SYSTEM_PROPERTY, "120_000_000");
     System.setProperty("http.host", "localhost");
