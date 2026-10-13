@@ -174,7 +174,7 @@ public class OpenTelemetryConnection implements TraceContextHandler,
         getMetricsProviders().clear();
       }
       tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
-      transactionStore = InMemoryTransactionStore.getInstance(this);
+      transactionStore = new InMemoryTransactionStore(this);
       PropertiesUtil.init();
     } catch (RuntimeException failure) {
       invalidate();
@@ -270,11 +270,10 @@ public class OpenTelemetryConnection implements TraceContextHandler,
   }
 
   /**
-   * This is for tests to reset the static instance in-between the tests.
-   * Reset Global OpenTelemetry instances.
+   * Retained for existing test harnesses. Connections and transaction stores
+   * are instance-owned, so there is no global state to reset.
    */
   public static void _resetForTest() {
-    InMemoryTransactionStore._resetForTesting();
   }
 
   public static synchronized OpenTelemetryConnection getInstance(
