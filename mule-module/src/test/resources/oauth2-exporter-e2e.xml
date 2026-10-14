@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:opentelemetry="http://www.mulesoft.org/schema/mule/opentelemetry"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+      http://www.mulesoft.org/schema/mule/opentelemetry http://www.mulesoft.org/schema/mule/opentelemetry/current/mule-opentelemetry.xsd">
+  <opentelemetry:config name="OAuthEndToEnd" serviceName="oauth-e2e" batchExportDelayInterval="3600000">
+    <opentelemetry:exporter>
+      <opentelemetry:otlp-exporter collectorEndpoint="${oauth.e2e.collector}" protocol="${oauth.e2e.protocol}"
+          requestCompression="GZIP" endpointCertPath="${oauth.e2e.certificate}"
+          clientCertPath="${oauth.e2e.certificate}" clientCertKeyPath="${oauth.e2e.key}">
+        <opentelemetry:headers><opentelemetry:header key="X-Tenant" value="dummy-tenant"/></opentelemetry:headers>
+        <opentelemetry:authentication>
+          <opentelemetry:oauth2 tokenUrl="${oauth.e2e.tokenUrl}" clientId="dummy-id:+"
+              clientSecret="dummy-secret &amp;" scopes="telemetry.write telemetry.read"
+              credentialPlacement="${oauth.e2e.placement}" requestTimeoutMillis="${oauth.e2e.timeout}"/>
+        </opentelemetry:authentication>
+      </opentelemetry:otlp-exporter>
+    </opentelemetry:exporter>
+  </opentelemetry:config>
+  <flow name="oauth-business-flow">
+    <set-payload value="business-success"/>
+  </flow>
+</mule>

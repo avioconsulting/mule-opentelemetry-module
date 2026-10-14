@@ -26,27 +26,16 @@ import static com.avioconsulting.mule.opentelemetry.internal.util.BatchHelperUti
  * In-memory {@link TransactionStore}. This implementation uses
  * in-memory {@link Map} to
  * store transactions and related processor spans. Transactions are kept in
- * memory until they end.
+ * memory until they end. Each store belongs to its transaction processor so
+ * transactions cannot retain a different connection's tracer or registry.
  */
 public class InMemoryTransactionStore implements TransactionStore {
-  private static TransactionStore service;
   private final ConcurrentHashMap<String, Transaction> transactionMap = new ConcurrentHashMap<>();
   private static final Logger LOGGER = LoggerFactory.getLogger(InMemoryTransactionStore.class);
   private final TransactionProcessor transactionProcessor;
 
-  private InMemoryTransactionStore(TransactionProcessor transactionProcessor) {
+  public InMemoryTransactionStore(TransactionProcessor transactionProcessor) {
     this.transactionProcessor = transactionProcessor;
-  }
-
-  public static synchronized TransactionStore getInstance(TransactionProcessor transactionProcessor) {
-    if (service == null) {
-      service = new InMemoryTransactionStore(transactionProcessor);
-    }
-    return service;
-  }
-
-  public static void _resetForTesting() {
-    service = null;
   }
 
   @Override

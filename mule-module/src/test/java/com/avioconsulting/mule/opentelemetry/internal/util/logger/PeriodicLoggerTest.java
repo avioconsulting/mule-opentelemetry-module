@@ -9,12 +9,84 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 public class PeriodicLoggerTest {
+
+  @Test
+  public void customClockLogsImmediatelyAndThrottlesAtIntervalBoundary() {
+    for (long start : new long[] { 0, -60000 }) {
+      Logger logger = mock(Logger.class);
+      when(logger.isWarnEnabled()).thenReturn(true);
+      AtomicLong clock = new AtomicLong(start);
+      PeriodicLogger periodicLogger = PeriodicLogger.builder()
+          .interval(30, TimeUnit.SECONDS).includeSuppressionCount(false)
+          .clockMillis(clock::get).build();
+
+      periodicLogger.warn(logger, "Failure: {}", 401);
+      clock.set(start + 29999);
+      periodicLogger.warn(logger, "Failure: {}", 503);
+      verify(logger).warn("Failure: {}", new Object[] { 401 });
+      verify(logger, never()).warn("Failure: {}", new Object[] { 503 });
+      clock.set(start + 30000);
+      periodicLogger.warn(logger, "Failure: {}", 503);
+      verify(logger).warn("Failure: {}", new Object[] { 503 });
+      verify(logger, never()).warn(anyString(), any(), any());
+    }
+  }
+
+  @Test
+  public void customClockPreventsReentrantWarningAndKeepsInstancesIndependent() {
+    Logger logger = mock(Logger.class);
+    when(logger.isWarnEnabled()).thenReturn(true);
+    PeriodicLogger first = PeriodicLogger.builder().clockMillis(() -> 0)
+        .includeSuppressionCount(false).build();
+    PeriodicLogger second = PeriodicLogger.builder().clockMillis(() -> 0)
+        .includeSuppressionCount(false).build();
+    doAnswer(invocation -> {
+      first.warn(logger, "Failure");
+      return null;
+    }).when(logger).warn("Failure");
+
+    first.warn(logger, "Failure");
+    second.warn(logger, "Failure");
+    verify(logger, times(2)).warn("Failure");
+  }
+
+  @Test
+  public void defaultClockPreventsReentrantWarningAndKeepsInstancesIndependent() {
+    Logger logger = mock(Logger.class);
+    when(logger.isWarnEnabled()).thenReturn(true);
+    PeriodicLogger first = PeriodicLogger.createDefault();
+    PeriodicLogger second = PeriodicLogger.createDefault();
+    doAnswer(invocation -> {
+      first.warn(logger, "Failure");
+      return null;
+    }).when(logger).warn("Failure");
+
+    first.warn(logger, "Failure");
+    second.warn(logger, "Failure");
+    verify(logger, times(2)).warn("Failure");
+  }
+
+  @Test
+  public void customClockDrivesStaleEntryCleanup() {
+    Logger logger = mock(Logger.class);
+    when(logger.isWarnEnabled()).thenReturn(true);
+    AtomicLong clock = new AtomicLong();
+    PeriodicLogger periodicLogger = PeriodicLogger.builder()
+        .interval(1, TimeUnit.SECONDS).clockMillis(clock::get).build();
+    periodicLogger.warn(logger, "Old failure");
+    clock.set(TimeUnit.MINUTES.toMillis(10));
+    periodicLogger.warn(logger, "New failure");
+    assertThat(periodicLogger.getCacheSize()).isEqualTo(1);
+    periodicLogger.forceCleanup();
+    assertThat(periodicLogger.getCacheSize()).isZero();
+  }
 
   @Test
   public void shouldThrottleRepeatedMessages() {

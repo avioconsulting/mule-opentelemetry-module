@@ -2,6 +2,9 @@ package com.avioconsulting.mule.opentelemetry.api.config.exporter;
 
 import com.avioconsulting.mule.opentelemetry.api.config.Header;
 import com.avioconsulting.mule.opentelemetry.api.config.KeyValuePair;
+import com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.ExporterAuthentication;
+import org.mule.runtime.api.meta.ExpressionSupport;
+import org.mule.runtime.extension.api.annotation.Expression;
 import org.mule.runtime.api.meta.model.display.PathModel;
 import org.mule.runtime.extension.api.annotation.param.NullSafe;
 import org.mule.runtime.extension.api.annotation.param.Optional;
@@ -37,8 +40,30 @@ public class OtlpExporter extends AbstractExporter {
       +
       "GRPC Protocol may have URL like http://localhost:4317 and HTTP_PROTOBUF be like http://localhost:4318.")
   @Example(value = "http://localhost:4317")
+  @DisplayName(value = "Collector Endpoint")
   private String collectorEndpoint;
   private String computedCollectorEndpoint;
+
+  @Parameter
+  @Optional
+  @Expression(ExpressionSupport.NOT_SUPPORTED)
+  @DisplayName("Traces Endpoint")
+  @Summary("Complete OTLP traces URL, overriding the collector endpoint for traces. No path is appended. HTTP_PROTOBUF supports custom paths; GRPC requires an empty path or /. Query strings and fragments are not supported. System properties and environment variables can override this value.")
+  private String tracesEndpoint;
+
+  @Parameter
+  @Optional
+  @Expression(ExpressionSupport.NOT_SUPPORTED)
+  @DisplayName("Metrics Endpoint")
+  @Summary("Complete OTLP metrics URL, overriding the collector endpoint for metrics. No path is appended. HTTP_PROTOBUF supports custom paths; GRPC requires an empty path or /. Query strings and fragments are not supported. System properties and environment variables can override this value.")
+  private String metricsEndpoint;
+
+  @Parameter
+  @Optional
+  @Expression(ExpressionSupport.NOT_SUPPORTED)
+  @DisplayName("Logs Endpoint")
+  @Summary("Complete OTLP logs URL, overriding the collector endpoint for logs. No path is appended. HTTP_PROTOBUF supports custom paths; GRPC requires an empty path or /. Query strings and fragments are not supported. System properties and environment variables can override this value.")
+  private String logsEndpoint;
 
   @Parameter
   @Optional(defaultValue = "GRPC")
@@ -79,6 +104,20 @@ public class OtlpExporter extends AbstractExporter {
   @Summary("Key-value pairs separated by commas to pass as request headers on OTLP trace, metric, and log requests.")
   private List<Header> headers;
 
+  @Parameter
+  @Optional
+  @Expression(ExpressionSupport.NOT_SUPPORTED)
+  private ExporterAuthentication authentication;
+
+  public ExporterAuthentication getAuthentication() {
+    return authentication;
+  }
+
+  public OtlpExporter setAuthentication(ExporterAuthentication authentication) {
+    this.authentication = authentication;
+    return this;
+  }
+
   public List<Header> getHeaders() {
     return headers;
   }
@@ -88,6 +127,9 @@ public class OtlpExporter extends AbstractExporter {
   }
 
   public String getCollectorEndpoint() {
+    if (collectorEndpoint == null) {
+      return null;
+    }
     if (computedCollectorEndpoint != null) {
       return computedCollectorEndpoint;
     }
@@ -97,6 +139,33 @@ public class OtlpExporter extends AbstractExporter {
       computedCollectorEndpoint = collectorEndpoint;
     }
     return computedCollectorEndpoint;
+  }
+
+  public String getTracesEndpoint() {
+    return tracesEndpoint;
+  }
+
+  public OtlpExporter setTracesEndpoint(String tracesEndpoint) {
+    this.tracesEndpoint = tracesEndpoint;
+    return this;
+  }
+
+  public String getMetricsEndpoint() {
+    return metricsEndpoint;
+  }
+
+  public OtlpExporter setMetricsEndpoint(String metricsEndpoint) {
+    this.metricsEndpoint = metricsEndpoint;
+    return this;
+  }
+
+  public String getLogsEndpoint() {
+    return logsEndpoint;
+  }
+
+  public OtlpExporter setLogsEndpoint(String logsEndpoint) {
+    this.logsEndpoint = logsEndpoint;
+    return this;
   }
 
   public String getEndpointCertPath() {
@@ -165,18 +234,20 @@ public class OtlpExporter extends AbstractExporter {
   }
 
   public Map<String, String> getExporterProperties() {
+    if (authentication != null) {
+      authentication.validate();
+    }
     Map<String, String> config = super.getExporterProperties();
     config.put(OTEL_TRACES_EXPORTER_KEY, OTLP);
     config.put(OTEL_METRICS_EXPORTER_KEY, OTLP);
     config.put(OTEL_LOGS_EXPORTER_KEY, OTLP);
     config.put(OTEL_EXPORTER_OTLP_PROTOCOL, protocol.getValue());
-    config.put(OTEL_EXPORTER_OTLP_ENDPOINT, getCollectorEndpoint());
-    // Set Traces endpoint when using HTTP/Protobuf only
-    if (protocol.equals(Protocol.HTTP_PROTOBUF)) {
-      config.put(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, getSignalEndpoint("traces"));
-      config.put(OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, getSignalEndpoint("metrics"));
-      config.put(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, getSignalEndpoint("logs"));
+    if (getCollectorEndpoint() != null) {
+      config.put(OTEL_EXPORTER_OTLP_ENDPOINT, getCollectorEndpoint());
     }
+    configureSignalEndpoint(config, OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, tracesEndpoint, "traces");
+    configureSignalEndpoint(config, OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, metricsEndpoint, "metrics");
+    configureSignalEndpoint(config, OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, logsEndpoint, "logs");
     if (!OtlpRequestCompression.NONE.equals(requestCompression)) {
       config.put(OTEL_EXPORTER_OTLP_COMPRESSION, requestCompression.getValue());
     }
@@ -196,6 +267,16 @@ public class OtlpExporter extends AbstractExporter {
     return config;
   }
 
+  private void configureSignalEndpoint(Map<String, String> config, String property, String explicitEndpoint,
+      String signal) {
+    if (explicitEndpoint != null) {
+      config.put(property, explicitEndpoint);
+    } else if (Protocol.HTTP_PROTOBUF.equals(protocol) && getCollectorEndpoint() != null) {
+      // Preserve config-properties overrides; only derive a missing signal endpoint.
+      config.putIfAbsent(property, getSignalEndpoint(signal));
+    }
+  }
+
   private String getSignalEndpoint(String signal) {
     String endpoint = getCollectorEndpoint();
     if (!endpoint.endsWith("/"))
@@ -211,12 +292,16 @@ public class OtlpExporter extends AbstractExporter {
       return false;
     OtlpExporter that = (OtlpExporter) o;
     return Objects.equals(collectorEndpoint, that.collectorEndpoint) && protocol == that.protocol
-        && Objects.equals(headers, that.headers);
+        && Objects.equals(tracesEndpoint, that.tracesEndpoint)
+        && Objects.equals(metricsEndpoint, that.metricsEndpoint)
+        && Objects.equals(logsEndpoint, that.logsEndpoint)
+        && Objects.equals(headers, that.headers) && Objects.equals(authentication, that.authentication);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(collectorEndpoint, protocol, headers);
+    return Objects.hash(collectorEndpoint, protocol, tracesEndpoint, metricsEndpoint, logsEndpoint, headers,
+        authentication);
   }
 
   public static enum Protocol {

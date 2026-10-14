@@ -1,16 +1,233 @@
 package com.avioconsulting.mule.opentelemetry.api.config.exporter;
 
 import com.avioconsulting.mule.opentelemetry.api.config.Header;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
+import io.opentelemetry.sdk.autoconfigure.spi.ConfigurationException;
 import org.junit.Test;
 
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.avioconsulting.mule.opentelemetry.api.config.exporter.OtlpExporter.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class OtlpExporterTest {
+
+  @Test
+  public void explicitSignalEndpointsArePreservedForBothProtocols() {
+    for (Protocol protocol : Protocol.values()) {
+      OtlpExporter exporter = exporter("https://collector.example.com", protocol)
+          .setTracesEndpoint(
+              "https://traces.example.com" + (protocol == Protocol.GRPC ? "" : "/custom/trace"))
+          .setMetricsEndpoint(
+              "https://metrics.example.com" + (protocol == Protocol.GRPC ? "/" : "/custom/metric/"))
+          .setLogsEndpoint("https://logs.example.com" + (protocol == Protocol.GRPC ? "" : "/custom/log"));
+      assertThat(exporter.getExporterProperties())
+          .containsEntry(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, exporter.getTracesEndpoint())
+          .containsEntry(OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, exporter.getMetricsEndpoint())
+          .containsEntry(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, exporter.getLogsEndpoint());
+    }
+  }
+
+  @Test
+  public void partialHttpOverrideRetainsCollectorFallback() {
+    OtlpExporter exporter = exporter("https://collector.example.com", Protocol.HTTP_PROTOBUF)
+        .setLogsEndpoint("https://logs.example.com/custom");
+    assertThat(exporter.getExporterProperties())
+        .containsEntry(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, "https://collector.example.com/v1/traces")
+        .containsEntry(OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, "https://collector.example.com/v1/metrics")
+        .containsEntry(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, "https://logs.example.com/custom");
+  }
+
+  @Test
+  public void partialGrpcOverrideUsesSharedEndpointForOtherSignals() {
+    OtlpExporter exporter = exporter("https://collector.example.com:4317", Protocol.GRPC)
+        .setLogsEndpoint("https://logs.example.com:4317");
+    assertThat(exporter.getExporterProperties())
+        .containsEntry(OTEL_EXPORTER_OTLP_ENDPOINT, "https://collector.example.com:4317")
+        .containsEntry(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, "https://logs.example.com:4317")
+        .doesNotContainKeys(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, OTEL_EXPORTER_OTLP_METRICS_ENDPOINT);
+  }
+
+  @Test
+  public void configPropertiesSignalEndpointsAreNotOverwrittenByDerivedEndpoints() {
+    for (Protocol protocol : Protocol.values()) {
+      OtlpExporter exporter = exporter("https://collector.example.com", protocol);
+      Map<String, String> endpoints = signalEndpoints("https://override.example.com/");
+      exporter.setConfigProperties(endpoints);
+      assertThat(exporter.getExporterProperties()).containsAllEntriesOf(endpoints);
+    }
+  }
+
+  @Test
+  public void explicitAttributesOverrideConfigProperties() {
+    OtlpExporter exporter = exporter("https://collector.example.com", Protocol.HTTP_PROTOBUF)
+        .setTracesEndpoint("https://traces.example.com/custom")
+        .setMetricsEndpoint("https://metrics.example.com/custom")
+        .setLogsEndpoint("https://logs.example.com/custom");
+    exporter.setConfigProperties(signalEndpoints("https://override.example.com/"));
+    assertThat(exporter.getExporterProperties())
+        .containsEntry(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, exporter.getTracesEndpoint())
+        .containsEntry(OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, exporter.getMetricsEndpoint())
+        .containsEntry(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, exporter.getLogsEndpoint());
+  }
+
+  @Test
+  public void collectorCanBeOmittedWithExplicitSignalEndpoints() {
+    for (Protocol protocol : Protocol.values()) {
+      OtlpExporter exporter = exporter(null, protocol)
+          .setTracesEndpoint("https://traces.example.com" + (protocol == Protocol.GRPC ? "" : "/custom"))
+          .setMetricsEndpoint("https://metrics.example.com" + (protocol == Protocol.GRPC ? "" : "/custom"))
+          .setLogsEndpoint("https://logs.example.com" + (protocol == Protocol.GRPC ? "" : "/custom"));
+      assertThat(exporter.getCollectorEndpoint()).isNull();
+      assertThat(exporter.getExporterProperties())
+          .doesNotContainKey(OTEL_EXPORTER_OTLP_ENDPOINT)
+          .containsEntry(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, exporter.getTracesEndpoint())
+          .containsEntry(OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, exporter.getMetricsEndpoint())
+          .containsEntry(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, exporter.getLogsEndpoint());
+    }
+  }
+
+  @Test
+  public void collectorCanBeOmittedWithSdkConfigurationOrDefaults() {
+    OtlpExporter exporter = exporter(null, Protocol.HTTP_PROTOBUF);
+    assertThat(exporter.getExporterProperties()).doesNotContainKeys(OTEL_EXPORTER_OTLP_ENDPOINT,
+        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, OTEL_EXPORTER_OTLP_METRICS_ENDPOINT,
+        OTEL_EXPORTER_OTLP_LOGS_ENDPOINT);
+    Map<String, String> properties = signalEndpoints("https://override.example.com/");
+    properties.put(OTEL_EXPORTER_OTLP_ENDPOINT, "https://collector.example.com");
+    exporter.setConfigProperties(properties);
+    assertThat(exporter.getExporterProperties()).containsAllEntriesOf(properties);
+  }
+
+  @Test
+  public void signalEndpointsParticipateInEqualityAndHashCode() {
+    OtlpExporter first = exporter("https://collector.example.com", Protocol.HTTP_PROTOBUF);
+    OtlpExporter second = exporter("https://collector.example.com", Protocol.HTTP_PROTOBUF);
+    assertThat(first).isEqualTo(second);
+    first.setTracesEndpoint("https://traces.example.com/custom");
+    assertThat(first).isNotEqualTo(second);
+    second.setTracesEndpoint(first.getTracesEndpoint());
+    assertThat(first).isEqualTo(second).hasSameHashCodeAs(second);
+    first.setMetricsEndpoint("https://metrics.example.com/custom");
+    assertThat(first).isNotEqualTo(second);
+    second.setMetricsEndpoint(first.getMetricsEndpoint());
+    assertThat(first).isEqualTo(second).hasSameHashCodeAs(second);
+    first.setLogsEndpoint("https://logs.example.com/custom");
+    assertThat(first).isNotEqualTo(second);
+    second.setLogsEndpoint(first.getLogsEndpoint());
+    assertThat(first).isEqualTo(second).hasSameHashCodeAs(second);
+  }
+
+  @Test
+  public void sdkAutoconfigurationAcceptsHttpCustomPathsAndGrpcRootEndpoints() {
+    for (Protocol protocol : Protocol.values()) {
+      for (String signal : new String[] { "traces", "metrics", "logs" }) {
+        for (String path : protocol == Protocol.GRPC ? new String[] { "", "/" }
+            : new String[] { "/custom/ingestion", "/custom/ingestion/" }) {
+          try (OpenTelemetrySdk sdk = endpointBuilder(protocol, signal, "https://localhost:12345" + path)
+              .build().getOpenTelemetrySdk()) {
+            assertThat(sdk).isNotNull();
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  public void sdkAutoconfigurationRejectsQueriesAndFragmentsForBothProtocols() {
+    for (Protocol protocol : Protocol.values()) {
+      for (String signal : new String[] { "traces", "metrics", "logs" }) {
+        assertEndpointRejected(protocol, signal, "https://localhost:12345/?api-version=1", "query string");
+        assertEndpointRejected(protocol, signal, "https://localhost:12345/#section", "fragment");
+      }
+    }
+  }
+
+  @Test
+  public void sdkAutoconfigurationRejectsGrpcCustomPaths() {
+    for (String signal : new String[] { "traces", "metrics", "logs" }) {
+      assertEndpointRejected(Protocol.GRPC, signal, "https://localhost:12345/custom/ingestion", "path");
+    }
+  }
+
+  private void assertEndpointRejected(Protocol protocol, String signal, String endpoint, String reason) {
+    assertThatThrownBy(() -> {
+      try (OpenTelemetrySdk sdk = endpointBuilder(protocol, signal, endpoint).build().getOpenTelemetrySdk()) {
+        // Close the SDK if the unsupported endpoint is unexpectedly accepted.
+      }
+    }).isInstanceOf(ConfigurationException.class).hasMessageContaining(reason);
+  }
+
+  private AutoConfiguredOpenTelemetrySdkBuilder endpointBuilder(Protocol protocol, String signal, String endpoint) {
+    OtlpExporter exporter = exporter(null, protocol)
+        .setTracesEndpoint(endpoint).setMetricsEndpoint(endpoint).setLogsEndpoint(endpoint);
+    Map<String, String> configuration = exporter.getExporterProperties();
+    for (String configuredSignal : new String[] { "traces", "metrics", "logs" }) {
+      configuration.put("otel." + configuredSignal + ".exporter",
+          configuredSignal.equals(signal) ? "otlp" : "none");
+      configuration.put("otel.exporter.otlp." + configuredSignal + ".protocol", protocol.getValue());
+    }
+    // Exercise real exporters even though Surefire disables metrics and logs by
+    // default.
+    return AutoConfiguredOpenTelemetrySdk.builder()
+        .addPropertiesCustomizer(properties -> configuration).disableShutdownHook();
+  }
+
+  @Test
+  public void systemPropertiesOverrideSignalAttributesThroughSdkAutoconfiguration() {
+    OtlpExporter exporter = exporter(null, Protocol.HTTP_PROTOBUF)
+        .setTracesEndpoint("https://traces.example.com/custom")
+        .setMetricsEndpoint("https://metrics.example.com/custom")
+        .setLogsEndpoint("https://logs.example.com/custom");
+    Map<String, String> overrides = signalEndpoints("https://system.example.com/");
+    Map<String, String> previous = new HashMap<>();
+    overrides.forEach((key, value) -> {
+      previous.put(key, System.getProperty(key));
+      System.setProperty(key, value);
+    });
+    Map<String, String> defaults = exporter.getExporterProperties();
+    defaults.put(OTEL_TRACES_EXPORTER_KEY, "none");
+    defaults.put(OTEL_METRICS_EXPORTER_KEY, "none");
+    defaults.put(OTEL_LOGS_EXPORTER_KEY, "none");
+    try {
+      io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder builder = io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk
+          .builder().addPropertiesSupplier(() -> defaults).disableShutdownHook();
+      builder.addPropertiesCustomizer(properties -> {
+        overrides.forEach((key, value) -> assertThat(properties.getString(key)).isEqualTo(value));
+        return Collections.emptyMap();
+      });
+      try (io.opentelemetry.sdk.OpenTelemetrySdk sdk = builder.build().getOpenTelemetrySdk()) {
+        assertThat(sdk).isNotNull();
+      }
+    } finally {
+      previous.forEach((key, value) -> {
+        if (value == null) {
+          System.clearProperty(key);
+        } else {
+          System.setProperty(key, value);
+        }
+      });
+    }
+  }
+
+  private OtlpExporter exporter(String endpoint, Protocol protocol) {
+    return new OtlpExporter(endpoint, protocol, OtlpRequestCompression.NONE, Collections.emptyList());
+  }
+
+  private Map<String, String> signalEndpoints(String prefix) {
+    Map<String, String> endpoints = new HashMap<>();
+    endpoints.put(OTEL_EXPORTER_OTLP_TRACES_ENDPOINT, prefix + "trace");
+    endpoints.put(OTEL_EXPORTER_OTLP_METRICS_ENDPOINT, prefix + "metric");
+    endpoints.put(OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, prefix + "log");
+    return endpoints;
+  }
 
   @Test
   public void verifyConfigProperties() {

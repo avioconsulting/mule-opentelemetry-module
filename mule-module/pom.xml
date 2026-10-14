@@ -10,7 +10,7 @@
     <!-- Avoid maven warning about different parent than module parent -->
   </parent>
   <artifactId>mule-opentelemetry-module</artifactId>
-  <version>2.11.5-SNAPSHOT</version>
+  <version>2.12.0-SNAPSHOT</version>
   <packaging>mule-extension</packaging>
 
   <name>${project.groupId}:${project.artifactId}</name>
@@ -63,6 +63,17 @@
     </dependencies>
   </dependencyManagement>
   <dependencies>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-netty-shaded</artifactId>
+      <version>1.65.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.10.1</version>
+    </dependency>
     <dependency>
       <groupId>com.avioconsulting.mule</groupId>
       <artifactId>mule-opentelemetry-module-api</artifactId>
@@ -118,6 +129,24 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-exporter-logging</artifactId>
+    </dependency>
+    <!-- Required in the extension classloader; the artifact runner omits runtime-only transitives. -->
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
+      <version>4.12.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-otlp-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-sender-okhttp</artifactId>
     </dependency>
     <dependency>
       <!--Needed by HttpProcessorComponent-->
@@ -325,6 +354,17 @@
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <!-- Logging fixtures configure traces in XML. Unconfigured signals must not dial the SDK's default collector. -->
+            <otel.metrics.exporter>none</otel.metrics.exporter>
+            <otel.logs.exporter>none</otel.logs.exporter>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
