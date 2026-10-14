@@ -5,6 +5,10 @@ import com.avioconsulting.mule.opentelemetry.api.config.exporter.GenericExporter
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.LoggingExporter;
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.OpenTelemetryExporter;
 import com.avioconsulting.mule.opentelemetry.api.config.exporter.OtlpExporter;
+import com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.ExporterAuthentication;
+import com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.BearerTokenAuth;
+import com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.ApiKeyAuth;
+import com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.OAuth2Auth;
 import com.avioconsulting.mule.opentelemetry.api.notifications.MetricBaseNotificationData;
 import com.avioconsulting.mule.opentelemetry.api.providers.NoopOpenTelemetryMetricsConfigProvider;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigProvider;
@@ -25,6 +29,8 @@ import org.mule.sdk.api.meta.JavaVersion;
 @Configurations(OpenTelemetryExtensionConfiguration.class)
 @SubTypeMapping(baseType = OpenTelemetryExporter.class, subTypes = { OtlpExporter.class, LoggingExporter.class,
     GenericExporter.class })
+@SubTypeMapping(baseType = ExporterAuthentication.class, subTypes = { BearerTokenAuth.class, ApiKeyAuth.class,
+    OAuth2Auth.class })
 @SubTypeMapping(baseType = OpenTelemetryMetricsConfigProvider.class, subTypes = {
     NoopOpenTelemetryMetricsConfigProvider.class })
 @Export(classes = { OpenTelemetryMetricsConfigProvider.class, AppIdentifier.class, OpenTelemetryMetricsProvider.class,

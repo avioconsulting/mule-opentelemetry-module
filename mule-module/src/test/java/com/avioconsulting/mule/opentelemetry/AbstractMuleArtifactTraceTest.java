@@ -41,6 +41,13 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ArtifactClassLoaderRunnerConfig(exportPluginClasses = { OpenTelemetryConnection.class,
+    com.avioconsulting.mule.opentelemetry.internal.config.OpenTelemetryExtensionConfiguration.class,
+    com.avioconsulting.mule.opentelemetry.api.config.exporter.OtlpExporter.class,
+    com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.ExporterAuthentication.class,
+    com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.BearerTokenAuth.class,
+    com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.ApiKeyAuth.class,
+    com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.OAuth2Auth.class,
+    com.avioconsulting.mule.opentelemetry.internal.auth.oauth2.MuleOAuth2TokenClient.class,
     DelegatedLoggingSpanTestExporterProvider.class, BatchHelperUtil.class,
     TraceComponentManager.class }, applicationSharedRuntimeLibs = {
         "org.apache.derby:derby", "com.avioconsulting.mule:mule-opentelemetry-batch-legacy-adapter",

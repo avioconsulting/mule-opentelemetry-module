@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 
 /**
  * A production-grade utility for periodic logging that reduces log spam by
@@ -77,15 +78,19 @@ public class PeriodicLogger {
   private final AtomicInteger cacheSize;
   private final boolean includeSuppressionCount;
   private final AtomicInteger newEntriesLastMinute = new AtomicInteger(0);
-  private final AtomicLong lastRateCheckMs = new AtomicLong(System.currentTimeMillis());
+  private final AtomicLong lastRateCheckMs;
+  private final LongSupplier clockMillis;
 
   private PeriodicLogger(Builder builder) {
     this.intervalMs = builder.intervalMs;
     this.cleanupIntervalMs = Math.max(intervalMs * CLEANUP_MULTIPLIER, TimeUnit.MINUTES.toMillis(2));
     this.maxCacheSize = builder.maxCacheSize;
     this.includeSuppressionCount = builder.includeSuppressionCount;
+    this.clockMillis = builder.clockMillis != null ? builder.clockMillis
+        : () -> TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
     this.throttles = new ConcurrentHashMap<>(Math.min(1024, maxCacheSize));
-    this.lastCleanupTimeMs = new AtomicLong(System.currentTimeMillis());
+    this.lastRateCheckMs = new AtomicLong(clockMillis.getAsLong());
+    this.lastCleanupTimeMs = new AtomicLong(clockMillis.getAsLong());
     this.cacheSize = new AtomicInteger(0);
   }
 
@@ -116,6 +121,23 @@ public class PeriodicLogger {
     private long intervalMs = DEFAULT_INTERVAL_MS;
     private int maxCacheSize = DEFAULT_MAX_CACHE_SIZE;
     private boolean includeSuppressionCount = true;
+    private LongSupplier clockMillis;
+
+    /**
+     * Sets an optional millisecond time source for throttling and cleanup.
+     * Custom sources should be monotonic and may start at zero or a negative value.
+     * The first message is logged immediately. By default, timing uses
+     * {@link System#nanoTime()} converted to milliseconds, so wall-clock changes
+     * do not affect throttling or cleanup.
+     *
+     * @param clockMillis
+     *            the millisecond time source
+     * @return this builder
+     */
+    public Builder clockMillis(LongSupplier clockMillis) {
+      this.clockMillis = java.util.Objects.requireNonNull(clockMillis, "clockMillis");
+      return this;
+    }
 
     /**
      * Sets the minimum time interval between identical log messages.
@@ -232,7 +254,7 @@ public class PeriodicLogger {
       return;
     }
 
-    long now = System.currentTimeMillis();
+    long now = clockMillis.getAsLong();
 
     try {
       LogKey key = new LogKey(logger.getName(), level, message);
@@ -253,7 +275,7 @@ public class PeriodicLogger {
           }
         }
 
-        LogThrottle newThrottle = new LogThrottle(now);
+        LogThrottle newThrottle = new LogThrottle(now, now - intervalMs);
         LogThrottle existing = throttles.putIfAbsent(key, newThrottle);
         if (existing != null) {
           throttle = existing;
@@ -340,7 +362,7 @@ public class PeriodicLogger {
    * for explicit control (e.g., before shutdown or in tests).
    */
   public void forceCleanup() {
-    performCleanup(System.currentTimeMillis(), true);
+    performCleanup(clockMillis.getAsLong(), true);
   }
 
   private void logMessage(Logger logger, Level level, String message, Object[] args) {
@@ -430,11 +452,12 @@ public class PeriodicLogger {
    * and suppresses later attempts until the interval has elapsed.
    */
   private static class LogThrottle {
-    private final AtomicLong lastLogTimeMs = new AtomicLong(0);
+    private final AtomicLong lastLogTimeMs;
     private final AtomicLong suppressedCount = new AtomicLong(0);
     private final AtomicLong lastAccessTimeMs;
 
-    LogThrottle(long now) {
+    LogThrottle(long now, long initialLogTimeMs) {
+      this.lastLogTimeMs = new AtomicLong(initialLogTimeMs);
       this.lastAccessTimeMs = new AtomicLong(now);
     }
 

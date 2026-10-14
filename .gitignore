@@ -71,3 +71,7 @@ out/
 
 .beads
 .vscode
+.playwright-mcp
+
+# Local implementation plans
+/implementation-plans/

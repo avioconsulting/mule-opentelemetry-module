@@ -1,6 +1,17 @@
 package com.avioconsulting.mule.opentelemetry.internal.connection;
 
 import com.avioconsulting.mule.opentelemetry.api.AppIdentifier;
+import com.avioconsulting.mule.opentelemetry.api.config.exporter.OtlpExporter;
+import com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.ExporterAuthentication;
+import com.avioconsulting.mule.opentelemetry.api.config.exporter.auth.OAuth2Auth;
+import com.avioconsulting.mule.opentelemetry.internal.auth.ExporterAuthenticationProvider;
+import com.avioconsulting.mule.opentelemetry.internal.auth.StaticAuthenticationProvider;
+import com.avioconsulting.mule.opentelemetry.internal.auth.oauth2.LazyMuleOAuth2TokenClient;
+import com.avioconsulting.mule.opentelemetry.internal.auth.oauth2.OAuth2TokenProvider;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.FutureTask;
 import com.avioconsulting.mule.opentelemetry.api.providers.NoopOpenTelemetryMetricsConfigProvider;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsConfigProvider;
 import com.avioconsulting.mule.opentelemetry.api.providers.OpenTelemetryMetricsProvider;
@@ -65,6 +76,9 @@ public class OpenTelemetryConnection implements TraceContextHandler,
   private static final String INSTRUMENTATION_NAME = "mule-opentelemetry-module-DEV";
   private final TransactionStore transactionStore;
   private OpenTelemetry openTelemetry;
+  private OpenTelemetrySdk sdk;
+  private ExporterAuthenticationProvider authenticationProvider;
+  private final AtomicBoolean closed = new AtomicBoolean();
   private final Tracer tracer;
   private boolean turnOffTracing = false;
   private boolean turnOffMetrics = false;
@@ -84,60 +98,88 @@ public class OpenTelemetryConnection implements TraceContextHandler,
     // See here for autoconfigure options
     // https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure
     AutoConfiguredOpenTelemetrySdkBuilder builder = AutoConfiguredOpenTelemetrySdk.builder();
-
-    if (openTelemetryConfigWrapper != null) {
-      // TODO: Process other config elements for OTEL SDK
-      final Map<String, String> configMap = new HashMap<>();
-      if (openTelemetryConfigWrapper.getResource() != null) {
-        configMap.putAll(openTelemetryConfigWrapper.getResource().getConfigMap());
-      }
-      if (openTelemetryConfigWrapper.getExporter() != null) {
-        configMap.putAll(openTelemetryConfigWrapper.getExporter().getExporterProperties());
-      }
-      if (openTelemetryConfigWrapper.getSpanProcessorConfiguration() != null) {
-        configMap.putAll(openTelemetryConfigWrapper.getSpanProcessorConfiguration().getConfigMap());
-      }
-      // Disable the resource providers that are handled by
-      // MuleAppHostResourceProvider or MuleResourceProvider
-      configMap.put("otel.java.disabled.resource.providers",
-          "io.opentelemetry.instrumentation.resources.HostResourceProvider," +
-              "io.opentelemetry.instrumentation.resources.ContainerResourceProvider," +
-              "io.opentelemetry.instrumentation.resources.ProcessResourceProvider");
-      configureLogParameters(configMap);
-      builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
-      if (logger.isDebugEnabled()) {
-        logger.debug("Creating OpenTelemetryConnection with properties: [{}]", configMap);
-      }
-      turnOffTracing = openTelemetryConfigWrapper.isTurnOffTracing();
-      turnOffMetrics = openTelemetryConfigWrapper.isTurnOffMetrics();
-      appIdentifier = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getAppIdentifier();
-      metricsProvider = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getMetricsConfigProvider();
-      expressionManager = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getExpressionManager();
-    }
-    builder.setServiceClassLoader(AutoConfiguredOpenTelemetrySdkBuilder.class.getClassLoader());
-    if (metricsProvider != null) {
-      metricsProvider.initialise(appIdentifier);
-      metricsProvider.turnOffMetrics(turnOffMetrics);
-    }
-    openTelemetry = builder.build().getOpenTelemetrySdk();
-    installOpenTelemetryLogger();
-    if (metricsProvider != null && !(metricsProvider instanceof NoopOpenTelemetryMetricsConfigProvider)) {
-      if (!turnOffMetrics) {
-        if (logger.isInfoEnabled()) {
-          logger.info("Initializing Metrics Providers");
+    OtlpAuthenticationCustomizer authenticationCustomizer = null;
+    try {
+      if (openTelemetryConfigWrapper != null) {
+        // TODO: Process other config elements for OTEL SDK
+        final Map<String, String> configMap = new HashMap<>();
+        if (openTelemetryConfigWrapper.getResource() != null) {
+          configMap.putAll(openTelemetryConfigWrapper.getResource().getConfigMap());
+        }
+        if (openTelemetryConfigWrapper.getExporter() != null) {
+          configMap.putAll(openTelemetryConfigWrapper.getExporter().getExporterProperties());
+        }
+        if (openTelemetryConfigWrapper.getSpanProcessorConfiguration() != null) {
+          configMap.putAll(openTelemetryConfigWrapper.getSpanProcessorConfiguration().getConfigMap());
+        }
+        // Disable the resource providers that are handled by
+        // MuleAppHostResourceProvider or MuleResourceProvider
+        configMap.put("otel.java.disabled.resource.providers",
+            "io.opentelemetry.instrumentation.resources.HostResourceProvider," +
+                "io.opentelemetry.instrumentation.resources.ContainerResourceProvider," +
+                "io.opentelemetry.instrumentation.resources.ProcessResourceProvider");
+        configureLogParameters(configMap);
+        builder.addPropertiesSupplier(() -> Collections.unmodifiableMap(configMap));
+        if (logger.isDebugEnabled()) {
+          logger.debug("Creating OpenTelemetryConnection with properties: [{}]",
+              ConfigurationSanitizer.sanitize(configMap));
+        }
+        turnOffTracing = openTelemetryConfigWrapper.isTurnOffTracing();
+        turnOffMetrics = openTelemetryConfigWrapper.isTurnOffMetrics();
+        appIdentifier = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getAppIdentifier();
+        metricsProvider = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getMetricsConfigProvider();
+        expressionManager = openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getExpressionManager();
+        if (openTelemetryConfigWrapper.getExporter() instanceof OtlpExporter) {
+          ExporterAuthentication authentication = ((OtlpExporter) openTelemetryConfigWrapper.getExporter())
+              .getAuthentication();
+          if (authentication != null) {
+            authentication.validate();
+            if (authentication instanceof OAuth2Auth) {
+              OAuth2Auth oauth = (OAuth2Auth) authentication;
+              authenticationProvider = new OAuth2TokenProvider(new LazyMuleOAuth2TokenClient(
+                  openTelemetryConfigWrapper.getOpenTelemetryConfiguration().getHttpService(), oauth),
+                  oauth.getRefreshBeforeExpirySeconds(), oauth.getRequestTimeoutMillis());
+            } else {
+              authenticationProvider = new StaticAuthenticationProvider(authentication);
+            }
+            authenticationCustomizer = new OtlpAuthenticationCustomizer(authenticationProvider);
+            authenticationCustomizer.register(builder);
+          }
         }
       }
-      metricsProvider.start();
-      getMetricsProviders().initialize(metricsProvider, openTelemetry);
-    } else {
-      if (logger.isInfoEnabled()) {
-        logger.info("Metrics Providers are turned off. No metrics will be exported.");
+      builder.setServiceClassLoader(AutoConfiguredOpenTelemetrySdkBuilder.class.getClassLoader());
+      if (metricsProvider != null) {
+        metricsProvider.initialise(appIdentifier);
+        metricsProvider.turnOffMetrics(turnOffMetrics);
       }
-      getMetricsProviders().clear();
+
+      sdk = builder.disableShutdownHook().build().getOpenTelemetrySdk();
+      openTelemetry = sdk;
+      if (authenticationCustomizer != null && !authenticationCustomizer.isUsed() && logger.isWarnEnabled()) {
+        logger.warn("Exporter authentication is configured but no supported OTLP exporters are enabled");
+      }
+      installOpenTelemetryLogger();
+      if (metricsProvider != null && !(metricsProvider instanceof NoopOpenTelemetryMetricsConfigProvider)) {
+        if (!turnOffMetrics) {
+          if (logger.isInfoEnabled()) {
+            logger.info("Initializing Metrics Providers");
+          }
+        }
+        metricsProvider.start();
+        getMetricsProviders().initialize(metricsProvider, openTelemetry);
+      } else {
+        if (logger.isInfoEnabled()) {
+          logger.info("Metrics Providers are turned off. No metrics will be exported.");
+        }
+        getMetricsProviders().clear();
+      }
+      tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
+      transactionStore = new InMemoryTransactionStore(this);
+      PropertiesUtil.init();
+    } catch (RuntimeException failure) {
+      invalidate();
+      throw failure;
     }
-    tracer = openTelemetry.getTracer(instrumentationName, instrumentationVersion);
-    transactionStore = InMemoryTransactionStore.getInstance(this);
-    PropertiesUtil.init();
   }
 
   public OpenTelemetryConnection setComponentRegistryService(ComponentRegistryService componentRegistryService) {
@@ -153,6 +195,36 @@ public class OpenTelemetryConnection implements TraceContextHandler,
   // For testing purpose only
   public void withOpenTelemetry(OpenTelemetry openTelemetry) {
     this.openTelemetry = openTelemetry;
+  }
+
+  /**
+   * Returns the owned SDK for artifact-loader integration tests without
+   * private-field access.
+   *
+   * @return the connection-owned SDK
+   */
+  public OpenTelemetrySdk _getSdkForTest() {
+    return sdk;
+  }
+
+  /**
+   * Returns the connection-local authentication provider for artifact-loader
+   * integration tests.
+   *
+   * @return the configured authentication provider, or null when authentication
+   *         is not configured
+   */
+  public ExporterAuthenticationProvider _getAuthenticationProviderForTest() {
+    return authenticationProvider;
+  }
+
+  /**
+   * Indicates whether connection cleanup has begun.
+   *
+   * @return true once cleanup has begun
+   */
+  public boolean isClosed() {
+    return closed.get();
   }
 
   private void configureLogParameters(Map<String, String> configMap) {
@@ -198,11 +270,10 @@ public class OpenTelemetryConnection implements TraceContextHandler,
   }
 
   /**
-   * This is for tests to reset the static instance in-between the tests.
-   * Reset Global OpenTelemetry instances.
+   * Retained for existing test harnesses. Connections and transaction stores
+   * are instance-owned, so there is no global state to reset.
    */
   public static void _resetForTest() {
-    InMemoryTransactionStore._resetForTesting();
   }
 
   public static synchronized OpenTelemetryConnection getInstance(
@@ -299,7 +370,43 @@ public class OpenTelemetryConnection implements TraceContextHandler,
   }
 
   public void invalidate() {
+    if (!closed.compareAndSet(false, true)) {
+      return;
+    }
+    boundedCleanup(() -> {
+      try {
+        metricsProviders.stop();
+      } finally {
+        if (metricsProvider != null) {
+          metricsProvider.stop();
+        }
+      }
+    }, 1);
+    if (sdk != null) {
+      boundedCleanup(() -> sdk.shutdown().join(5, TimeUnit.SECONDS), 5);
+    }
+    if (authenticationProvider != null) {
+      boundedCleanup(authenticationProvider::close, 1);
+      authenticationProvider = null;
+    }
+  }
 
+  private void boundedCleanup(Runnable cleanup, int seconds) {
+    FutureTask<Void> task = new FutureTask<>(cleanup, null);
+    Thread thread = new Thread(task, "opentelemetry-connection-cleanup");
+    thread.setDaemon(true);
+    thread.start();
+    try {
+      task.get(seconds, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      task.cancel(true);
+    } catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException e) {
+      task.cancel(true);
+      if (logger.isWarnEnabled()) {
+        logger.warn("OpenTelemetry resource cleanup did not complete successfully");
+      }
+    }
   }
 
   public Meter get(String instrumentationScopeName) {
