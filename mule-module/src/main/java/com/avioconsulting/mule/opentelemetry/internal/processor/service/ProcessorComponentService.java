@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ProcessorComponentService {
   private static ProcessorComponentService service;
   private final List<ProcessorComponent> processorComponents;
-  private static final LazyValue<ProcessorComponentService> VALUE = new LazyValue<>(new ProcessorComponentService());
+  private static LazyValue<ProcessorComponentService> value = new LazyValue<>(new ProcessorComponentService());
   private final Map<ComponentIdentifier, ProcessorComponent> cachedMap = new ConcurrentHashMap<>();
 
   private ProcessorComponentService() {
@@ -23,7 +23,16 @@ public class ProcessorComponentService {
   }
 
   public static synchronized ProcessorComponentService getInstance() {
-    return VALUE.get();
+    return value.get();
+  }
+
+  /**
+   * Replace cached providers and their application dependencies between tests.
+   * Only call before creating a test Mule context, never during application
+   * execution.
+   */
+  public static synchronized void _resetForTesting() {
+    value = new LazyValue<>(new ProcessorComponentService());
   }
 
   public ProcessorComponent getProcessorComponentFor(ComponentIdentifier identifier,

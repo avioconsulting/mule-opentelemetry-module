@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+      http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <import file="global-common.xml"/>
+    <http:listener-config name="DYNAMIC_HOST_HTTP_Listener_configuration">
+        <http:listener-connection host="localhost" port="${dynamic.host.http.port}"/>
+    </http:listener-config>
+    <http:request-config name="DYNAMIC_HOST_ONLY_HTTP_Request_configuration">
+        <http:request-connection host="#[ 'local' ++ vars.region ]" port="${dynamic.host.http.port}"/>
+    </http:request-config>
+    <flow name="dynamic-host-http-target">
+        <http:listener config-ref="DYNAMIC_HOST_HTTP_Listener_configuration" path="/dynamic-host-http-target"/>
+        <set-payload value="dynamic HTTP target reached"/>
+    </flow>
+    <flow name="dynamic-host-http-explicit-url">
+        <http:request config-ref="DYNAMIC_HOST_ONLY_HTTP_Request_configuration"
+                      url="#[ 'http://local' ++ vars.region ++ ':' ++ (vars.targetPort as String) ++ '/dynamic-host-http-target' ]"/>
+    </flow>
+</mule>
