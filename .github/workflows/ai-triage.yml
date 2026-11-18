@@ -4,8 +4,9 @@ on:
     types: [opened, labeled]
 jobs:
   Triage:
-    uses: avioconsulting/shared-workflows/.github/workflows/ai-triage.yml
+    uses: avioconsulting/shared-workflows/.github/workflows/ai-triage.yml@main
     permissions:
       contents: read
       issues: write
-    secrets: inherit
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

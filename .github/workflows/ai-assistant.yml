@@ -4,9 +4,10 @@ on:
     types: [created]
 jobs:
   Assistant:
-    uses: avioconsulting/shared-workflows/.github/workflows/ai-assistant.yml
+    uses: avioconsulting/shared-workflows/.github/workflows/ai-assistant.yml@main
     permissions:
       contents: write
       issues: write
       pull-requests: write
-    secrets: inherit
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
