@@ -1,0 +1,11 @@
+name: AI Issue Triage
+on:
+  issues:
+    types: [opened, labeled]
+jobs:
+  Triage:
+    uses: avioconsulting/shared-workflows/.github/workflows/ai-triage.yml
+    permissions:
+      contents: read
+      issues: write
+    secrets: inherit

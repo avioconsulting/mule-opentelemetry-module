@@ -1,0 +1,12 @@
+name: AI Maintenance Assistant
+on:
+  issue_comment:
+    types: [created]
+jobs:
+  Assistant:
+    uses: avioconsulting/shared-workflows/.github/workflows/ai-assistant.yml
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    secrets: inherit
