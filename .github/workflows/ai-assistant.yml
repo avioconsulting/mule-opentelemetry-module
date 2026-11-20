@@ -6,8 +6,8 @@ jobs:
   Assistant:
     uses: avioconsulting/shared-workflows/.github/workflows/ai-assistant.yml@main
     permissions:
+      id-token: write
       contents: write
       issues: write
       pull-requests: write
-    secrets:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    secrets: inherit
